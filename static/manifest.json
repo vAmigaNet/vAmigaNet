@@ -1,0 +1,16 @@
+{
+  "name": "vAmigaNet",
+  "short_name": "vAmigaNet",
+  "start_url": "/",
+  "scope": ".",
+  "display": "fullscreen",
+  "background_color": "black",
+  "theme_color": "black",
+  "icons": [
+    {
+      "src": "va-icon.png",
+      "type": "image/png",
+      "sizes": "413x413"
+    }
+  ]
+}
