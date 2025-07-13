@@ -83,6 +83,7 @@
 
 <div
         class="h-screen w-screen flex flex-col flex-grow overflow-clip"
+        role="region"
         on:dragenter={handleDragEnter}
         on:dragleave={handleDragLeave}
         on:dragover={handleDragOver}

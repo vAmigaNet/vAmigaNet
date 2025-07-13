@@ -294,8 +294,8 @@
         try {
             // Read value from database
             const id = await db.opts.get(opt);
+            // console.log("loadSetting: ", opt, " = ", id);
 
-            console.log("loadSetting: ", opt, " = ", id);
             // Apply setting
             set(opt, id.value);
 

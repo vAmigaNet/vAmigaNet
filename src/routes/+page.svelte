@@ -56,7 +56,7 @@
 		window.addEventListener('unhandledrejection', handleUncatchedRejection);
 	});
 
-	$: if (canvas) resize();
+	$: if (canvas) { console.log("Calling resize()"); resize(); }
 
 	$: if ($initialized) {
 		// Start render loop
@@ -97,8 +97,8 @@
 		}
 	}
 
-	function handleResizeEvent() {
-		// resize();
+	function handleResizeEvent() {		
+        resize();
 	}
 
 	function handleUncatchedError(event: ErrorEvent) {
@@ -230,17 +230,20 @@
 	}
 </script>
 
+<svelte:head>
+  <title>vAmiga.net</title>
+</svelte:head>
+
 <!--<body>-->
 <div class="h-screen overflow-y-auto scroll-smooth bg-black text-white">
-	<title>vAmiga.net</title>
     <Guru />
     {#if $wasmLoaded}
     <Proxy bind:this={$proxy} />
     {/if}
 	{#if $initialized}
     	<Config bind:this={$config} />
-        <!-- <Audio bind:this={$audio} /> -->
-	    <!-- <GamepadManager bind:this={$gamepadManager} /> -->
+        <Audio bind:this={$audio} />
+	    <GamepadManager bind:this={$gamepadManager} />
         <MainScreen>
             <StatusBar bind:this={statusBar} on:push={push}/>
             <div bind:this={canvas} class="box relative grow border-none border-green-300 overflow-auto">
