@@ -20,6 +20,7 @@
 	import RetroShell from '$lib/RetroShell.svelte';
 	import MainScreen from '$lib/MainScreen.svelte';
 	import DropZone from '$lib/DropZone/DropZone.svelte';
+    import Guru from '$lib/Guru.svelte';
 	import Proxy from '$lib/Proxy.svelte';
 
 	// Animation frame counter
@@ -228,6 +229,7 @@
 <!--<body>-->
 <div class="h-screen overflow-y-auto scroll-smooth bg-black text-white">
 	<title>vAmiga.net</title>
+    <Guru />
 	Holla,
     {#if $wasmLoaded}
     die
