@@ -50,6 +50,7 @@
     $: canvasBorder = $config.getBool(Opt.CANVAS_BORDER) ? 'border-2 border-primary border-opacity-100' : '';
 
     onMount(() => {
+        console.log('Emulator component mounted');
         textureRect.zoomIn();
     });
 
