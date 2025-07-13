@@ -133,7 +133,9 @@
         console.log('Proxy: onMount()');
 
         // Prepare to receive messages
-        $proxy.processMsg = processMsg;
+        if ($proxy) {
+            $proxy.processMsg = processMsg; // TODO: DO THIS LATER
+        }
     });
 
     export async function runShowcase(showcase: DataBaseItem)
