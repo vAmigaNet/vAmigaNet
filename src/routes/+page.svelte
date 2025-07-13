@@ -230,16 +230,13 @@
 <div class="h-screen overflow-y-auto scroll-smooth bg-black text-white">
 	<title>vAmiga.net</title>
     <Guru />
-	Holla,
     {#if $wasmLoaded}
-    die
     <Proxy bind:this={$proxy} />
     {/if}
 	{#if $initialized}
-        Waldfee
-		<!--‚
         <MainScreen>
             <StatusBar bind:this={statusBar} on:push={push}/>
+            <!--
             <div bind:this={canvas} class="box relative grow border-none border-green-300 overflow-auto">
                 <TitleScreen/>
                 <Emulator bind:this={emulator}/>
@@ -248,8 +245,8 @@
                 <DropZone/>
                 <Sidebar on:select={sidebarAction}/>
             </div>
+        -->
         </MainScreen>
-    -->
 	{/if}
 </div>
 <!--</body>-->
