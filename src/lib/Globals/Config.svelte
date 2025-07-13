@@ -1,5 +1,6 @@
 <script lang="ts">
     import { browser } from "$app/environment";
+    import { onMount } from 'svelte';
     import { liveQuery } from 'dexie';
     import { Opt, RenderMode, Theme, WarpMode } from "$lib/types";
     import { amiga, config, darkTheme, initialized, invert, proxy } from '$lib/stores';
@@ -92,10 +93,18 @@
 
     // $: console.log("CONFIG DB: ", opts);
 
+    onMount(() => {
+        console.log('Config: onMount()');
+        registerDefaults();
+        loadSettings();
+    });
+
+    /*
     $: if ($initialized) {
         registerDefaults();
         loadSettings();
     }
+    */
 
     //
     // Registering default settings
@@ -233,10 +242,15 @@
 
     export async function loadSettings()
     {
+        console.log('Config: loadGeneralSettings() ...');
         await loadGeneralSettings();
+        console.log('Config: loadMachineSettings() ...');
         await loadMachineSettings();
+        console.log('Config: loadCompatibilitySettings() ...');
         await loadCompatibilitySettings();
+        console.log('Config: loadAudioSettings() ...');
         await loadAudioSettings();
+        console.log('Config: loadVideoSettings() ...');
         await loadVideoSettings();
     }
 
@@ -281,6 +295,7 @@
             // Read value from database
             const id = await db.opts.get(opt);
 
+            console.log("loadSetting: ", opt, " = ", id);
             // Apply setting
             set(opt, id.value);
 
@@ -584,31 +599,32 @@
             case Opt.DF0:
                 break;
             case Opt.DF1:
-                $amiga.configureDrive($proxy.OPT_DRIVE_CONNECT, 1, val);
-                if (val == 0) $amiga.configureDrive($proxy.OPT_DRIVE_CONNECT, 2, 0);
-                if (val == 0) $amiga.configureDrive($proxy.OPT_DRIVE_CONNECT, 3, 0);
+                const enable = Number(val);
+                $amiga.configureId($proxy.OPT_DRIVE_CONNECT, 1, enable);
+                if (enable == 0) $amiga.configureId($proxy.OPT_DRIVE_CONNECT, 2, 0);
+                if (enable == 0) $amiga.configureId($proxy.OPT_DRIVE_CONNECT, 3, 0);
                 break;
             case Opt.DF2:
-                if (val == 1) $amiga.configureDrive($proxy.OPT_DRIVE_CONNECT, 1, 1);
-                $amiga.configureDrive($proxy.OPT_DRIVE_CONNECT, 2, val);
-                if (val == 0) $amiga.configureDrive($proxy.OPT_DRIVE_CONNECT, 3, 0);
+                if (enable == 1) $amiga.configureId($proxy.OPT_DRIVE_CONNECT, 1, 1);
+                $amiga.configure($proxy.OPT_DRIVE_CONNECT, 2, enable);
+                if (enable == 0) $amiga.configureId($proxy.OPT_DRIVE_CONNECT, 3, 0);
                 break;
             case Opt.DF3:
-                if (val == 1) $amiga.configureDrive($proxy.OPT_DRIVE_CONNECT, 1, 1);
-                if (val == 1) $amiga.configureDrive($proxy.OPT_DRIVE_CONNECT, 2, 1);
-                $amiga.configureDrive($proxy.OPT_DRIVE_CONNECT, 3, val);
+                if (enable == 1) $amiga.configureId($proxy.OPT_DRIVE_CONNECT, 1, 1);
+                if (enable == 1) $amiga.configureId($proxy.OPT_DRIVE_CONNECT, 2, 1);
+                $amiga.configure($proxy.OPT_DRIVE_CONNECT, 3, enable);
                 break;
             case Opt.HD0:
-                $amiga.configureDrive($proxy.OPT_HDC_CONNECT, 0, val);
+                $amiga.configureId($proxy.OPT_HDC_CONNECT, 0, val);
                 break;
             case Opt.HD1:
-                $amiga.configureDrive($proxy.OPT_HDC_CONNECT, 1, val);
+                $amiga.configureId($proxy.OPT_HDC_CONNECT, 1, val);
                 break;
             case Opt.HD2:
-                $amiga.configureDrive($proxy.OPT_HDC_CONNECT, 2, val);
+                $amiga.configureId($proxy.OPT_HDC_CONNECT, 2, val);
                 break;
             case Opt.HD3:
-                $amiga.configureDrive($proxy.OPT_HDC_CONNECT, 3, val);
+                $amiga.configureId($proxy.OPT_HDC_CONNECT, 3, val);
                 break;
 
             //
@@ -636,10 +652,10 @@
                 break;
 
             case Opt.DRIVE_MECHANICS:
-                $amiga.configureDrive($proxy.OPT_DRIVE_MECHANICS, 0, Number(val));
-                $amiga.configureDrive($proxy.OPT_DRIVE_MECHANICS, 1, Number(val));
-                $amiga.configureDrive($proxy.OPT_DRIVE_MECHANICS, 2, Number(val));
-                $amiga.configureDrive($proxy.OPT_DRIVE_MECHANICS, 3, Number(val));
+                $amiga.configureId($proxy.OPT_DRIVE_MECHANICS, 0, Number(val));
+                $amiga.configureId($proxy.OPT_DRIVE_MECHANICS, 1, Number(val));
+                $amiga.configureId($proxy.OPT_DRIVE_MECHANICS, 2, Number(val));
+                $amiga.configureId($proxy.OPT_DRIVE_MECHANICS, 3, Number(val));
                 break;
 
             case Opt.OPT_LOCK_DSKSYNC:
@@ -677,16 +693,16 @@
                 $amiga.configure($proxy.OPT_FILTER_TYPE, Number(val));
                 break;
             case Opt.AUDVOL0:
-                $amiga.configureDrive($proxy.OPT_AUDVOL, 0, Number(val));
+                $amiga.configureId($proxy.OPT_AUDVOL, 0, Number(val));
                 break;
             case Opt.AUDVOL1:
-                $amiga.configureDrive($proxy.OPT_AUDVOL, 1, Number(val));
+                $amiga.configureId($proxy.OPT_AUDVOL, 1, Number(val));
                 break;
             case Opt.AUDVOL2:
-                $amiga.configureDrive($proxy.OPT_AUDVOL, 2, Number(val));
+                $amiga.configureId($proxy.OPT_AUDVOL, 2, Number(val));
                 break;
             case Opt.AUDVOL3:
-                $amiga.configureDrive($proxy.OPT_AUDVOL, 3, Number(val));
+                $amiga.configureId($proxy.OPT_AUDVOL, 3, Number(val));
                 break;
             case Opt.AUDVOLL:
                 $amiga.configure($proxy.OPT_AUDVOLL, Number(val));

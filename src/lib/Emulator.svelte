@@ -11,6 +11,7 @@
         canvasWidth,
         config,
         gamepadManager,
+        initialized,
         layout,
         poweredOn,
         proxy
@@ -47,7 +48,7 @@
     // Indicates if the emulator canvas is animating
     let animating = false;
 
-    $: canvasBorder = $config.getBool(Opt.CANVAS_BORDER) ? 'border-2 border-primary border-opacity-100' : '';
+    $: canvasBorder = $config?.getBool(Opt.CANVAS_BORDER) ? 'border-2 border-primary border-opacity-100' : '';
 
     onMount(() => {
         console.log('Emulator component mounted');

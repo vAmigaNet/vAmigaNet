@@ -6,7 +6,8 @@
 	import { db } from '$lib/Db/db';
 	import { liveQuery } from 'dexie';
 	import { Layer } from '$lib/types';
-	import { initialized, wasmLoaded, proxy, amiga, kickstarts } from '$lib/stores';
+	import { initialized, wasmLoaded, amiga, kickstarts } from '$lib/stores';
+	import { proxy, audio, config, gamepadManager } from '$lib/stores';
 	import { layer, poweredOn, what, errno } from '$lib/stores';
 	import { layout, showSidebar } from '$lib/stores';
 	import { canvasWidth, canvasHeight, aspectWidth, aspectHeight } from '$lib/stores';
@@ -22,6 +23,9 @@
 	import DropZone from '$lib/DropZone/DropZone.svelte';
     import Guru from '$lib/Guru.svelte';
 	import Proxy from '$lib/Proxy.svelte';
+	import Audio from '$lib/Globals/Audio.svelte';
+	import Config from '$lib/Globals/Config.svelte';
+	import GamepadManager from '$lib/Globals/GamepadManager.svelte';
 
 	// Animation frame counter
 	let animationFrame = 0;
@@ -234,9 +238,11 @@
     <Proxy bind:this={$proxy} />
     {/if}
 	{#if $initialized}
+    	<Config bind:this={$config} />
+        <!-- <Audio bind:this={$audio} /> -->
+	    <!-- <GamepadManager bind:this={$gamepadManager} /> -->
         <MainScreen>
             <StatusBar bind:this={statusBar} on:push={push}/>
-            <!--
             <div bind:this={canvas} class="box relative grow border-none border-green-300 overflow-auto">
                 <TitleScreen/>
                 <Emulator bind:this={emulator}/>
@@ -245,7 +251,6 @@
                 <DropZone/>
                 <Sidebar on:select={sidebarAction}/>
             </div>
-        -->
         </MainScreen>
 	{/if}
 </div>

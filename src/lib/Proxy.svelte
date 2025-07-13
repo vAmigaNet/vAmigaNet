@@ -403,7 +403,7 @@
         $hdWriting = [$hd0.isWriting(), $hd1.isWriting(), $hd2.isWriting(), $hd3.isWriting()];
     }
 
-    function processMsg(msg)
+    export function processMsg(msg)
     {
         let type = msg.type;
         let value = msg.value;
