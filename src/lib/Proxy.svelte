@@ -133,9 +133,11 @@
         console.log('Proxy: onMount()');
 
         // Prepare to receive messages
-        if ($proxy) {
-            $proxy.processMsg = processMsg; // TODO: DO THIS LATER
-        }
+        console.log('Prepare to receive messages');
+        $proxy.processMsg = processMsg;
+
+        onRuntimeInitialized();
+
     });
 
     export async function runShowcase(showcase: DataBaseItem)
@@ -239,6 +241,7 @@
 
     export async function installRoms(crcs: [number])
     {
+        console.log('Installing Rom: ', crcs);
         for (const crc of crcs) {
 
             const success = await installRom(crc);
@@ -289,6 +292,11 @@
     export async function installDiagRom()
     {
         await installRom(CRC32.DiagROM);
+    }
+
+    export function runtimeInitialized()
+    {
+        onRuntimeInitialized();
     }
 
     export function onRuntimeInitialized()
@@ -354,14 +362,14 @@
                 1062194186 // Aros
             ];
 
-            $proxy.installRoms(defaultRoms);
+            installRoms(defaultRoms);
 
             console.log('Initialization completed');
             $initialized = true;
         })();
 
         // Trigger an exception (for debugging, only)
-        // $amiga.configure($proxy.OPT_AGNUS_REVISION, 42);
+        $amiga.configure($proxy.OPT_AGNUS_REVISION, 42);
     }
 
     export function updateStateVariables()

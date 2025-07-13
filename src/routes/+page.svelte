@@ -6,7 +6,7 @@
 	import { db } from '$lib/Db/db';
 	import { liveQuery } from 'dexie';
 	import { Layer } from '$lib/types';
-	import { initialized, proxy, amiga, kickstarts } from '$lib/stores';
+	import { initialized, wasmLoaded, proxy, amiga, kickstarts } from '$lib/stores';
 	import { layer, poweredOn, what, errno } from '$lib/stores';
 	import { layout, showSidebar } from '$lib/stores';
 	import { canvasWidth, canvasHeight, aspectWidth, aspectHeight } from '$lib/stores';
@@ -20,6 +20,7 @@
 	import RetroShell from '$lib/RetroShell.svelte';
 	import MainScreen from '$lib/MainScreen.svelte';
 	import DropZone from '$lib/DropZone/DropZone.svelte';
+	import Proxy from '$lib/Proxy.svelte';
 
 	// Animation frame counter
 	let animationFrame = 0;
@@ -39,7 +40,7 @@
 	});
 
 	onMount(() => {
-		console.log('vAmiga.net - Welcome!');
+		console.log('+page: onMount()');
 
 		window.addEventListener('resize', function () {
 			clearTimeout(timeout);
@@ -228,8 +229,12 @@
 <div class="h-screen overflow-y-auto scroll-smooth bg-black text-white">
 	<title>vAmiga.net</title>
 	Holla,
+    {#if $wasmLoaded}
+    die
+    <Proxy bind:this={$proxy} />
+    {/if}
 	{#if $initialized}
-        die Waldfee
+        Waldfee
 		<!--‚
         <MainScreen>
             <StatusBar bind:this={statusBar} on:push={push}/>
