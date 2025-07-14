@@ -1,3 +1,9 @@
+var Module = (() => {
+  
+  return (
+async function(moduleArg = {}) {
+  var moduleRtn;
+
 // include: shell.js
 // The Module object: Our interface to the outside world. We import
 // and export values on it. There are various ways Module can be used:
@@ -12,7 +18,7 @@
 // after the generated code, you will need to define   var Module = {};
 // before the code. Then that object will be used in the code, and you
 // can continue to use Module afterwards as well.
-var Module = typeof Module != 'undefined' ? Module : {};
+var Module = moduleArg;
 
 // The way we signal to a worker that it is hosting a pthread is to construct
 // it with a specific name.
@@ -48,13 +54,7 @@ var quit_ = (status, toThrow) => {
   throw toThrow;
 };
 
-// In MODULARIZE mode _scriptName needs to be captured already at the very top of the page immediately when the page is parsed, so it is generated there
-// before the page load. In non-MODULARIZE modes generate it here.
-var _scriptName = typeof document != 'undefined' ? document.currentScript?.src : undefined;
-
-if (ENVIRONMENT_IS_WORKER) {
-  _scriptName = self.location.href;
-}
+var _scriptName = import.meta.url;
 
 // `/` should be present at the end if `scriptDirectory` is not empty
 var scriptDirectory = '';
@@ -167,6 +167,8 @@ var isFileURI = (filename) => filename.startsWith('file://');
 // end include: runtime_exceptions.js
 // include: runtime_debug.js
 // end include: runtime_debug.js
+var readyPromiseResolve, readyPromiseReject;
+
 var wasmModuleReceived;
 
 // include: runtime_pthread.js
@@ -349,16 +351,16 @@ var runtimeInitialized = false;
 
 function updateMemoryViews() {
   var b = wasmMemory.buffer;
-  HEAP8 = new Int8Array(b);
-  HEAP16 = new Int16Array(b);
-  HEAPU8 = new Uint8Array(b);
-  HEAPU16 = new Uint16Array(b);
-  HEAP32 = new Int32Array(b);
-  HEAPU32 = new Uint32Array(b);
-  HEAPF32 = new Float32Array(b);
-  HEAPF64 = new Float64Array(b);
-  HEAP64 = new BigInt64Array(b);
-  HEAPU64 = new BigUint64Array(b);
+  Module['HEAP8'] = HEAP8 = new Int8Array(b);
+  Module['HEAP16'] = HEAP16 = new Int16Array(b);
+  Module['HEAPU8'] = HEAPU8 = new Uint8Array(b);
+  Module['HEAPU16'] = HEAPU16 = new Uint16Array(b);
+  Module['HEAP32'] = HEAP32 = new Int32Array(b);
+  Module['HEAPU32'] = HEAPU32 = new Uint32Array(b);
+  Module['HEAPF32'] = HEAPF32 = new Float32Array(b);
+  Module['HEAPF64'] = HEAPF64 = new Float64Array(b);
+  Module['HEAP64'] = HEAP64 = new BigInt64Array(b);
+  Module['HEAPU64'] = HEAPU64 = new BigUint64Array(b);
 }
 
 // In non-standalone/normal mode, we create the memory here.
@@ -516,6 +518,7 @@ function abort(what) {
   /** @suppress {checkTypes} */
   var e = new WebAssembly.RuntimeError(what);
 
+  readyPromiseReject?.(e);
   // Throw the error whether or not MODULARIZE is set because abort is used
   // in code paths apart from instantiation where an exception is expected
   // to be thrown when abort is called.
@@ -525,7 +528,11 @@ function abort(what) {
 var wasmBinaryFile;
 
 function findWasmBinary() {
+  if (Module['locateFile']) {
     return locateFile('vAmiga.wasm');
+  }
+  // Use bundler-friendly `new URL(..., import.meta.url)` pattern; works in browsers too.
+  return new URL('vAmiga.wasm', import.meta.url).href;
 }
 
 function getBinarySync(file) {
@@ -974,16 +981,26 @@ async function createWasm() {
       },
   allocateUnusedWorker() {
         var worker;
-        var pthreadMainJs = _scriptName;
-        // We can't use makeModuleReceiveWithVar here since we want to also
-        // call URL.createObjectURL on the mainScriptUrlOrBlob.
-        if (Module['mainScriptUrlOrBlob']) {
-          pthreadMainJs = Module['mainScriptUrlOrBlob'];
-          if (typeof pthreadMainJs != 'string') {
-            pthreadMainJs = URL.createObjectURL(pthreadMainJs);
-          }
-        }
-        worker = new Worker(pthreadMainJs, {
+        // If we're using module output, use bundler-friendly pattern.
+          if (Module['mainScriptUrlOrBlob']) {
+            var pthreadMainJs = Module['mainScriptUrlOrBlob'];
+            if (typeof pthreadMainJs != 'string') {
+              pthreadMainJs = URL.createObjectURL(pthreadMainJs);
+            }
+            worker = new Worker(pthreadMainJs, {
+          'type': 'module',
+          // This is the way that we signal to the Web Worker that it is hosting
+          // a pthread.
+          'name': 'em-pthread',
+  });
+          } else
+        // We need to generate the URL with import.meta.url as the base URL of the JS file
+        // instead of just using new URL(import.meta.url) because bundler's only recognize
+        // the first case in their bundling step. The latter ends up producing an invalid
+        // URL to import from the server (e.g., for webpack the file:// path).
+        // See https://github.com/webpack/webpack/issues/12638
+        worker = new Worker(new URL('vAmiga.js', import.meta.url), {
+          'type': 'module',
           // This is the way that we signal to the Web Worker that it is hosting
           // a pthread.
           'name': 'em-pthread',
@@ -7629,9 +7646,239 @@ if (Module['wasmBinary']) wasmBinary = Module['wasmBinary'];
 // Begin runtime exports
   // End runtime exports
   // Begin JS library exports
+  Module['ExitStatus'] = ExitStatus;
+  Module['PThread'] = PThread;
+  Module['terminateWorker'] = terminateWorker;
+  Module['cleanupThread'] = cleanupThread;
+  Module['addOnPreRun'] = addOnPreRun;
+  Module['onPreRuns'] = onPreRuns;
+  Module['callRuntimeCallbacks'] = callRuntimeCallbacks;
+  Module['spawnThread'] = spawnThread;
+  Module['_exit'] = _exit;
+  Module['exitJS'] = exitJS;
+  Module['_proc_exit'] = _proc_exit;
+  Module['keepRuntimeAlive'] = keepRuntimeAlive;
+  Module['runtimeKeepaliveCounter'] = runtimeKeepaliveCounter;
+  Module['proxyToMainThread'] = proxyToMainThread;
+  Module['stackSave'] = stackSave;
+  Module['stackRestore'] = stackRestore;
+  Module['stackAlloc'] = stackAlloc;
+  Module['exitOnMainThread'] = exitOnMainThread;
+  Module['_wasmWorkerInitializeRuntime'] = _wasmWorkerInitializeRuntime;
+  Module['_wasmWorkerDelayedMessageQueue'] = _wasmWorkerDelayedMessageQueue;
+  Module['_wasmWorkerRunPostMessage'] = _wasmWorkerRunPostMessage;
+  Module['callUserCallback'] = callUserCallback;
+  Module['handleException'] = handleException;
+  Module['maybeExit'] = maybeExit;
+  Module['getWasmTableEntry'] = getWasmTableEntry;
+  Module['wasmTableMirror'] = wasmTableMirror;
+  Module['wasmTable'] = wasmTable;
+  Module['_wasmWorkerAppendToQueue'] = _wasmWorkerAppendToQueue;
+  Module['addOnPostRun'] = addOnPostRun;
+  Module['onPostRuns'] = onPostRuns;
+  Module['establishStackSpace'] = establishStackSpace;
+  Module['getValue'] = getValue;
+  Module['invokeEntryPoint'] = invokeEntryPoint;
+  Module['noExitRuntime'] = noExitRuntime;
+  Module['registerTLSInit'] = registerTLSInit;
+  Module['setValue'] = setValue;
+  Module['___assert_fail'] = ___assert_fail;
+  Module['UTF8ToString'] = UTF8ToString;
+  Module['UTF8ArrayToString'] = UTF8ArrayToString;
+  Module['UTF8Decoder'] = UTF8Decoder;
+  Module['___pthread_create_js'] = ___pthread_create_js;
+  Module['pthreadCreateProxied'] = pthreadCreateProxied;
+  Module['_emscripten_has_threading_support'] = _emscripten_has_threading_support;
+  Module['___syscall_accept4'] = ___syscall_accept4;
+  Module['getSocketFromFD'] = getSocketFromFD;
+  Module['SOCKFS'] = SOCKFS;
+  Module['FS'] = FS;
+  Module['randomFill'] = randomFill;
+  Module['initRandomFill'] = initRandomFill;
+  Module['PATH'] = PATH;
+  Module['PATH_FS'] = PATH_FS;
+  Module['TTY'] = TTY;
+  Module['FS_stdin_getChar'] = FS_stdin_getChar;
+  Module['FS_stdin_getChar_buffer'] = FS_stdin_getChar_buffer;
+  Module['intArrayFromString'] = intArrayFromString;
+  Module['lengthBytesUTF8'] = lengthBytesUTF8;
+  Module['stringToUTF8Array'] = stringToUTF8Array;
+  Module['MEMFS'] = MEMFS;
+  Module['mmapAlloc'] = mmapAlloc;
+  Module['FS_createPreloadedFile'] = FS_createPreloadedFile;
+  Module['asyncLoad'] = asyncLoad;
+  Module['FS_createDataFile'] = FS_createDataFile;
+  Module['getUniqueRunDependency'] = getUniqueRunDependency;
+  Module['FS_handledByPreloadPlugin'] = FS_handledByPreloadPlugin;
+  Module['preloadPlugins'] = preloadPlugins;
+  Module['FS_modeStringToFlags'] = FS_modeStringToFlags;
+  Module['FS_getMode'] = FS_getMode;
+  Module['writeSockaddr'] = writeSockaddr;
+  Module['inetPton4'] = inetPton4;
+  Module['inetPton6'] = inetPton6;
+  Module['zeroMemory'] = zeroMemory;
+  Module['DNS'] = DNS;
+  Module['___syscall_bind'] = ___syscall_bind;
+  Module['getSocketAddress'] = getSocketAddress;
+  Module['readSockaddr'] = readSockaddr;
+  Module['inetNtop4'] = inetNtop4;
+  Module['inetNtop6'] = inetNtop6;
+  Module['___syscall_connect'] = ___syscall_connect;
+  Module['___syscall_fcntl64'] = ___syscall_fcntl64;
+  Module['syscallGetVarargP'] = syscallGetVarargP;
+  Module['syscallGetVarargI'] = syscallGetVarargI;
+  Module['SYSCALLS'] = SYSCALLS;
+  Module['___syscall_fstat64'] = ___syscall_fstat64;
+  Module['___syscall_getdents64'] = ___syscall_getdents64;
+  Module['stringToUTF8'] = stringToUTF8;
+  Module['___syscall_ioctl'] = ___syscall_ioctl;
+  Module['___syscall_listen'] = ___syscall_listen;
+  Module['___syscall_lstat64'] = ___syscall_lstat64;
+  Module['___syscall_newfstatat'] = ___syscall_newfstatat;
+  Module['___syscall_openat'] = ___syscall_openat;
+  Module['___syscall_recvfrom'] = ___syscall_recvfrom;
+  Module['___syscall_rmdir'] = ___syscall_rmdir;
+  Module['___syscall_sendto'] = ___syscall_sendto;
+  Module['___syscall_socket'] = ___syscall_socket;
+  Module['___syscall_stat64'] = ___syscall_stat64;
+  Module['___syscall_unlinkat'] = ___syscall_unlinkat;
+  Module['__abort_js'] = __abort_js;
+  Module['__embind_finalize_value_object'] = __embind_finalize_value_object;
+  Module['structRegistrations'] = structRegistrations;
+  Module['runDestructors'] = runDestructors;
+  Module['readPointer'] = readPointer;
+  Module['whenDependentTypesAreResolved'] = whenDependentTypesAreResolved;
+  Module['awaitingDependencies'] = awaitingDependencies;
+  Module['registeredTypes'] = registeredTypes;
+  Module['typeDependencies'] = typeDependencies;
+  Module['throwInternalError'] = throwInternalError;
+  Module['InternalError'] = InternalError;
+  Module['__embind_register_bigint'] = __embind_register_bigint;
+  Module['AsciiToString'] = AsciiToString;
+  Module['registerType'] = registerType;
+  Module['sharedRegisterType'] = sharedRegisterType;
+  Module['throwBindingError'] = throwBindingError;
+  Module['BindingError'] = BindingError;
+  Module['integerReadValueFromPointer'] = integerReadValueFromPointer;
+  Module['__embind_register_bool'] = __embind_register_bool;
+  Module['GenericWireTypeSize'] = GenericWireTypeSize;
+  Module['__embind_register_class'] = __embind_register_class;
+  Module['ClassHandle'] = ClassHandle;
+  Module['init_ClassHandle'] = init_ClassHandle;
+  Module['shallowCopyInternalPointer'] = shallowCopyInternalPointer;
+  Module['throwInstanceAlreadyDeleted'] = throwInstanceAlreadyDeleted;
+  Module['attachFinalizer'] = attachFinalizer;
+  Module['finalizationRegistry'] = finalizationRegistry;
+  Module['detachFinalizer'] = detachFinalizer;
+  Module['releaseClassHandle'] = releaseClassHandle;
+  Module['runDestructor'] = runDestructor;
+  Module['flushPendingDeletes'] = flushPendingDeletes;
+  Module['deletionQueue'] = deletionQueue;
+  Module['delayFunction'] = delayFunction;
+  Module['createNamedFunction'] = createNamedFunction;
+  Module['registeredPointers'] = registeredPointers;
+  Module['exposePublicSymbol'] = exposePublicSymbol;
+  Module['ensureOverloadTable'] = ensureOverloadTable;
+  Module['makeLegalFunctionName'] = makeLegalFunctionName;
+  Module['char_0'] = char_0;
+  Module['char_9'] = char_9;
+  Module['RegisteredClass'] = RegisteredClass;
+  Module['RegisteredPointer'] = RegisteredPointer;
+  Module['constNoSmartPtrRawPointerToWireType'] = constNoSmartPtrRawPointerToWireType;
+  Module['upcastPointer'] = upcastPointer;
+  Module['embindRepr'] = embindRepr;
+  Module['genericPointerToWireType'] = genericPointerToWireType;
+  Module['nonConstNoSmartPtrRawPointerToWireType'] = nonConstNoSmartPtrRawPointerToWireType;
+  Module['init_RegisteredPointer'] = init_RegisteredPointer;
+  Module['RegisteredPointer_fromWireType'] = RegisteredPointer_fromWireType;
+  Module['downcastPointer'] = downcastPointer;
+  Module['getInheritedInstance'] = getInheritedInstance;
+  Module['registeredInstances'] = registeredInstances;
+  Module['getBasestPointer'] = getBasestPointer;
+  Module['makeClassHandle'] = makeClassHandle;
+  Module['replacePublicSymbol'] = replacePublicSymbol;
+  Module['embind__requireFunction'] = embind__requireFunction;
+  Module['throwUnboundTypeError'] = throwUnboundTypeError;
+  Module['UnboundTypeError'] = UnboundTypeError;
+  Module['getTypeName'] = getTypeName;
+  Module['__embind_register_class_constructor'] = __embind_register_class_constructor;
+  Module['heap32VectorToArray'] = heap32VectorToArray;
+  Module['craftInvokerFunction'] = craftInvokerFunction;
+  Module['usesDestructorStack'] = usesDestructorStack;
+  Module['createJsInvoker'] = createJsInvoker;
+  Module['__embind_register_class_function'] = __embind_register_class_function;
+  Module['getFunctionName'] = getFunctionName;
+  Module['__embind_register_class_property'] = __embind_register_class_property;
+  Module['validateThis'] = validateThis;
+  Module['__embind_register_constant'] = __embind_register_constant;
+  Module['__embind_register_emval'] = __embind_register_emval;
+  Module['EmValType'] = EmValType;
+  Module['__emval_decref'] = __emval_decref;
+  Module['emval_freelist'] = emval_freelist;
+  Module['emval_handles'] = emval_handles;
+  Module['Emval'] = Emval;
+  Module['__embind_register_float'] = __embind_register_float;
+  Module['floatReadValueFromPointer'] = floatReadValueFromPointer;
+  Module['__embind_register_integer'] = __embind_register_integer;
+  Module['__embind_register_memory_view'] = __embind_register_memory_view;
+  Module['__embind_register_std_string'] = __embind_register_std_string;
+  Module['__embind_register_std_wstring'] = __embind_register_std_wstring;
+  Module['UTF16ToString'] = UTF16ToString;
+  Module['UTF16Decoder'] = UTF16Decoder;
+  Module['stringToUTF16'] = stringToUTF16;
+  Module['lengthBytesUTF16'] = lengthBytesUTF16;
+  Module['UTF32ToString'] = UTF32ToString;
+  Module['stringToUTF32'] = stringToUTF32;
+  Module['lengthBytesUTF32'] = lengthBytesUTF32;
+  Module['__embind_register_value_object'] = __embind_register_value_object;
+  Module['__embind_register_value_object_field'] = __embind_register_value_object_field;
+  Module['__embind_register_void'] = __embind_register_void;
+  Module['__emscripten_init_main_thread_js'] = __emscripten_init_main_thread_js;
+  Module['__emscripten_notify_mailbox_postmessage'] = __emscripten_notify_mailbox_postmessage;
+  Module['checkMailbox'] = checkMailbox;
+  Module['__emscripten_thread_mailbox_await'] = __emscripten_thread_mailbox_await;
+  Module['__emscripten_receive_on_main_thread_js'] = __emscripten_receive_on_main_thread_js;
+  Module['proxiedJSCallArgs'] = proxiedJSCallArgs;
+  Module['__emscripten_thread_cleanup'] = __emscripten_thread_cleanup;
+  Module['__emscripten_thread_set_strongref'] = __emscripten_thread_set_strongref;
+  Module['__localtime_js'] = __localtime_js;
+  Module['ydayFromDate'] = ydayFromDate;
+  Module['isLeapYear'] = isLeapYear;
+  Module['MONTH_DAYS_LEAP_CUMULATIVE'] = MONTH_DAYS_LEAP_CUMULATIVE;
+  Module['MONTH_DAYS_REGULAR_CUMULATIVE'] = MONTH_DAYS_REGULAR_CUMULATIVE;
+  Module['bigintToI53Checked'] = bigintToI53Checked;
+  Module['INT53_MAX'] = INT53_MAX;
+  Module['INT53_MIN'] = INT53_MIN;
+  Module['__mktime_js'] = __mktime_js;
+  Module['__tzset_js'] = __tzset_js;
+  Module['_clock_time_get'] = _clock_time_get;
+  Module['_emscripten_get_now'] = _emscripten_get_now;
+  Module['_emscripten_date_now'] = _emscripten_date_now;
+  Module['nowIsMonotonic'] = nowIsMonotonic;
+  Module['checkWasiClock'] = checkWasiClock;
+  Module['_emscripten_check_blocking_allowed'] = _emscripten_check_blocking_allowed;
+  Module['_emscripten_exit_with_live_runtime'] = _emscripten_exit_with_live_runtime;
+  Module['runtimeKeepalivePush'] = runtimeKeepalivePush;
+  Module['_emscripten_resize_heap'] = _emscripten_resize_heap;
+  Module['abortOnCannotGrowMemory'] = abortOnCannotGrowMemory;
+  Module['_environ_get'] = _environ_get;
+  Module['getEnvStrings'] = getEnvStrings;
+  Module['ENV'] = ENV;
+  Module['getExecutableName'] = getExecutableName;
+  Module['_environ_sizes_get'] = _environ_sizes_get;
+  Module['_fd_close'] = _fd_close;
+  Module['_fd_read'] = _fd_read;
+  Module['doReadv'] = doReadv;
+  Module['_fd_seek'] = _fd_seek;
+  Module['_fd_write'] = _fd_write;
+  Module['doWritev'] = doWritev;
+  Module['stringToUTF8OnStack'] = stringToUTF8OnStack;
   Module['incrementExceptionRefcount'] = incrementExceptionRefcount;
+  Module['getCppExceptionThrownObjectFromWebAssemblyException'] = getCppExceptionThrownObjectFromWebAssemblyException;
+  Module['getCppExceptionTag'] = getCppExceptionTag;
   Module['decrementExceptionRefcount'] = decrementExceptionRefcount;
   Module['getExceptionMessage'] = getExceptionMessage;
+  Module['getExceptionMessageCommon'] = getExceptionMessageCommon;
   // End JS library exports
 
 // end include: postlibrary.js
@@ -7701,32 +7948,32 @@ var ___getTypeName,
 
 
 function assignWasmExports(wasmExports) {
-  ___getTypeName = wasmExports['__getTypeName'];
-  __embind_initialize_bindings = wasmExports['_embind_initialize_bindings'];
+  Module['___getTypeName'] = ___getTypeName = wasmExports['__getTypeName'];
+  Module['__embind_initialize_bindings'] = __embind_initialize_bindings = wasmExports['_embind_initialize_bindings'];
   Module['_main'] = _main = wasmExports['__main_argc_argv'];
-  _malloc = wasmExports['malloc'];
-  _pthread_self = wasmExports['pthread_self'];
-  _free = wasmExports['free'];
-  __emscripten_tls_init = wasmExports['_emscripten_tls_init'];
-  __emscripten_thread_init = wasmExports['_emscripten_thread_init'];
-  ___set_thread_state = wasmExports['__set_thread_state'];
-  __emscripten_thread_crashed = wasmExports['_emscripten_thread_crashed'];
-  _htons = wasmExports['htons'];
-  _ntohs = wasmExports['ntohs'];
-  __emscripten_run_on_main_thread_js = wasmExports['_emscripten_run_on_main_thread_js'];
-  __emscripten_thread_free_data = wasmExports['_emscripten_thread_free_data'];
-  __emscripten_thread_exit = wasmExports['_emscripten_thread_exit'];
-  __emscripten_check_mailbox = wasmExports['_emscripten_check_mailbox'];
-  ___trap = wasmExports['__trap'];
-  _emscripten_stack_set_limits = wasmExports['emscripten_stack_set_limits'];
-  __emscripten_stack_restore = wasmExports['_emscripten_stack_restore'];
-  __emscripten_stack_alloc = wasmExports['_emscripten_stack_alloc'];
-  _emscripten_stack_get_current = wasmExports['emscripten_stack_get_current'];
-  ___cxa_decrement_exception_refcount = wasmExports['__cxa_decrement_exception_refcount'];
-  ___cxa_increment_exception_refcount = wasmExports['__cxa_increment_exception_refcount'];
-  ___thrown_object_from_unwind_exception = wasmExports['__thrown_object_from_unwind_exception'];
-  ___get_exception_message = wasmExports['__get_exception_message'];
-  __emscripten_wasm_worker_initialize = wasmExports['_emscripten_wasm_worker_initialize'];
+  Module['_malloc'] = _malloc = wasmExports['malloc'];
+  Module['_pthread_self'] = _pthread_self = wasmExports['pthread_self'];
+  Module['_free'] = _free = wasmExports['free'];
+  Module['__emscripten_tls_init'] = __emscripten_tls_init = wasmExports['_emscripten_tls_init'];
+  Module['__emscripten_thread_init'] = __emscripten_thread_init = wasmExports['_emscripten_thread_init'];
+  Module['___set_thread_state'] = ___set_thread_state = wasmExports['__set_thread_state'];
+  Module['__emscripten_thread_crashed'] = __emscripten_thread_crashed = wasmExports['_emscripten_thread_crashed'];
+  Module['_htons'] = _htons = wasmExports['htons'];
+  Module['_ntohs'] = _ntohs = wasmExports['ntohs'];
+  Module['__emscripten_run_on_main_thread_js'] = __emscripten_run_on_main_thread_js = wasmExports['_emscripten_run_on_main_thread_js'];
+  Module['__emscripten_thread_free_data'] = __emscripten_thread_free_data = wasmExports['_emscripten_thread_free_data'];
+  Module['__emscripten_thread_exit'] = __emscripten_thread_exit = wasmExports['_emscripten_thread_exit'];
+  Module['__emscripten_check_mailbox'] = __emscripten_check_mailbox = wasmExports['_emscripten_check_mailbox'];
+  Module['___trap'] = ___trap = wasmExports['__trap'];
+  Module['_emscripten_stack_set_limits'] = _emscripten_stack_set_limits = wasmExports['emscripten_stack_set_limits'];
+  Module['__emscripten_stack_restore'] = __emscripten_stack_restore = wasmExports['_emscripten_stack_restore'];
+  Module['__emscripten_stack_alloc'] = __emscripten_stack_alloc = wasmExports['_emscripten_stack_alloc'];
+  Module['_emscripten_stack_get_current'] = _emscripten_stack_get_current = wasmExports['emscripten_stack_get_current'];
+  Module['___cxa_decrement_exception_refcount'] = ___cxa_decrement_exception_refcount = wasmExports['__cxa_decrement_exception_refcount'];
+  Module['___cxa_increment_exception_refcount'] = ___cxa_increment_exception_refcount = wasmExports['__cxa_increment_exception_refcount'];
+  Module['___thrown_object_from_unwind_exception'] = ___thrown_object_from_unwind_exception = wasmExports['__thrown_object_from_unwind_exception'];
+  Module['___get_exception_message'] = ___get_exception_message = wasmExports['__get_exception_message'];
+  Module['__emscripten_wasm_worker_initialize'] = __emscripten_wasm_worker_initialize = wasmExports['_emscripten_wasm_worker_initialize'];
 }
 var ___cpp_exception;  var wasmImports;
   function assignWasmImports() {
@@ -7853,8 +8100,7 @@ var ___cpp_exception;  var wasmImports;
     memory: wasmMemory
   };
   }
-  var wasmExports;
-createWasm();
+  var wasmExports = await createWasm();
 
 
 // include: postamble.js
@@ -7895,6 +8141,7 @@ function run(args = arguments_) {
   }
 
   if ((ENVIRONMENT_IS_PTHREAD||ENVIRONMENT_IS_WASM_WORKER)) {
+    readyPromiseResolve?.(Module);
     initRuntime();
     return;
   }
@@ -7918,6 +8165,7 @@ function run(args = arguments_) {
 
     preMain();
 
+    readyPromiseResolve?.(Module);
     Module['onRuntimeInitialized']?.();
 
     var noInitialRun = Module['noInitialRun'] || false;
@@ -7952,3 +8200,35 @@ run();
 
 // end include: postamble.js
 
+// include: postamble_modularize.js
+// In MODULARIZE mode we wrap the generated code in a factory function
+// and return either the Module itself, or a promise of the module.
+//
+// We assign to the `moduleRtn` global here and configure closure to see
+// this as and extern so it won't get minified.
+
+if (runtimeInitialized)  {
+  moduleRtn = Module;
+} else {
+  // Set up the promise that indicates the Module is initialized
+  moduleRtn = new Promise((resolve, reject) => {
+    readyPromiseResolve = resolve;
+    readyPromiseReject = reject;
+  });
+}
+
+// end include: postamble_modularize.js
+
+
+
+  return moduleRtn;
+}
+);
+})();
+export default Module;
+var isPthread = globalThis.self?.name?.startsWith('em-pthread');
+// When running as a pthread, construct a new instance on startup
+isPthread && Module();
+var isWW = globalThis.self?.name == 'em-ww';
+// When running as a wasm worker, construct a new instance on startup
+isWW && Module();
