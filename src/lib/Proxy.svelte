@@ -136,6 +136,7 @@
         console.log('Prepare to receive messages');
         $proxy.processMsg = processMsg;
 
+        console.log('proxy = ', $proxy, 'HEAPF32 = ', $proxy.HEAPF32);
         onRuntimeInitialized();
 
     });

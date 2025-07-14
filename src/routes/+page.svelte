@@ -6,7 +6,7 @@
 	import { db } from '$lib/Db/db';
 	import { liveQuery } from 'dexie';
 	import { Layer } from '$lib/types';
-	import { initialized, wasmLoaded, amiga, kickstarts } from '$lib/stores';
+	import { initialized, loadWasm, wasmLoaded, amiga, kickstarts } from '$lib/stores';
 	import { proxy, audio, config, gamepadManager } from '$lib/stores';
 	import { layer, poweredOn, what, errno } from '$lib/stores';
 	import { layout, showSidebar } from '$lib/stores';

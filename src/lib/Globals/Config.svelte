@@ -417,21 +417,21 @@
             case Opt.SLOW_RAM_DELAY:
                 return $amiga.getConfig($proxy.OPT_SLOW_RAM_DELAY).toString();
             case Opt.DF0:
-                return $amiga.getDriveConfig($proxy.OPT_DRIVE_CONNECT, 0).toString();
+                return $amiga.getConfig($proxy.OPT_DRIVE_CONNECT, 0).toString();
             case Opt.DF1:
-                return $amiga.getDriveConfig($proxy.OPT_DRIVE_CONNECT, 1).toString();
+                return $amiga.getConfig($proxy.OPT_DRIVE_CONNECT, 1).toString();
             case Opt.DF2:
-                return $amiga.getDriveConfig($proxy.OPT_DRIVE_CONNECT, 2).toString();
+                return $amiga.getConfig($proxy.OPT_DRIVE_CONNECT, 2).toString();
             case Opt.DF3:
-                return $amiga.getDriveConfig($proxy.OPT_DRIVE_CONNECT, 3).toString();
+                return $amiga.getConfig($proxy.OPT_DRIVE_CONNECT, 3).toString();
             case Opt.HD0:
-                return $amiga.getDriveConfig($proxy.OPT_HDC_CONNECT, 0).toString();
+                return $amiga.getConfig($proxy.OPT_HDC_CONNECT, 0).toString();
             case Opt.HD1:
-                return $amiga.getDriveConfig($proxy.OPT_HDC_CONNECT, 1).toString();
+                return $amiga.getConfig($proxy.OPT_HDC_CONNECT, 1).toString();
             case Opt.HD2:
-                return $amiga.getDriveConfig($proxy.OPT_HDC_CONNECT, 2).toString();
+                return $amiga.getConfig($proxy.OPT_HDC_CONNECT, 2).toString();
             case Opt.HD3:
-                return $amiga.getDriveConfig($proxy.OPT_HDC_CONNECT, 3).toString();
+                return $amiga.getConfig($proxy.OPT_HDC_CONNECT, 3).toString();
 
                 //
                 // Compatibility settings

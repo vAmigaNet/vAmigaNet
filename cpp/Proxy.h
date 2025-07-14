@@ -91,7 +91,6 @@ struct AmigaProxy
     // Configuring
     void configure(int option, int value) { TRY amiga->configure((Option)option, (i64)value); CATCH }
     void configureId(int option, int id, int value) { TRY amiga->configure((Option)option, (i64)id, (i64)value); CATCH }
-    void configureDrive(int option, int id, int value) { TRY amiga->configure((Option)option, (i64)id, (i64)value); CATCH } // DERPECATED
     int getConfig(int option) { TRY return (int)amiga->getConfigItem(option); CATCH }
     int getConfigId(int option, int id) { TRY return (int)amiga->getConfigItem(option, id); CATCH }
     int getDriveConfig(int option, int id) { TRY return (int)amiga->getConfigItem(option, id); CATCH } // DEPRECATED

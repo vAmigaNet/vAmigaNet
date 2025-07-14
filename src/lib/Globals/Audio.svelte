@@ -11,6 +11,7 @@
 
     export async function setup()
     {
+        console.log('Audio.setup()');
         if (audioContext) {
             console.log('Audio context already initialized: ', audioContext.state);
             return;
@@ -21,8 +22,11 @@
         gainNode.gain.value = 1.0;
         gainNode.connect(audioContext.destination);
 
+        console.log('Audio context initialized: ', audioContext.state);
         $amiga.setSampleRate(audioContext.sampleRate);
         await audioContext.audioWorklet.addModule('js/audio-processor.js');
+
+        console.log('Audio Worklet module loaded');
         const audioNode = new AudioWorkletNode(audioContext, 'audio-processor', {
             outputChannelCount: [2],
             processorOptions: {
@@ -31,6 +35,7 @@
                 length: 2048
             }
         });
+        console.log('Audio Worklet Node created');
         audioNode.port.onmessage = (e) => {
             $amiga.updateAudio(e.data);
         };

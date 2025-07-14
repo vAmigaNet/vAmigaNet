@@ -65,6 +65,7 @@
 
     async function openShowcases()
     {
+        console.log('openShowcases');
         await $audio.setup();
         $layer = $layer === Layer.showcases ? Layer.none : Layer.showcases;
         $showSidebar = false;
@@ -98,10 +99,12 @@
 
     <div class="h-full flex flex-col {debug}" transition:fade>
         <div in:fade={{ duration: 2000 }}>
-            <div class="absolute h-full blur-sm">
-                <div class="h-full w-screen bg-gradient-to-t from-primary to-secondary"/>
+            
+            <div class="absolute h-full">
+                <div class="h-full w-screen bg-gradient-to-t from-indigo-400 to-indigo-800"></div>
             </div>
-            <div class="absolute h-full blur-sm">
+            
+            <div class="absolute h-full blur-xs">
                 <img class="h-full w-screen object-fill opacity-60" src="matrix.jpg" alt="Background"/>
             </div>
         <!--
@@ -127,20 +130,20 @@
                                         vAmiga<span class="opacity-75">.net</span>
                                     </div>
                                 </div>
-                                <div class="font-sofia-semi text-xl pl-2 pb-10">Version 2.0</div>
+                                <div class="font-sofia-semi text-xl pl-2 pb-10">Version 2.0 alpha</div>
                                 <div class="flex space-x-5">
                                     <div class="tooltip tooltip-primary" data-tip="Power On">
-                                        <button class="btn btn-outline btn-square p-1.5" on:click={switchOn}>
+                                        <button class="btn btn-lg btn-outline btn-square p-1.5" on:click={switchOn}>
                                             <MdPowerSettingsNew/>
                                         </button>
                                     </div>
                                     <div class="tooltip tooltip-primary" data-tip="Run Demo">
-                                        <button class="btn btn-outline btn-square p-1.5" on:click={runDemo}>
+                                        <button class="btn btn-lg btn-outline btn-square p-1.5" on:click={runDemo}>
                                             <GiBatMask/>
                                         </button>
                                     </div>
                                     <div class="tooltip tooltip-primary" data-tip="Visit GitHub">
-                                        <button class="btn btn-outline btn-square p-1.5" on:click={gotoGitHub}>
+                                        <button class="btn btn-lg btn-outline btn-square p-1.5" on:click={gotoGitHub}>
                                             <FaGithub/>
                                         </button>
                                     </div>
