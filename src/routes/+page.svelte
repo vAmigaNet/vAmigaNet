@@ -6,7 +6,7 @@
 	import { db } from '$lib/Db/db';
 	import { liveQuery } from 'dexie';
 	import { Layer } from '$lib/types';
-	import { initialized, loadWasm, wasmLoaded, amiga, kickstarts } from '$lib/stores';
+	import { initialized, amiga, kickstarts } from '$lib/stores';
 	import { wasm, audio, config, gamepadManager } from '$lib/stores';
 	import { layer, poweredOn, what, errno } from '$lib/stores';
 	import { layout, showSidebar } from '$lib/stores';
@@ -237,7 +237,7 @@
 <!--<body>-->
 <div class="h-screen overflow-y-auto scroll-smooth bg-black text-white">
     <Guru />
-    {#if $wasmLoaded}
+    {#if $wasm}
     <Proxy bind:this={$wasm} />
     {/if}
 	{#if $initialized}
