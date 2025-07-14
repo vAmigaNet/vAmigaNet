@@ -148,7 +148,7 @@
             console.log('Showcase:', showcase.title);
             $amiga.powerOff();
             console.log('Installing ROM:', showcase.roms);
-            $wasm.installRoms(showcase.roms);
+            installRoms(showcase.roms);
             console.log('Configuring Chip RAM:', showcase.memory[0]);
             $amiga.configure($wasm.OPT_CHIP_RAM, showcase.memory[0]);
             console.log('Configuring Slow RAM:', showcase.memory[1]);
@@ -240,7 +240,7 @@
         }
     }
 
-    export async function installRoms(crcs: [number])
+    export async function installRoms(crcs: number[])
     {
         console.log('Installing Rom: ', crcs);
         for (const crc of crcs) {

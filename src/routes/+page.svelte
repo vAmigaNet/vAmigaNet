@@ -7,7 +7,7 @@
 	import { liveQuery } from 'dexie';
 	import { Layer } from '$lib/types';
 	import { initialized, amiga, kickstarts } from '$lib/stores';
-	import { wasm, audio, config, gamepadManager } from '$lib/stores';
+	import { wasm, proxy, audio, config, gamepadManager } from '$lib/stores';
 	import { layer, poweredOn, what, errno } from '$lib/stores';
 	import { layout, showSidebar } from '$lib/stores';
 	import { canvasWidth, canvasHeight, aspectWidth, aspectHeight } from '$lib/stores';
@@ -238,7 +238,7 @@
 <div class="h-screen overflow-y-auto scroll-smooth bg-black text-white">
     <Guru />
     {#if $wasm}
-    <Proxy bind:this={$wasm} />
+    <Proxy bind:this={$proxy} />
     {/if}
 	{#if $initialized}
     	<Config bind:this={$config} />

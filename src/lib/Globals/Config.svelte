@@ -599,20 +599,19 @@
             case Opt.DF0:
                 break;
             case Opt.DF1:
-                const enable = Number(val);
-                $amiga.configureId($wasm.OPT_DRIVE_CONNECT, 1, enable);
-                if (enable == 0) $amiga.configureId($wasm.OPT_DRIVE_CONNECT, 2, 0);
-                if (enable == 0) $amiga.configureId($wasm.OPT_DRIVE_CONNECT, 3, 0);
+                $amiga.configureId($wasm.OPT_DRIVE_CONNECT, 1, Number(val));
+                if (Number(val) == 0) $amiga.configureId($wasm.OPT_DRIVE_CONNECT, 2, 0);
+                if (Number(val) == 0) $amiga.configureId($wasm.OPT_DRIVE_CONNECT, 3, 0);
                 break;
             case Opt.DF2:
-                if (enable == 1) $amiga.configureId($wasm.OPT_DRIVE_CONNECT, 1, 1);
-                $amiga.configure($wasm.OPT_DRIVE_CONNECT, 2, enable);
-                if (enable == 0) $amiga.configureId($wasm.OPT_DRIVE_CONNECT, 3, 0);
+                if (Number(val) == 1) $amiga.configureId($wasm.OPT_DRIVE_CONNECT, 1, 1);
+                $amiga.configure($wasm.OPT_DRIVE_CONNECT, 2, Number(val));
+                if (Number(val) == 0) $amiga.configureId($wasm.OPT_DRIVE_CONNECT, 3, 0);
                 break;
             case Opt.DF3:
-                if (enable == 1) $amiga.configureId($wasm.OPT_DRIVE_CONNECT, 1, 1);
-                if (enable == 1) $amiga.configureId($wasm.OPT_DRIVE_CONNECT, 2, 1);
-                $amiga.configure($wasm.OPT_DRIVE_CONNECT, 3, enable);
+                if (Number(val) == 1) $amiga.configureId($wasm.OPT_DRIVE_CONNECT, 1, 1);
+                if (Number(val) == 1) $amiga.configureId($wasm.OPT_DRIVE_CONNECT, 2, 1);
+                $amiga.configure($wasm.OPT_DRIVE_CONNECT, 3, Number(val));
                 break;
             case Opt.HD0:
                 $amiga.configureId($wasm.OPT_HDC_CONNECT, 0, val);

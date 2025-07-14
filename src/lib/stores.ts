@@ -5,6 +5,7 @@ import type { RomEntry } from './Db/db';
 
 // Gateway to the WASM backend
 export const wasm: any = writable();
+export const proxy: any = writable();
 export const initialized = writable(false);
 
 // Proxies

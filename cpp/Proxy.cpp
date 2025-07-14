@@ -249,6 +249,7 @@ EMSCRIPTEN_BINDINGS(AmigaProxy)
         .function("what", &AmigaProxy::what)
 
         .function("configure", &AmigaProxy::configure)
+        .function("configureId", &AmigaProxy::configureId)
         .function("getConfig", &AmigaProxy::getConfig)
         .function("getDriveConfig", &AmigaProxy::getDriveConfig)
 
