@@ -14,7 +14,7 @@
         initialized,
         layout,
         poweredOn,
-        proxy
+        wasm
     } from '$lib/stores';
     import GLCanvas from '$lib/GLCanvas.svelte';
     import { AnimatedFloat } from '$lib/Utils/AnimatedFloat';
@@ -89,7 +89,7 @@
             let msg = $amiga.readMessage();
             if (msg.type == 0) break;
 
-            $proxy.processMsg(msg);
+            $wasm.processMsg(msg);
         }
 
         if ($poweredOn) {

@@ -1,7 +1,7 @@
 <script lang="ts">
     import { Opt } from "$lib/types";
     import StatusIcon from './StatusIcon.svelte';
-	import { config, proxy, warp, warpMode } from '$lib/stores';
+	import { config, wasm, warp, warpMode } from '$lib/stores';
 
     function iconUrl(warpMode: number, warp: boolean) {
 
@@ -22,7 +22,7 @@
 		e.preventDefault();
         let current = $config.get(Opt.WARP_MODE);
         $config.set(Opt.WARP_MODE, (current + 1) % 3);
-        $proxy.updateStateVariables();
+        $wasm.updateStateVariables();
 	}
 </script>
 

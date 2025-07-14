@@ -7,7 +7,7 @@
 	import FaPlus from 'svelte-icons/fa/FaPlus.svelte';
 	import FaTrash from 'svelte-icons/fa/FaTrash.svelte';
 	import IoMdClose from 'svelte-icons/io/IoMdClose.svelte';
-	import { amiga, initialized, layer, memory, proxy } from '$lib/stores';
+	import { amiga, initialized, layer, memory, wasm } from '$lib/stores';
 	import FileDialog from '$lib/Utils/FileDialog.svelte';
 
 	// Connect to Dexie DB
@@ -121,7 +121,7 @@
 	async function installAction(e: MouseEvent, crc: number) {
 		console.log('installAction: ', crc);
 		$amiga.powerOff();
-		await $proxy.installRom(crc);
+		await $wasm.installRom(crc);
 		$amiga.hardReset();
 		$amiga.run();
 	}
@@ -135,7 +135,7 @@
 		console.log('addAction');
 
 		let filebuffer = e.detail.file;
-		$proxy.addRom(filebuffer);
+		$wasm.addRom(filebuffer);
 	}
 </script>
 

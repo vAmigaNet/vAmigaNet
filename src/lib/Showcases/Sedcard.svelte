@@ -2,7 +2,7 @@
 	import type { DataBaseItem } from '$lib/types';
 	import { fade } from 'svelte/transition';
 	import IoMdClose from 'svelte-icons/io/IoMdClose.svelte';
-	import { proxy, kickstarts } from '$lib/stores';
+	import { wasm, kickstarts } from '$lib/stores';
 
 	export let selected: DataBaseItem | null;
 	export let show = true;
@@ -17,7 +17,7 @@
 	}
 
 	async function runTitle() {
-		$proxy.runShowcase(selected);
+		$wasm.runShowcase(selected);
 	}
 </script>
 

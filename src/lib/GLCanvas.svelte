@@ -17,7 +17,7 @@
         MsgShaking,
         port1,
         port2,
-        proxy,
+        wasm,
         running
     } from '$lib/stores';
     import { AMIGA_KEYS, HPIXELS, VPIXELS } from '$lib/constants';
@@ -350,7 +350,7 @@
             currLOF = !prevLOF;
 
             // Update the GPU texture
-            const tex = new Uint8Array($proxy.HEAPU8.buffer, noise, w * h * 4);
+            const tex = new Uint8Array($wasm.HEAPU8.buffer, noise, w * h * 4);
             if (currLOF) {
                 gl.activeTexture(gl.TEXTURE0);
                 gl.bindTexture(gl.TEXTURE_2D, lfTexture);
@@ -378,7 +378,7 @@
             frameNr = frame.frameNr;
 
             // Update the GPU texture
-            const tex = new Uint8Array($proxy.HEAPU8.buffer, frame.data, w * h * 4);
+            const tex = new Uint8Array($wasm.HEAPU8.buffer, frame.data, w * h * 4);
             if (currLOF) {
                 gl.activeTexture(gl.TEXTURE0);
                 gl.bindTexture(gl.TEXTURE_2D, lfTexture);
@@ -498,24 +498,24 @@
         switch (action) {
             case undefined:
                 return [];
-            case $proxy.PULL_UP:
+            case $wasm.PULL_UP:
                 keyUp = true;
-                return [$proxy.PULL_UP];
-            case $proxy.PULL_DOWN:
+                return [$wasm.PULL_UP];
+            case $wasm.PULL_DOWN:
                 keyDown = true;
-                return [$proxy.PULL_DOWN];
-            case $proxy.PULL_LEFT:
+                return [$wasm.PULL_DOWN];
+            case $wasm.PULL_LEFT:
                 keyLeft = true;
-                return [$proxy.PULL_LEFT];
-            case $proxy.PULL_RIGHT:
+                return [$wasm.PULL_LEFT];
+            case $wasm.PULL_RIGHT:
                 keyRight = true;
-                return [$proxy.PULL_RIGHT];
-            case $proxy.PRESS_FIRE:
-                return [$proxy.PRESS_FIRE];
-            case $proxy.PRESS_FIRE2:
-                return [$proxy.PRESS_FIRE2];
-            case $proxy.PRESS_FIRE3:
-                return [$proxy.PRESS_FIRE3];
+                return [$wasm.PULL_RIGHT];
+            case $wasm.PRESS_FIRE:
+                return [$wasm.PRESS_FIRE];
+            case $wasm.PRESS_FIRE2:
+                return [$wasm.PRESS_FIRE2];
+            case $wasm.PRESS_FIRE3:
+                return [$wasm.PRESS_FIRE3];
         }
     }
 
@@ -531,24 +531,24 @@
         switch (action) {
             case undefined:
                 return [];
-            case $proxy.PULL_UP:
+            case $wasm.PULL_UP:
                 keyUp = false;
-                return keyDown ? [$proxy.PULL_DOWN] : [$proxy.RELEASE_Y];
-            case $proxy.PULL_DOWN:
+                return keyDown ? [$wasm.PULL_DOWN] : [$wasm.RELEASE_Y];
+            case $wasm.PULL_DOWN:
                 keyDown = false;
-                return keyUp ? [$proxy.PULL_UP] : [$proxy.RELEASE_Y];
-            case $proxy.PULL_LEFT:
+                return keyUp ? [$wasm.PULL_UP] : [$wasm.RELEASE_Y];
+            case $wasm.PULL_LEFT:
                 keyLeft = false;
-                return keyRight ? [$proxy.PULL_RIGHT] : [$proxy.RELEASE_X];
-            case $proxy.PULL_RIGHT:
+                return keyRight ? [$wasm.PULL_RIGHT] : [$wasm.RELEASE_X];
+            case $wasm.PULL_RIGHT:
                 keyRight = false;
-                return keyLeft ? [$proxy.PULL_LEFT] : [$proxy.RELEASE_X];
-            case $proxy.PRESS_FIRE:
-                return [$proxy.RELEASE_FIRE];
-            case $proxy.PRESS_FIRE2:
-                return [$proxy.RELEASE_FIRE2];
-            case $proxy.PRESS_FIRE3:
-                return [$proxy.RELEASE_FIRE3];
+                return keyLeft ? [$wasm.PULL_LEFT] : [$wasm.RELEASE_X];
+            case $wasm.PRESS_FIRE:
+                return [$wasm.RELEASE_FIRE];
+            case $wasm.PRESS_FIRE2:
+                return [$wasm.RELEASE_FIRE2];
+            case $wasm.PRESS_FIRE3:
+                return [$wasm.RELEASE_FIRE3];
         }
     }
 
@@ -671,13 +671,13 @@
         } else {
             switch (e.button) {
                 case 0:
-                    mousePort()?.trigger($proxy.PRESS_LEFT);
+                    mousePort()?.trigger($wasm.PRESS_LEFT);
                     break;
                 case 1:
-                    mousePort()?.trigger($proxy.PRESS_MIDDLE);
+                    mousePort()?.trigger($wasm.PRESS_MIDDLE);
                     break;
                 case 2:
-                    mousePort()?.trigger($proxy.PRESS_RIGHT);
+                    mousePort()?.trigger($wasm.PRESS_RIGHT);
                     break;
             }
         }
@@ -688,13 +688,13 @@
         console.log('mouseUp: ', e.button);
         switch (e.button) {
             case 0:
-                mousePort()?.trigger($proxy.RELEASE_LEFT);
+                mousePort()?.trigger($wasm.RELEASE_LEFT);
                 break;
             case 1:
-                mousePort()?.trigger($proxy.RELEASE_MIDDLE);
+                mousePort()?.trigger($wasm.RELEASE_MIDDLE);
                 break;
             case 2:
-                mousePort()?.trigger($proxy.RELEASE_RIGHT);
+                mousePort()?.trigger($wasm.RELEASE_RIGHT);
                 break;
         }
     }

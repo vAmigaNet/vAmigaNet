@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { joystick1, joystick2, port1, port2, proxy } from '$lib/stores';
+    import { joystick1, joystick2, port1, port2, wasm } from '$lib/stores';
     import { InputDevice } from '$lib/types';
 
     export let gamepads = {};
@@ -43,23 +43,23 @@
         const ay = gp.axes[1].valueOf();
 
         if (b1) {
-            joystickPort()?.trigger($proxy.PRESS_FIRE);
+            joystickPort()?.trigger($wasm.PRESS_FIRE);
         } else {
-            joystickPort()?.trigger($proxy.RELEASE_FIRE);
+            joystickPort()?.trigger($wasm.RELEASE_FIRE);
         }
         if (ax < -0.5) {
-            joystickPort()?.trigger($proxy.PULL_LEFT);
+            joystickPort()?.trigger($wasm.PULL_LEFT);
         } else if (ax > 0.5) {
-            joystickPort()?.trigger($proxy.PULL_RIGHT);
+            joystickPort()?.trigger($wasm.PULL_RIGHT);
         } else {
-            joystickPort()?.trigger($proxy.RELEASE_X);
+            joystickPort()?.trigger($wasm.RELEASE_X);
         }
         if (ay < -0.5) {
-            joystickPort()?.trigger($proxy.PULL_UP);
+            joystickPort()?.trigger($wasm.PULL_UP);
         } else if (ay > 0.5) {
-            joystickPort()?.trigger($proxy.PULL_DOWN);
+            joystickPort()?.trigger($wasm.PULL_DOWN);
         } else {
-            joystickPort()?.trigger($proxy.RELEASE_Y);
+            joystickPort()?.trigger($wasm.RELEASE_Y);
         }
     }
 

@@ -7,7 +7,7 @@
 	import { liveQuery } from 'dexie';
 	import { Layer } from '$lib/types';
 	import { initialized, loadWasm, wasmLoaded, amiga, kickstarts } from '$lib/stores';
-	import { proxy, audio, config, gamepadManager } from '$lib/stores';
+	import { wasm, audio, config, gamepadManager } from '$lib/stores';
 	import { layer, poweredOn, what, errno } from '$lib/stores';
 	import { layout, showSidebar } from '$lib/stores';
 	import { canvasWidth, canvasHeight, aspectWidth, aspectHeight } from '$lib/stores';
@@ -129,12 +129,12 @@
 				$layer = $layer == Layer.settings ? Layer.none : Layer.settings;
 				break;
 			case 'monitor':
-				if ($amiga.getConfig($proxy.OPT_DMA_DEBUG_ENABLE)) {
+				if ($amiga.getConfig($wasm.OPT_DMA_DEBUG_ENABLE)) {
 					emulator.textureRect!.zoomIn();
-					$amiga.configure($proxy.OPT_DMA_DEBUG_ENABLE, 0);
+					$amiga.configure($wasm.OPT_DMA_DEBUG_ENABLE, 0);
 				} else {
 					emulator.textureRect!.zoomOut();
-					$amiga.configure($proxy.OPT_DMA_DEBUG_ENABLE, 1);
+					$amiga.configure($wasm.OPT_DMA_DEBUG_ENABLE, 1);
 				}
 				break;
 			case 'pause':
@@ -142,7 +142,7 @@
 					$amiga.stopAndGo();
 				} catch (exc) {
 					console.log(exc);
-					$proxy.reportException();
+					$wasm.reportException();
 				}
 				break;
 			case 'power':
@@ -155,7 +155,7 @@
 					}
 				} catch (exc) {
 					console.log(exc);
-					$proxy.reportException();
+					$wasm.reportException();
 				}
 				break;
 			case 'reset':
@@ -163,7 +163,7 @@
 					$amiga.hardReset();
 				} catch (exc) {
 					console.log(exc);
-					$proxy.reportException();
+					$wasm.reportException();
 				}
 				break;
 			case 'fit':
@@ -238,7 +238,7 @@
 <div class="h-screen overflow-y-auto scroll-smooth bg-black text-white">
     <Guru />
     {#if $wasmLoaded}
-    <Proxy bind:this={$proxy} />
+    <Proxy bind:this={$wasm} />
     {/if}
 	{#if $initialized}
     	<Config bind:this={$config} />

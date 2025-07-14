@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { MenuItem, Opt, RenderMode } from '$lib/types';
-    import { config, proxy } from '$lib/stores';
+    import { config, wasm } from '$lib/stores';
     import type { ActionEvent } from '$lib/types';
     import { fade } from 'svelte/transition';
     import ConfigSection from './ConfigSection.svelte';
@@ -68,12 +68,12 @@
         <ConfigItem
                 name="Palette"
                 items={[
-				new MenuItem('Color', $proxy.PALETTE_COLOR),
-				new MenuItem('Black and White', $proxy.PALETTE_BLACK_WHITE),
-				new MenuItem('Paper White', $proxy.PALETTE_PAPER_WHITE),
-				new MenuItem('Green', $proxy.PALETTE_GREEN),
-				new MenuItem('Amber', $proxy.PALETTE_AMBER),
-				new MenuItem('Sepia', $proxy.PALETTE_SEPIA)
+				new MenuItem('Color', $wasm.PALETTE_COLOR),
+				new MenuItem('Black and White', $wasm.PALETTE_BLACK_WHITE),
+				new MenuItem('Paper White', $wasm.PALETTE_PAPER_WHITE),
+				new MenuItem('Green', $wasm.PALETTE_GREEN),
+				new MenuItem('Amber', $wasm.PALETTE_AMBER),
+				new MenuItem('Sepia', $wasm.PALETTE_SEPIA)
 			]}
                 selectedTag={$config.getNum(Opt.PALETTE)}
                 on:select={paletteAction}
@@ -82,7 +82,7 @@
                 name="Brightness"
                 min={0}
                 max={100}
-                tag={$proxy.OPT_BRIGHTNESS}
+                tag={$wasm.OPT_BRIGHTNESS}
                 selectedTag={$config.getNum(Opt.BRIGHTNESS)}
                 on:select={brightnessAction}
         />
@@ -90,7 +90,7 @@
                 name="Contrast"
                 min={0}
                 max={100}
-                tag={$proxy.OPT_CONTRAST}
+                tag={$wasm.OPT_CONTRAST}
                 selectedTag={$config.getNum(Opt.CONTRAST)}
                 on:select={contrastAction}
         />
@@ -98,7 +98,7 @@
                 name="Saturation"
                 min={0}
                 max={100}
-                tag={$proxy.OPT_SATURATION}
+                tag={$wasm.OPT_SATURATION}
                 selectedTag={$config.getNum(Opt.SATURATION)}
                 on:select={saturationAction}
         />

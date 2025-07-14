@@ -1,6 +1,6 @@
 <script lang="ts">
     import { Layer } from '$lib/types';
-    import { amiga, dragItem, dragType, initialized, layer, proxy } from '$lib/stores';
+    import { amiga, dragItem, dragType, initialized, layer, wasm } from '$lib/stores';
 
     function handleDragEnter(event: DragEvent)
     {
@@ -42,16 +42,16 @@
 
         // Check the file type
         switch ($amiga.getFileType(blob)) {
-            case $proxy.FILETYPE_ROM:
+            case $wasm.FILETYPE_ROM:
                 await handleDraggedRom(uint8View);
                 return;
-            case $proxy.FILETYPE_ADF:
-            case $proxy.FILETYPE_EADF:
-            case $proxy.FILETYPE_DMS:
-            case $proxy.FILETYPE_EXE:
+            case $wasm.FILETYPE_ADF:
+            case $wasm.FILETYPE_EADF:
+            case $wasm.FILETYPE_DMS:
+            case $wasm.FILETYPE_EXE:
                 handleDraggedDisk(uint8View);
                 return;
-            case $proxy.FILETYPE_HDF:
+            case $wasm.FILETYPE_HDF:
                 handleDraggedHardDrive(uint8View);
                 return;
             default:
@@ -62,7 +62,7 @@
 
     async function handleDraggedRom(blob: Uint8Array)
     {
-        $proxy.addRom(blob);
+        $wasm.addRom(blob);
     }
 
     function handleDraggedDisk(blob: Uint8Array)

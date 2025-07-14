@@ -2,7 +2,7 @@
 	import '../app.css';
 	import { browser } from '$app/environment';
 	import { onMount } from 'svelte';
-	import { proxy, loadWasm, wasmLoaded } from '$lib/stores';
+	import { wasm, loadWasm, wasmLoaded } from '$lib/stores';
 
 	onMount(() => {
 		if (!browser) return;
@@ -12,7 +12,7 @@
 		// Provide a Module object for Emscripten to use
 		(window as any).Module = {
 			onRuntimeInitialized() {
-				proxy.set((window as any).Module);
+				wasm.set((window as any).Module);
 				console.log('WASM loaded');
 				// $loadWasm = true;
 				$wasmLoaded = true;

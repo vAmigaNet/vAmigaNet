@@ -14,7 +14,7 @@
     import RomViewer from '$lib/RomViewer.svelte';
     import Showcases from '$lib/Showcases/Showcases.svelte';
     import { demos } from '$lib/Showcases/database';
-    import { amiga, audio, layer, poweredOn, proxy, showSidebar } from '$lib/stores';
+    import { amiga, audio, layer, poweredOn, wasm, showSidebar } from '$lib/stores';
 
     let debug = ''; // 'border-2';
     let showRomViewer = false;
@@ -55,7 +55,7 @@
     async function runDemo()
     {
         await $audio.setup();
-        $proxy.runShowcase(demos[0]);
+        $wasm.runShowcase(demos[0]);
     }
 
     function gotoGitHub()

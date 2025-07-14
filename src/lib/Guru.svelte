@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { proxy, enums, what, errno } from '$lib/stores';
-	$: initialized = $proxy != undefined;
+	import { wasm, enums, what, errno } from '$lib/stores';
+	$: initialized = $wasm != undefined;
 
 	let active = false;
 	let border = true;

@@ -118,7 +118,7 @@
         muted,
         paula,
         poweredOn,
-        proxy,
+        wasm,
         retroShell,
         romcrc,
         running,
@@ -134,9 +134,9 @@
 
         // Prepare to receive messages
         console.log('Prepare to receive messages');
-        $proxy.processMsg = processMsg;
+        $wasm.processMsg = processMsg;
 
-        console.log('proxy = ', $proxy, 'HEAPF32 = ', $proxy.HEAPF32);
+        console.log('proxy = ', $wasm, 'HEAPF32 = ', $wasm.HEAPF32);
         onRuntimeInitialized();
 
     });
@@ -148,13 +148,13 @@
             console.log('Showcase:', showcase.title);
             $amiga.powerOff();
             console.log('Installing ROM:', showcase.roms);
-            $proxy.installRoms(showcase.roms);
+            $wasm.installRoms(showcase.roms);
             console.log('Configuring Chip RAM:', showcase.memory[0]);
-            $amiga.configure($proxy.OPT_CHIP_RAM, showcase.memory[0]);
+            $amiga.configure($wasm.OPT_CHIP_RAM, showcase.memory[0]);
             console.log('Configuring Slow RAM:', showcase.memory[1]);
-            $amiga.configure($proxy.OPT_SLOW_RAM, showcase.memory[1]);
+            $amiga.configure($wasm.OPT_SLOW_RAM, showcase.memory[1]);
             console.log('Configuring Fast RAM:', showcase.memory[2]);
-            $amiga.configure($proxy.OPT_FAST_RAM, showcase.memory[2]);
+            $amiga.configure($wasm.OPT_FAST_RAM, showcase.memory[2]);
             console.log('Configuring drives:', showcase.adf.length);
             $config.set(Opt.DF1, showcase.adf.length > 1);
             for (let i = 0; i < showcase.adf.length; i++) {
@@ -303,28 +303,28 @@
     export function onRuntimeInitialized()
     {
         console.log('Creating proxies...');
-        $agnus = new $proxy.AgnusProxy();
-        $cpu = new $proxy.CPUProxy();
-        $denise = new $proxy.DeniseProxy();
-        $df0 = new $proxy.DriveProxy(0);
-        $df1 = new $proxy.DriveProxy(1);
-        $df2 = new $proxy.DriveProxy(2);
-        $df3 = new $proxy.DriveProxy(3);
-        $diskController = new $proxy.DiskControllerProxy();
-        $enums = new $proxy.EnumProxy();
-        $hd0 = new $proxy.HardDriveProxy(0);
-        $hd1 = new $proxy.HardDriveProxy(1);
-        $hd2 = new $proxy.HardDriveProxy(2);
-        $hd3 = new $proxy.HardDriveProxy(3);
-        $joystick1 = new $proxy.JoystickProxy(1);
-        $joystick2 = new $proxy.JoystickProxy(2);
-        $keyboard = new $proxy.KeyboardProxy();
-        $memory = new $proxy.MemoryProxy();
-        $mouse1 = new $proxy.MouseProxy(1);
-        $mouse2 = new $proxy.MouseProxy(2);
-        $paula = new $proxy.PaulaProxy();
-        $retroShell = new $proxy.RetroShellProxy();
-        $amiga = new $proxy.AmigaProxy();
+        $agnus = new $wasm.AgnusProxy();
+        $cpu = new $wasm.CPUProxy();
+        $denise = new $wasm.DeniseProxy();
+        $df0 = new $wasm.DriveProxy(0);
+        $df1 = new $wasm.DriveProxy(1);
+        $df2 = new $wasm.DriveProxy(2);
+        $df3 = new $wasm.DriveProxy(3);
+        $diskController = new $wasm.DiskControllerProxy();
+        $enums = new $wasm.EnumProxy();
+        $hd0 = new $wasm.HardDriveProxy(0);
+        $hd1 = new $wasm.HardDriveProxy(1);
+        $hd2 = new $wasm.HardDriveProxy(2);
+        $hd3 = new $wasm.HardDriveProxy(3);
+        $joystick1 = new $wasm.JoystickProxy(1);
+        $joystick2 = new $wasm.JoystickProxy(2);
+        $keyboard = new $wasm.KeyboardProxy();
+        $memory = new $wasm.MemoryProxy();
+        $mouse1 = new $wasm.MouseProxy(1);
+        $mouse2 = new $wasm.MouseProxy(2);
+        $paula = new $wasm.PaulaProxy();
+        $retroShell = new $wasm.RetroShellProxy();
+        $amiga = new $wasm.AmigaProxy();
 
         // Start the emulator
         console.log('Launching the emulator...');
@@ -333,23 +333,23 @@
         console.log('Configuring the emulator...');
 
         // Apply some default settings
-        $amiga.configure($proxy.OPT_AGNUS_REVISION, $proxy.AGNUS_ECS_2MB);
+        $amiga.configure($wasm.OPT_AGNUS_REVISION, $wasm.AGNUS_ECS_2MB);
 
         $keyset1 = {
-            ArrowLeft: $proxy.PULL_LEFT,
-            ArrowRight: $proxy.PULL_RIGHT,
-            ArrowUp: $proxy.PULL_UP,
-            ArrowDown: $proxy.PULL_DOWN,
-            ControlRight: $proxy.PRESS_FIRE,
-            Space: $proxy.PRESS_FIRE
+            ArrowLeft: $wasm.PULL_LEFT,
+            ArrowRight: $wasm.PULL_RIGHT,
+            ArrowUp: $wasm.PULL_UP,
+            ArrowDown: $wasm.PULL_DOWN,
+            ControlRight: $wasm.PRESS_FIRE,
+            Space: $wasm.PRESS_FIRE
         };
 
         $keyset2 = {
-            KeyS: $proxy.PULL_LEFT,
-            KeyD: $proxy.PULL_RIGHT,
-            KeyE: $proxy.PULL_UP,
-            KeyX: $proxy.PULL_DOWN,
-            KeyC: $proxy.RELEASE_FIRE
+            KeyS: $wasm.PULL_LEFT,
+            KeyD: $wasm.PULL_RIGHT,
+            KeyE: $wasm.PULL_UP,
+            KeyX: $wasm.PULL_DOWN,
+            KeyC: $wasm.RELEASE_FIRE
         };
 
         (async () => {
@@ -379,7 +379,7 @@
 
         const state = $diskController.getState();
         const sel = $diskController.getSelected();
-        const write = state == $proxy.DRIVE_DMA_WRITE;
+        const write = state == $wasm.DRIVE_DMA_WRITE;
 
         $poweredOn = $amiga.poweredOn();
         $running = $amiga.isRunning();
@@ -412,313 +412,313 @@
         // console.log(`Message: ${$enums.MsgTypeKey(type)}(${value})`);
 
         switch (type) {
-            case $proxy.MSG_NONE:
+            case $wasm.MSG_NONE:
                 $MsgNone++;
                 break;
 
-            case $proxy.MSG_CONFIG:
+            case $wasm.MSG_CONFIG:
                 $MsgConfig++;
                 break;
 
-            case $proxy.MSG_POWER:
+            case $wasm.MSG_POWER:
                 $MsgPower++;
                 updateStateVariables();
                 break;
 
-            case $proxy.MSG_RUN:
+            case $wasm.MSG_RUN:
                 $MsgRun++;
                 updateStateVariables();
                 break;
 
-            case $proxy.MSG_PAUSE:
+            case $wasm.MSG_PAUSE:
                 $MsgPause++;
                 updateStateVariables();
                 break;
 
-            case $proxy.MSG_STEP:
+            case $wasm.MSG_STEP:
                 $MsgStep++;
                 break;
 
-            case $proxy.MSG_RESET:
+            case $wasm.MSG_RESET:
                 $MsgReset++;
                 updateStateVariables();
                 break;
 
-            case $proxy.MSG_SHUTDOWN:
+            case $wasm.MSG_SHUTDOWN:
                 $MsgShutdown++;
                 break;
 
-            case $proxy.MSG_ABORT:
+            case $wasm.MSG_ABORT:
                 $MsgAbort++;
                 break;
 
-            case $proxy.MSG_WARP:
+            case $wasm.MSG_WARP:
                 $MsgWarp++;
                 updateStateVariables();
                 break;
 
-            case $proxy.MSG_TRACK:
+            case $wasm.MSG_TRACK:
                 $MsgTrack++;
                 updateStateVariables();
                 break;
 
-            case $proxy.MSG_MUTE:
+            case $wasm.MSG_MUTE:
                 $MsgMute++;
                 updateStateVariables();
                 break;
 
-            case $proxy.MSG_POWER_LED_ON:
+            case $wasm.MSG_POWER_LED_ON:
                 $MsgPowerLedOn++;
                 break;
 
-            case $proxy.MSG_POWER_LED_DIM:
+            case $wasm.MSG_POWER_LED_DIM:
                 $MsgPowerLedDim++;
                 break;
 
-            case $proxy.MSG_POWER_LED_OFF:
+            case $wasm.MSG_POWER_LED_OFF:
                 $MsgPowerLedOff++;
                 break;
 
-            case $proxy.MSG_CONSOLE_CLOSE:
+            case $wasm.MSG_CONSOLE_CLOSE:
                 $MsgConsoleClose++;
                 break;
 
-            case $proxy.MSG_CONSOLE_UPDATE:
+            case $wasm.MSG_CONSOLE_UPDATE:
                 $MsgConsoleUpdate++;
                 break;
 
-            case $proxy.MSG_CONSOLE_DEBUGGER:
+            case $wasm.MSG_CONSOLE_DEBUGGER:
                 $MsgConsoleDebugger++;
                 break;
 
-            case $proxy.MSG_SCRIPT_DONE:
+            case $wasm.MSG_SCRIPT_DONE:
                 $MsgScriptDone++;
                 break;
 
-            case $proxy.MSG_SCRIPT_PAUSE:
+            case $wasm.MSG_SCRIPT_PAUSE:
                 $MsgScriptPause++;
                 break;
 
-            case $proxy.MSG_SCRIPT_ABORT:
+            case $wasm.MSG_SCRIPT_ABORT:
                 $MsgScriptAbort++;
                 break;
 
-            case $proxy.MSG_SCRIPT_WAKEUP:
+            case $wasm.MSG_SCRIPT_WAKEUP:
                 $MsgScriptWakeup++;
                 break;
 
-            case $proxy.MSG_VIDEO_FORMAT:
+            case $wasm.MSG_VIDEO_FORMAT:
                 $MsgVideoFormat++;
                 break;
 
-            case $proxy.MSG_OVERCLOCKING:
+            case $wasm.MSG_OVERCLOCKING:
                 $MsgOverclocking++;
                 break;
 
-            case $proxy.MSG_BREAKPOINT_REACHED:
+            case $wasm.MSG_BREAKPOINT_REACHED:
                 $MsgBreakpointReached++;
                 break;
 
-            case $proxy.MSG_BREAKPOINT_UPDATED:
+            case $wasm.MSG_BREAKPOINT_UPDATED:
                 $MsgBreakpointUpdated++;
                 break;
 
-            case $proxy.MSG_WATCHPOINT_REACHED:
+            case $wasm.MSG_WATCHPOINT_REACHED:
                 $MsgWatchpointReached++;
                 break;
 
-            case $proxy.MSG_WATCHPOINT_UPDATED:
+            case $wasm.MSG_WATCHPOINT_UPDATED:
                 $MsgWatchpointUpdated++;
                 break;
 
-            case $proxy.MSG_CATCHPOINT_REACHED:
+            case $wasm.MSG_CATCHPOINT_REACHED:
                 $MsgCatchpointReached++;
                 break;
 
-            case $proxy.MSG_CATCHPOINT_UPDATED:
+            case $wasm.MSG_CATCHPOINT_UPDATED:
                 $MsgCatchpointUpdated++;
                 break;
 
-            case $proxy.MSG_SWTRAP_REACHED:
+            case $wasm.MSG_SWTRAP_REACHED:
                 $MsgSwTrapReached++;
                 break;
 
-            case $proxy.MSG_CPU_HALT:
+            case $wasm.MSG_CPU_HALT:
                 $MsgCpuHalt++;
                 updateStateVariables();
                 break;
 
-            case $proxy.MSG_COPPERBP_REACHED:
+            case $wasm.MSG_COPPERBP_REACHED:
                 $MsgCopperBpReached++;
                 break;
 
-            case $proxy.MSG_COPPERBP_UPDATED:
+            case $wasm.MSG_COPPERBP_UPDATED:
                 $MsgCopperBpUpdated++;
                 break;
 
-            case $proxy.MSG_COPPERWP_REACHED:
+            case $wasm.MSG_COPPERWP_REACHED:
                 $MsgCopperWpReached++;
                 break;
 
-            case $proxy.MSG_COPPERWP_UPDATED:
+            case $wasm.MSG_COPPERWP_UPDATED:
                 $MsgCopperWpUpdated++;
                 break;
 
-            case $proxy.MSG_VIEWPORT:
+            case $wasm.MSG_VIEWPORT:
                 $MsgViewport++;
                 break;
 
-            case $proxy.MSG_MEM_LAYOUT:
+            case $wasm.MSG_MEM_LAYOUT:
                 $MsgMemLayout++;
                 break;
 
-            case $proxy.MSG_DRIVE_CONNECT:
+            case $wasm.MSG_DRIVE_CONNECT:
                 $MsgDriveConnect++;
                 updateStateVariables();
                 break;
 
-            case $proxy.MSG_DRIVE_SELECT:
+            case $wasm.MSG_DRIVE_SELECT:
                 $MsgDriveSelect++;
                 break;
 
-            case $proxy.MSG_DRIVE_READ:
+            case $wasm.MSG_DRIVE_READ:
                 $MsgDriveRead++;
                 break;
 
-            case $proxy.MSG_DRIVE_WRITE:
+            case $wasm.MSG_DRIVE_WRITE:
                 $MsgDriveWrite++;
                 updateStateVariables();
                 break;
 
-            case $proxy.MSG_DRIVE_LED:
+            case $wasm.MSG_DRIVE_LED:
                 $MsgDriveLed++;
                 break;
 
-            case $proxy.MSG_DRIVE_MOTOR:
+            case $wasm.MSG_DRIVE_MOTOR:
                 $MsgDriveMotor++;
                 updateStateVariables();
                 break;
 
-            case $proxy.MSG_DRIVE_STEP:
+            case $wasm.MSG_DRIVE_STEP:
                 $MsgDriveStep++;
                 updateStateVariables();
                 $audio.playStepSound(msg.drive.volume, msg.drive.pan);
                 break;
 
-            case $proxy.MSG_DRIVE_POLL:
+            case $wasm.MSG_DRIVE_POLL:
                 $MsgDrivePoll++;
                 updateStateVariables();
                 $audio.playStepSound(msg.drive.volume, msg.drive.pan);
                 break;
 
-            case $proxy.MSG_DISK_INSERT:
+            case $wasm.MSG_DISK_INSERT:
                 $MsgDiskInsert++;
                 updateStateVariables();
                 $audio.playInsertSound(msg.drive.volume, msg.drive.pan);
                 break;
 
-            case $proxy.MSG_DISK_EJECT:
+            case $wasm.MSG_DISK_EJECT:
                 $MsgDiskEject++;
                 updateStateVariables();
                 $audio.playEjectSound(msg.drive.volume, msg.drive.pan);
                 break;
 
-            case $proxy.MSG_DISK_PROTECTED:
+            case $wasm.MSG_DISK_PROTECTED:
                 $MsgDiskProtected++;
                 updateStateVariables();
                 break;
 
-            case $proxy.MSG_HDC_CONNECT:
+            case $wasm.MSG_HDC_CONNECT:
                 $MsgHdcConnect++;
                 updateStateVariables();
                 break;
 
-            case $proxy.MSG_HDC_STATE:
+            case $wasm.MSG_HDC_STATE:
                 $MsgHdcState++;
                 updateStateVariables();
                 break;
 
-            case $proxy.MSG_HDR_STEP:
+            case $wasm.MSG_HDR_STEP:
                 $MsgHdrStep++;
                 $audio.playClickSound(msg.drive.volume, msg.drive.pan);
                 break;
 
-            case $proxy.MSG_HDR_READ:
+            case $wasm.MSG_HDR_READ:
                 $MsgHdrRead++;
                 updateStateVariables();
                 break;
 
-            case $proxy.MSG_HDR_WRITE:
+            case $wasm.MSG_HDR_WRITE:
                 $MsgHdrWrite++;
                 updateStateVariables();
                 break;
 
-            case $proxy.MSG_HDR_IDLE:
+            case $wasm.MSG_HDR_IDLE:
                 $MsgHdrIdle++;
                 updateStateVariables();
                 break;
 
-            case $proxy.MSG_CTRL_AMIGA_AMIGA:
+            case $wasm.MSG_CTRL_AMIGA_AMIGA:
                 $MsgCtrlAmigaAmiga++;
                 break;
 
-            case $proxy.MSG_SHAKING:
+            case $wasm.MSG_SHAKING:
                 $MsgShaking++;
                 break;
 
-            case $proxy.MSG_SER_IN:
+            case $wasm.MSG_SER_IN:
                 // console.log("SER_IN: ", String.fromCharCode(d1 & 0xFF));
                 $MsgSerIn++;
                 break;
 
-            case $proxy.MSG_SER_OUT:
+            case $wasm.MSG_SER_OUT:
                 // console.log("SER_OUT: ", String.fromCharCode(d1 & 0xFF));
                 $MsgSerOut++;
                 break;
 
-            case $proxy.MSG_AUTO_SNAPSHOT_TAKEN:
+            case $wasm.MSG_AUTO_SNAPSHOT_TAKEN:
                 $MsgAutoSnapshotTaken++;
                 break;
 
-            case $proxy.MSG_USER_SNAPSHOT_TAKEN:
+            case $wasm.MSG_USER_SNAPSHOT_TAKEN:
                 $MsgUserSnapshotTaken++;
                 break;
 
-            case $proxy.MSG_SNAPSHOT_RESTORED:
+            case $wasm.MSG_SNAPSHOT_RESTORED:
                 $MsgSnapshotRestored++;
                 updateStateVariables();
                 break;
 
-            case $proxy.MSG_RECORDING_STARTED:
+            case $wasm.MSG_RECORDING_STARTED:
                 $MsgRecordingStarted++;
                 break;
 
-            case $proxy.MSG_RECORDING_STOPPED:
+            case $wasm.MSG_RECORDING_STOPPED:
                 $MsgRecordingStopped++;
                 break;
 
-            case $proxy.MSG_RECORDING_ABORTED:
+            case $wasm.MSG_RECORDING_ABORTED:
                 $MsgRecordingAborted++;
                 break;
 
-            case $proxy.MSG_DMA_DEBUG:
+            case $wasm.MSG_DMA_DEBUG:
                 $MsgDmaDebug++;
                 $debugDma = msg.value;
                 break;
 
-            case $proxy.MSG_SRV_STATE:
+            case $wasm.MSG_SRV_STATE:
                 $MsgSrvState++;
                 break;
 
-            case $proxy.MSG_SRV_RECEIVE:
+            case $wasm.MSG_SRV_RECEIVE:
                 $MsgSrvReceive++;
                 break;
 
-            case $proxy.MSG_SRV_SEND:
+            case $wasm.MSG_SRV_SEND:
                 $MsgSrvSend++;
                 break;
 
-            case $proxy.MSG_ALARM:
+            case $wasm.MSG_ALARM:
                 $MsgAlarm++;
                 console.log("Alarm received: ", msg.value);
 

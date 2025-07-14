@@ -3,7 +3,7 @@
     import { onMount } from 'svelte';
     import { liveQuery } from 'dexie';
     import { Opt, RenderMode, Theme, WarpMode } from "$lib/types";
-    import { amiga, config, darkTheme, initialized, invert, proxy } from '$lib/stores';
+    import { amiga, config, darkTheme, initialized, invert, wasm } from '$lib/stores';
     import { db, type OptEntry } from '$lib/Db/db';
 
     //
@@ -389,107 +389,107 @@
             //
 
             case Opt.CPU_REVISION:
-                return $amiga.getConfig($proxy.OPT_CPU_REVISION).toString();
+                return $amiga.getConfig($wasm.OPT_CPU_REVISION).toString();
             case Opt.CPU_SPEED:
-                return $amiga.getConfig($proxy.OPT_CPU_OVERCLOCKING).toString();
+                return $amiga.getConfig($wasm.OPT_CPU_OVERCLOCKING).toString();
             case Opt.WARP_MODE:
-                return $amiga.getConfig($proxy.OPT_WARP_MODE).toString();
+                return $amiga.getConfig($wasm.OPT_WARP_MODE).toString();
             case Opt.AGNUS_REVISION:
-                return $amiga.getConfig($proxy.OPT_AGNUS_REVISION).toString();
+                return $amiga.getConfig($wasm.OPT_AGNUS_REVISION).toString();
             case Opt.DENISE_REVISION:
-                return $amiga.getConfig($proxy.OPT_DENISE_REVISION).toString();
+                return $amiga.getConfig($wasm.OPT_DENISE_REVISION).toString();
             case Opt.RTC_MODEL:
-                return $amiga.getConfig($proxy.OPT_RTC_MODEL).toString();
+                return $amiga.getConfig($wasm.OPT_RTC_MODEL).toString();
             case Opt.CHIP_RAM:
-                return $amiga.getConfig($proxy.OPT_CHIP_RAM).toString();
+                return $amiga.getConfig($wasm.OPT_CHIP_RAM).toString();
             case Opt.SLOW_RAM:
-                return $amiga.getConfig($proxy.OPT_SLOW_RAM).toString();
+                return $amiga.getConfig($wasm.OPT_SLOW_RAM).toString();
             case Opt.FAST_RAM:
-                return $amiga.getConfig($proxy.OPT_FAST_RAM).toString();
+                return $amiga.getConfig($wasm.OPT_FAST_RAM).toString();
             case Opt.BANK_MAP:
-                return $amiga.getConfig($proxy.OPT_BANKMAP).toString();
+                return $amiga.getConfig($wasm.OPT_BANKMAP).toString();
             case Opt.INIT_PATTERN:
-                return $amiga.getConfig($proxy.OPT_RAM_INIT_PATTERN).toString();
+                return $amiga.getConfig($wasm.OPT_RAM_INIT_PATTERN).toString();
             case Opt.UNMAPPED:
-                return $amiga.getConfig($proxy.OPT_UNMAPPING_TYPE).toString();
+                return $amiga.getConfig($wasm.OPT_UNMAPPING_TYPE).toString();
             case Opt.SLOW_RAM_MIRROR:
-                return $amiga.getConfig($proxy.OPT_SLOW_RAM_MIRROR).toString();
+                return $amiga.getConfig($wasm.OPT_SLOW_RAM_MIRROR).toString();
             case Opt.SLOW_RAM_DELAY:
-                return $amiga.getConfig($proxy.OPT_SLOW_RAM_DELAY).toString();
+                return $amiga.getConfig($wasm.OPT_SLOW_RAM_DELAY).toString();
             case Opt.DF0:
-                return $amiga.getConfig($proxy.OPT_DRIVE_CONNECT, 0).toString();
+                return $amiga.getConfig($wasm.OPT_DRIVE_CONNECT, 0).toString();
             case Opt.DF1:
-                return $amiga.getConfig($proxy.OPT_DRIVE_CONNECT, 1).toString();
+                return $amiga.getConfig($wasm.OPT_DRIVE_CONNECT, 1).toString();
             case Opt.DF2:
-                return $amiga.getConfig($proxy.OPT_DRIVE_CONNECT, 2).toString();
+                return $amiga.getConfig($wasm.OPT_DRIVE_CONNECT, 2).toString();
             case Opt.DF3:
-                return $amiga.getConfig($proxy.OPT_DRIVE_CONNECT, 3).toString();
+                return $amiga.getConfig($wasm.OPT_DRIVE_CONNECT, 3).toString();
             case Opt.HD0:
-                return $amiga.getConfig($proxy.OPT_HDC_CONNECT, 0).toString();
+                return $amiga.getConfig($wasm.OPT_HDC_CONNECT, 0).toString();
             case Opt.HD1:
-                return $amiga.getConfig($proxy.OPT_HDC_CONNECT, 1).toString();
+                return $amiga.getConfig($wasm.OPT_HDC_CONNECT, 1).toString();
             case Opt.HD2:
-                return $amiga.getConfig($proxy.OPT_HDC_CONNECT, 2).toString();
+                return $amiga.getConfig($wasm.OPT_HDC_CONNECT, 2).toString();
             case Opt.HD3:
-                return $amiga.getConfig($proxy.OPT_HDC_CONNECT, 3).toString();
+                return $amiga.getConfig($wasm.OPT_HDC_CONNECT, 3).toString();
 
                 //
                 // Compatibility settings
                 //
 
             case Opt.BLITTER_ACCURACY:
-                return $amiga.getConfig($proxy.OPT_BLITTER_ACCURACY).toString();
+                return $amiga.getConfig($wasm.OPT_BLITTER_ACCURACY).toString();
             case Opt.TODBUG:
-                return $amiga.getConfig($proxy.OPT_TODBUG).toString();
+                return $amiga.getConfig($wasm.OPT_TODBUG).toString();
             case Opt.PTR_DROPS:
-                return $amiga.getConfig($proxy.OPT_PTR_DROPS).toString();
+                return $amiga.getConfig($wasm.OPT_PTR_DROPS).toString();
             case Opt.ECLOCK_SYNCING:
-                return $amiga.getConfig($proxy.OPT_ECLOCK_SYNCING).toString();
+                return $amiga.getConfig($wasm.OPT_ECLOCK_SYNCING).toString();
             case Opt.DRIVE_SPEED:
-                return $amiga.getConfig($proxy.OPT_DRIVE_SPEED).toString();
+                return $amiga.getConfig($wasm.OPT_DRIVE_SPEED).toString();
             case Opt.DRIVE_MECHANICS:
-                return $amiga.getConfig($proxy.OPT_DRIVE_MECHANICS).toString();
+                return $amiga.getConfig($wasm.OPT_DRIVE_MECHANICS).toString();
             case Opt.OPT_LOCK_DSKSYNC:
-                return $amiga.getConfig($proxy.OPT_LOCK_DSKSYNC).toString();
+                return $amiga.getConfig($wasm.OPT_LOCK_DSKSYNC).toString();
             case Opt.OPT_AUTO_DSKSYNC:
-                return $amiga.getConfig($proxy.OPT_AUTO_DSKSYNC).toString();
+                return $amiga.getConfig($wasm.OPT_AUTO_DSKSYNC).toString();
             case Opt.CLX_SPR_SPR:
-                return $amiga.getConfig($proxy.OPT_CLX_SPR_SPR).toString();
+                return $amiga.getConfig($wasm.OPT_CLX_SPR_SPR).toString();
             case Opt.CLX_SPR_PLF:
-                return $amiga.getConfig($proxy.OPT_CLX_SPR_PLF).toString();
+                return $amiga.getConfig($wasm.OPT_CLX_SPR_PLF).toString();
             case Opt.CLX_PLF_PLF:
-                return $amiga.getConfig($proxy.OPT_CLX_PLF_PLF).toString();
+                return $amiga.getConfig($wasm.OPT_CLX_PLF_PLF).toString();
             case Opt.ACCURATE_KEYBOARD:
-                return $amiga.getConfig($proxy.OPT_ACCURATE_KEYBOARD).toString();
+                return $amiga.getConfig($wasm.OPT_ACCURATE_KEYBOARD).toString();
 
             //
             // Audio settings
             //
 
             case Opt.SAMPLING_METHOD:
-                return $amiga.getConfig($proxy.OPT_SAMPLING_METHOD).toString();
+                return $amiga.getConfig($wasm.OPT_SAMPLING_METHOD).toString();
             case Opt.FILTER_TYPE:
-                return $amiga.getConfig($proxy.OPT_FILTER_TYPE).toString();
+                return $amiga.getConfig($wasm.OPT_FILTER_TYPE).toString();
             case Opt.AUDVOL0:
-                return $amiga.getDriveConfig($proxy.OPT_AUDVOL, 0).toString();
+                return $amiga.getDriveConfig($wasm.OPT_AUDVOL, 0).toString();
             case Opt.AUDVOL1:
-                return $amiga.getDriveConfig($proxy.OPT_AUDVOL, 1).toString();
+                return $amiga.getDriveConfig($wasm.OPT_AUDVOL, 1).toString();
             case Opt.AUDVOL2:
-                return $amiga.getDriveConfig($proxy.OPT_AUDVOL, 2).toString();
+                return $amiga.getDriveConfig($wasm.OPT_AUDVOL, 2).toString();
             case Opt.AUDVOL3:
-                return $amiga.getDriveConfig($proxy.OPT_AUDVOL, 3).toString();
+                return $amiga.getDriveConfig($wasm.OPT_AUDVOL, 3).toString();
             case Opt.AUDVOLL:
-                return $amiga.getConfig($proxy.OPT_AUDVOLL).toString();
+                return $amiga.getConfig($wasm.OPT_AUDVOLL).toString();
             case Opt.AUDVOLR:
-                return $amiga.getConfig($proxy.OPT_AUDVOLR).toString();
+                return $amiga.getConfig($wasm.OPT_AUDVOLR).toString();
             case Opt.STEP_VOLUME:
-                return $amiga.getDriveConfig($proxy.OPT_STEP_VOLUME, 0).toString();
+                return $amiga.getDriveConfig($wasm.OPT_STEP_VOLUME, 0).toString();
             case Opt.POLL_VOLUME:
-                return $amiga.getDriveConfig($proxy.OPT_POLL_VOLUME, 0).toString();
+                return $amiga.getDriveConfig($wasm.OPT_POLL_VOLUME, 0).toString();
             case Opt.INSERT_VOLUME:
-                return $amiga.getDriveConfig($proxy.OPT_INSERT_VOLUME, 0).toString();
+                return $amiga.getDriveConfig($wasm.OPT_INSERT_VOLUME, 0).toString();
             case Opt.EJECT_VOLUME:
-                return $amiga.getDriveConfig($proxy.OPT_EJECT_VOLUME, 0).toString();
+                return $amiga.getDriveConfig($wasm.OPT_EJECT_VOLUME, 0).toString();
 
             //
             // Video settings
@@ -498,13 +498,13 @@
             case Opt.RENDER_MODE:
                 return renderMode.toString();
             case Opt.PALETTE:
-                return $amiga.getConfig($proxy.OPT_PALETTE).toString();
+                return $amiga.getConfig($wasm.OPT_PALETTE).toString();
             case Opt.BRIGHTNESS:
-                return $amiga.getConfig($proxy.OPT_BRIGHTNESS).toString();
+                return $amiga.getConfig($wasm.OPT_BRIGHTNESS).toString();
             case Opt.CONTRAST:
-                return $amiga.getConfig($proxy.OPT_CONTRAST).toString();
+                return $amiga.getConfig($wasm.OPT_CONTRAST).toString();
             case Opt.SATURATION:
-                return $amiga.getConfig($proxy.OPT_SATURATION).toString();
+                return $amiga.getConfig($wasm.OPT_SATURATION).toString();
             case Opt.FLICKER_WEIGHT:
                 return flickerWeight.toString();
             default:
@@ -555,76 +555,76 @@
             //
 
             case Opt.CPU_REVISION:
-                $amiga.configure($proxy.OPT_CPU_REVISION, Number(val));
+                $amiga.configure($wasm.OPT_CPU_REVISION, Number(val));
                 break;
             case Opt.CPU_SPEED:
-                $amiga.configure($proxy.OPT_CPU_OVERCLOCKING, Number(val));
+                $amiga.configure($wasm.OPT_CPU_OVERCLOCKING, Number(val));
                 break;
             case Opt.WARP_MODE:
-                $amiga.configure($proxy.OPT_WARP_MODE, Number(val));
+                $amiga.configure($wasm.OPT_WARP_MODE, Number(val));
                 break;
             case Opt.AGNUS_REVISION:
-                $amiga.configure($proxy.OPT_AGNUS_REVISION, Number(val));
+                $amiga.configure($wasm.OPT_AGNUS_REVISION, Number(val));
                 break;
             case Opt.DENISE_REVISION:
-                $amiga.configure($proxy.OPT_DENISE_REVISION, Number(val));
+                $amiga.configure($wasm.OPT_DENISE_REVISION, Number(val));
                 break;
             case Opt.RTC_MODEL:
-                $amiga.configure($proxy.OPT_RTC_MODEL, Number(val));
+                $amiga.configure($wasm.OPT_RTC_MODEL, Number(val));
                 break;
             case Opt.CHIP_RAM:
-                $amiga.configure($proxy.OPT_CHIP_RAM, Number(val));
+                $amiga.configure($wasm.OPT_CHIP_RAM, Number(val));
                 break;
             case Opt.SLOW_RAM:
-                $amiga.configure($proxy.OPT_SLOW_RAM, Number(val));
+                $amiga.configure($wasm.OPT_SLOW_RAM, Number(val));
                 break;
             case Opt.FAST_RAM:
-                $amiga.configure($proxy.OPT_FAST_RAM, Number(val));
+                $amiga.configure($wasm.OPT_FAST_RAM, Number(val));
                 break;
             case Opt.BANK_MAP:
-                $amiga.configure($proxy.OPT_BANKMAP, Number(val));
+                $amiga.configure($wasm.OPT_BANKMAP, Number(val));
                 break;
             case Opt.INIT_PATTERN:
-                $amiga.configure($proxy.OPT_RAM_INIT_PATTERN, Number(val));
+                $amiga.configure($wasm.OPT_RAM_INIT_PATTERN, Number(val));
                 break;
             case Opt.UNMAPPED:
-                $amiga.configure($proxy.OPT_UNMAPPING_TYPE, Number(val));
+                $amiga.configure($wasm.OPT_UNMAPPING_TYPE, Number(val));
                 break;
             case Opt.SLOW_RAM_MIRROR:
-                $amiga.configure($proxy.OPT_SLOW_RAM_MIRROR, Number(val));
+                $amiga.configure($wasm.OPT_SLOW_RAM_MIRROR, Number(val));
                 break;
             case Opt.SLOW_RAM_DELAY:
-                $amiga.configure($proxy.OPT_SLOW_RAM_DELAY, Number(val));
+                $amiga.configure($wasm.OPT_SLOW_RAM_DELAY, Number(val));
                 break;
             case Opt.DF0:
                 break;
             case Opt.DF1:
                 const enable = Number(val);
-                $amiga.configureId($proxy.OPT_DRIVE_CONNECT, 1, enable);
-                if (enable == 0) $amiga.configureId($proxy.OPT_DRIVE_CONNECT, 2, 0);
-                if (enable == 0) $amiga.configureId($proxy.OPT_DRIVE_CONNECT, 3, 0);
+                $amiga.configureId($wasm.OPT_DRIVE_CONNECT, 1, enable);
+                if (enable == 0) $amiga.configureId($wasm.OPT_DRIVE_CONNECT, 2, 0);
+                if (enable == 0) $amiga.configureId($wasm.OPT_DRIVE_CONNECT, 3, 0);
                 break;
             case Opt.DF2:
-                if (enable == 1) $amiga.configureId($proxy.OPT_DRIVE_CONNECT, 1, 1);
-                $amiga.configure($proxy.OPT_DRIVE_CONNECT, 2, enable);
-                if (enable == 0) $amiga.configureId($proxy.OPT_DRIVE_CONNECT, 3, 0);
+                if (enable == 1) $amiga.configureId($wasm.OPT_DRIVE_CONNECT, 1, 1);
+                $amiga.configure($wasm.OPT_DRIVE_CONNECT, 2, enable);
+                if (enable == 0) $amiga.configureId($wasm.OPT_DRIVE_CONNECT, 3, 0);
                 break;
             case Opt.DF3:
-                if (enable == 1) $amiga.configureId($proxy.OPT_DRIVE_CONNECT, 1, 1);
-                if (enable == 1) $amiga.configureId($proxy.OPT_DRIVE_CONNECT, 2, 1);
-                $amiga.configure($proxy.OPT_DRIVE_CONNECT, 3, enable);
+                if (enable == 1) $amiga.configureId($wasm.OPT_DRIVE_CONNECT, 1, 1);
+                if (enable == 1) $amiga.configureId($wasm.OPT_DRIVE_CONNECT, 2, 1);
+                $amiga.configure($wasm.OPT_DRIVE_CONNECT, 3, enable);
                 break;
             case Opt.HD0:
-                $amiga.configureId($proxy.OPT_HDC_CONNECT, 0, val);
+                $amiga.configureId($wasm.OPT_HDC_CONNECT, 0, val);
                 break;
             case Opt.HD1:
-                $amiga.configureId($proxy.OPT_HDC_CONNECT, 1, val);
+                $amiga.configureId($wasm.OPT_HDC_CONNECT, 1, val);
                 break;
             case Opt.HD2:
-                $amiga.configureId($proxy.OPT_HDC_CONNECT, 2, val);
+                $amiga.configureId($wasm.OPT_HDC_CONNECT, 2, val);
                 break;
             case Opt.HD3:
-                $amiga.configureId($proxy.OPT_HDC_CONNECT, 3, val);
+                $amiga.configureId($wasm.OPT_HDC_CONNECT, 3, val);
                 break;
 
             //
@@ -632,54 +632,54 @@
             //
 
             case Opt.BLITTER_ACCURACY:
-                $amiga.configure($proxy.OPT_BLITTER_ACCURACY, Number(val));
+                $amiga.configure($wasm.OPT_BLITTER_ACCURACY, Number(val));
                 break;
 
             case Opt.TODBUG:
-                $amiga.configure($proxy.OPT_TODBUG, Number(val));
+                $amiga.configure($wasm.OPT_TODBUG, Number(val));
                 break;
 
             case Opt.PTR_DROPS:
-                $amiga.configure($proxy.OPT_PTR_DROPS, Number(val));
+                $amiga.configure($wasm.OPT_PTR_DROPS, Number(val));
                 break;
 
             case Opt.ECLOCK_SYNCING:
-                $amiga.configure($proxy.OPT_ECLOCK_SYNCING, Number(val));
+                $amiga.configure($wasm.OPT_ECLOCK_SYNCING, Number(val));
                 break;
 
             case Opt.DRIVE_SPEED:
-                $amiga.configure($proxy.OPT_DRIVE_SPEED, Number(val));
+                $amiga.configure($wasm.OPT_DRIVE_SPEED, Number(val));
                 break;
 
             case Opt.DRIVE_MECHANICS:
-                $amiga.configureId($proxy.OPT_DRIVE_MECHANICS, 0, Number(val));
-                $amiga.configureId($proxy.OPT_DRIVE_MECHANICS, 1, Number(val));
-                $amiga.configureId($proxy.OPT_DRIVE_MECHANICS, 2, Number(val));
-                $amiga.configureId($proxy.OPT_DRIVE_MECHANICS, 3, Number(val));
+                $amiga.configureId($wasm.OPT_DRIVE_MECHANICS, 0, Number(val));
+                $amiga.configureId($wasm.OPT_DRIVE_MECHANICS, 1, Number(val));
+                $amiga.configureId($wasm.OPT_DRIVE_MECHANICS, 2, Number(val));
+                $amiga.configureId($wasm.OPT_DRIVE_MECHANICS, 3, Number(val));
                 break;
 
             case Opt.OPT_LOCK_DSKSYNC:
-                $amiga.configure($proxy.OPT_LOCK_DSKSYNC, Number(val));
+                $amiga.configure($wasm.OPT_LOCK_DSKSYNC, Number(val));
                 break;
 
             case Opt.OPT_AUTO_DSKSYNC:
-                $amiga.configure($proxy.OPT_AUTO_DSKSYNC, Number(val));
+                $amiga.configure($wasm.OPT_AUTO_DSKSYNC, Number(val));
                 break;
 
             case Opt.CLX_SPR_SPR:
-                $amiga.configure($proxy.OPT_CLX_SPR_SPR, Number(val));
+                $amiga.configure($wasm.OPT_CLX_SPR_SPR, Number(val));
                 break;
 
             case Opt.CLX_SPR_PLF:
-                $amiga.configure($proxy.OPT_CLX_SPR_PLF, Number(val));
+                $amiga.configure($wasm.OPT_CLX_SPR_PLF, Number(val));
                 break;
 
             case Opt.CLX_PLF_PLF:
-                $amiga.configure($proxy.OPT_CLX_PLF_PLF, Number(val));
+                $amiga.configure($wasm.OPT_CLX_PLF_PLF, Number(val));
                 break;
 
             case Opt.ACCURATE_KEYBOARD:
-                $amiga.configure($proxy.OPT_ACCURATE_KEYBOARD, Number(val));
+                $amiga.configure($wasm.OPT_ACCURATE_KEYBOARD, Number(val));
                 break;
 
             //
@@ -687,40 +687,40 @@
             //
 
             case Opt.SAMPLING_METHOD:
-                $amiga.configure($proxy.OPT_SAMPLING_METHOD, Number(val));
+                $amiga.configure($wasm.OPT_SAMPLING_METHOD, Number(val));
                 break;
             case Opt.FILTER_TYPE:
-                $amiga.configure($proxy.OPT_FILTER_TYPE, Number(val));
+                $amiga.configure($wasm.OPT_FILTER_TYPE, Number(val));
                 break;
             case Opt.AUDVOL0:
-                $amiga.configureId($proxy.OPT_AUDVOL, 0, Number(val));
+                $amiga.configureId($wasm.OPT_AUDVOL, 0, Number(val));
                 break;
             case Opt.AUDVOL1:
-                $amiga.configureId($proxy.OPT_AUDVOL, 1, Number(val));
+                $amiga.configureId($wasm.OPT_AUDVOL, 1, Number(val));
                 break;
             case Opt.AUDVOL2:
-                $amiga.configureId($proxy.OPT_AUDVOL, 2, Number(val));
+                $amiga.configureId($wasm.OPT_AUDVOL, 2, Number(val));
                 break;
             case Opt.AUDVOL3:
-                $amiga.configureId($proxy.OPT_AUDVOL, 3, Number(val));
+                $amiga.configureId($wasm.OPT_AUDVOL, 3, Number(val));
                 break;
             case Opt.AUDVOLL:
-                $amiga.configure($proxy.OPT_AUDVOLL, Number(val));
+                $amiga.configure($wasm.OPT_AUDVOLL, Number(val));
                 break;
             case Opt.AUDVOLR:
-                $amiga.configure($proxy.OPT_AUDVOLR, Number(val));
+                $amiga.configure($wasm.OPT_AUDVOLR, Number(val));
                 break;
             case Opt.STEP_VOLUME:
-                $amiga.configure($proxy.OPT_STEP_VOLUME, Number(val));
+                $amiga.configure($wasm.OPT_STEP_VOLUME, Number(val));
                 break;
             case Opt.POLL_VOLUME:
-                $amiga.configure($proxy.OPT_POLL_VOLUME, Number(val));
+                $amiga.configure($wasm.OPT_POLL_VOLUME, Number(val));
                 break;
             case Opt.INSERT_VOLUME:
-                $amiga.configure($proxy.OPT_INSERT_VOLUME, Number(val));
+                $amiga.configure($wasm.OPT_INSERT_VOLUME, Number(val));
                 break;
             case Opt.EJECT_VOLUME:
-                $amiga.configure($proxy.OPT_EJECT_VOLUME, Number(val));
+                $amiga.configure($wasm.OPT_EJECT_VOLUME, Number(val));
                 break;
 
             //
@@ -731,16 +731,16 @@
                 renderMode = Number(val);
                 break;
             case Opt.PALETTE:
-                $amiga.configure($proxy.OPT_PALETTE, Number(val));
+                $amiga.configure($wasm.OPT_PALETTE, Number(val));
                 break;
             case Opt.BRIGHTNESS:
-                $amiga.configure($proxy.OPT_BRIGHTNESS, Number(val));
+                $amiga.configure($wasm.OPT_BRIGHTNESS, Number(val));
                 break;
             case Opt.CONTRAST:
-                $amiga.configure($proxy.OPT_CONTRAST, Number(val));
+                $amiga.configure($wasm.OPT_CONTRAST, Number(val));
                 break;
             case Opt.SATURATION:
-                $amiga.configure($proxy.OPT_SATURATION, Number(val));
+                $amiga.configure($wasm.OPT_SATURATION, Number(val));
                 break;
             case Opt.FLICKER_WEIGHT:
                 flickerWeight = Number(val);
@@ -830,11 +830,11 @@
     {
         if (connect) {
             for (let i = 1; i <= nr; i++) {
-                $amiga.configureDrive($proxy.OPT_DRIVE_CONNECT, i, 1);
+                $amiga.configureDrive($wasm.OPT_DRIVE_CONNECT, i, 1);
             }
         } else {
             for (let i = nr; i <= 4; i++) {
-                $amiga.configureDrive($proxy.OPT_DRIVE_CONNECT, i, 0);
+                $amiga.configureDrive($wasm.OPT_DRIVE_CONNECT, i, 0);
             }
         }
     }

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { amiga, proxy } from '$lib/stores';
+    import { amiga, wasm } from '$lib/stores';
 
     let audioContext: AudioContext;
     let insertSound: AudioBuffer;
@@ -31,7 +31,7 @@
             outputChannelCount: [2],
             processorOptions: {
                 pointers: [$amiga.leftChannelBuffer(), $amiga.rightChannelBuffer()],
-                buffer: $proxy.HEAPF32.buffer,
+                buffer: $wasm.HEAPF32.buffer,
                 length: 2048
             }
         });

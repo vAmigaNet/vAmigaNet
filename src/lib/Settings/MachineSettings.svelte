@@ -3,7 +3,7 @@
 	import { MenuItem, Opt } from "$lib/types";
 	import ConfigSection from './ConfigSection.svelte';
 	import ConfigItem from '$lib/Settings/ConfigItem.svelte';
-	import { config, poweredOn, proxy } from '$lib/stores';
+	import { config, poweredOn, wasm } from '$lib/stores';
 
 
 </script>
@@ -13,9 +13,9 @@
 		<ConfigItem
 			name="CPU"
 			items={[
-				new MenuItem('68000', $proxy.CPU_68000),
-				new MenuItem('68010', $proxy.CPU_68010),
-				new MenuItem('68020', $proxy.CPU_68EC020)
+				new MenuItem('68000', $wasm.CPU_68000),
+				new MenuItem('68010', $wasm.CPU_68010),
+				new MenuItem('68020', $wasm.CPU_68EC020)
 			]}
 			selectedTag={$config.getNum(Opt.CPU_REVISION)}
 			on:select={(e) => $config.setNum(Opt.CPU_REVISION, e.detail.value)}
@@ -39,10 +39,10 @@
 		<ConfigItem
 			name="Agnus Revision"
 			items={[
-				new MenuItem('Early OCS', $proxy.AGNUS_OCS_OLD),
-				new MenuItem('OCS', $proxy.AGNUS_OCS),
-				new MenuItem('ECS (1MB)', $proxy.AGNUS_ECS_1MB),
-				new MenuItem('ECS (2MB)', $proxy.AGNUS_ECS_2MB)
+				new MenuItem('Early OCS', $wasm.AGNUS_OCS_OLD),
+				new MenuItem('OCS', $wasm.AGNUS_OCS),
+				new MenuItem('ECS (1MB)', $wasm.AGNUS_ECS_1MB),
+				new MenuItem('ECS (2MB)', $wasm.AGNUS_ECS_2MB)
 			]}
 			selectedTag={$config.getNum(Opt.AGNUS_REVISION)}
 			on:select={(e) => $config.setNum(Opt.AGNUS_REVISION, e.detail.value)}
@@ -51,8 +51,8 @@
 		<ConfigItem
 			name="Denise Revision"
 			items={[
-				new MenuItem('OCS', $proxy.DENISE_OCS),
-				new MenuItem('ECS', $proxy.DENISE_ECS),
+				new MenuItem('OCS', $wasm.DENISE_OCS),
+				new MenuItem('ECS', $wasm.DENISE_ECS),
 			]}
 			selectedTag={$config.getNum(Opt.DENISE_REVISION)}
 			on:select={(e) => $config.setNum(Opt.DENISE_REVISION, e.detail.value)}
@@ -61,9 +61,9 @@
 		<ConfigItem
 			name="Real-time Clock"
 			items={[
-				new MenuItem('NONE', $proxy.RTC_NONE),
-				new MenuItem('OKI', $proxy.RTC_OKI),
-				new MenuItem('RICOH', $proxy.RTC_RICOH),
+				new MenuItem('NONE', $wasm.RTC_NONE),
+				new MenuItem('OKI', $wasm.RTC_OKI),
+				new MenuItem('RICOH', $wasm.RTC_RICOH),
 			]}
 			selectedTag={$config.getNum(Opt.RTC_MODEL)}
 			on:select={(e) => $config.setNum(Opt.RTC_MODEL, e.detail.value)}
@@ -115,10 +115,10 @@
 		<ConfigItem
 			name="Memory Layout"
 			items={[
-				new MenuItem('Amiga 500', $proxy.BANK_MAP_A500),
-				new MenuItem('Amiga 1000', $proxy.BANK_MAP_A1000),
-				new MenuItem('Amiga 2000A', $proxy.BANK_MAP_A2000A),
-				new MenuItem('Amiga 2000B', $proxy.BANK_MAP_A2000B),
+				new MenuItem('Amiga 500', $wasm.BANK_MAP_A500),
+				new MenuItem('Amiga 1000', $wasm.BANK_MAP_A1000),
+				new MenuItem('Amiga 2000A', $wasm.BANK_MAP_A2000A),
+				new MenuItem('Amiga 2000B', $wasm.BANK_MAP_A2000B),
 			]}
 			selectedTag={$config.getNum(Opt.BANK_MAP)}
 			on:select={(e) => $config.setNum(Opt.BANK_MAP, e.detail.value)}
@@ -127,9 +127,9 @@
 		<ConfigItem
 			name="Memory Startup Pattern"
 			items={[
-				new MenuItem('All Zeroes', $proxy.RAM_INIT_ALL_ZEROES),
-				new MenuItem('All Ones', $proxy.RAM_INIT_ALL_ONES),
-				new MenuItem('Random', $proxy.RAM_INIT_RANDOMIZED)
+				new MenuItem('All Zeroes', $wasm.RAM_INIT_ALL_ZEROES),
+				new MenuItem('All Ones', $wasm.RAM_INIT_ALL_ONES),
+				new MenuItem('Random', $wasm.RAM_INIT_RANDOMIZED)
 			]}
 			selectedTag={$config.getNum(Opt.INIT_PATTERN)}
 			on:select={(e) => $config.setNum(Opt.INIT_PATTERN, e.detail.value)}
@@ -138,9 +138,9 @@
 		<ConfigItem
 			name="Unmapped Memory Area"
 			items={[
-				new MenuItem('Floating', $proxy.UNMAPPED_FLOATING),
-				new MenuItem('All Zeroes', $proxy.UNMAPPED_ALL_ZEROES),
-				new MenuItem('All Ones', $proxy.UNMAPPED_ALL_ONES)
+				new MenuItem('Floating', $wasm.UNMAPPED_FLOATING),
+				new MenuItem('All Zeroes', $wasm.UNMAPPED_ALL_ZEROES),
+				new MenuItem('All Ones', $wasm.UNMAPPED_ALL_ONES)
 			]}
 			selectedTag={$config.getNum(Opt.UNMAPPED)}
 			on:select={(e) => $config.setNum(Opt.UNMAPPED, e.detail.value)}

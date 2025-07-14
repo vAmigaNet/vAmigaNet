@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { ActionEvent } from '$lib/types';
 	import { onMount } from 'svelte';
-	import { proxy, amiga, cpu, agnus } from '$lib/stores';
+	import { wasm, amiga, cpu, agnus } from '$lib/stores';
 	import { darkTheme } from '$lib/stores';
 	import Menu from '$lib/Widgets/Menu.svelte';
 	import { MenuItem } from '$lib/types';
@@ -77,7 +77,7 @@
 	function redraw() {
 		switch (mode) {
 			case 0:
-				acceleration = $amiga.getConfig($proxy.OPT_CPU_OVERCLOCKING);
+				acceleration = $amiga.getConfig($wasm.OPT_CPU_OVERCLOCKING);
 				if (acceleration == 0) acceleration = 1;
 				value = (mhz * acceleration).toFixed(2) + ' MHz';
 				break;
