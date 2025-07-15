@@ -296,8 +296,9 @@
             const id = await db.opts.get(opt);
             // console.log("loadSetting: ", opt, " = ", id);
 
-            // Apply setting
-            set(opt, id.value);
+            if (id !== undefined) {
+                set(opt, id.value);
+            }
 
         } catch (error) {
             // The entry is likely there already
@@ -823,7 +824,7 @@
         }
 
         // Apply new scheme
-        document.querySelector('html').setAttribute('data-theme', newTheme);
+        document.querySelector('html')?.setAttribute('data-theme', newTheme);
     }
 
     function connectDrive(nr: number, connect: boolean)
