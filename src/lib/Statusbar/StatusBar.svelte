@@ -120,7 +120,7 @@
 					writing={$dfWriting[i]}
 					unsaved={$dfUnsaved[i]}
 					wp={$dfProtected[i]}
-                    select={dfMenuAction}
+                    select={(value: number) => dfMenuAction(i, value)}
 				/>
 			{/if}
 		{/each}
@@ -132,7 +132,7 @@
 					reading={$hdReading[i]}
 					writing={$hdWriting[i]}
 					unsaved={$hdUnsaved[i]}
-					select={hdMenuAction}
+                    select={(value: number) => hdMenuAction(i, value)}
 				/>
 			{/if}
 		{/each}
