@@ -117,11 +117,11 @@
 		}
 	}
 
-	function sidebarAction(event: CustomEvent<{ sender: string; state: boolean }>) {
-		const sender = event.detail.sender;
+	function action(sender: string, state: boolean) {
+	
 		console.log('Sidebar: ', sender);
 
-		switch (event.detail.sender) {
+		switch (sender) {
 			case 'shell':
 				$layer = $layer == Layer.shell ? Layer.none : Layer.shell;
 				break;
@@ -254,7 +254,7 @@
                 <RetroShell/>
                 <Settings/>
                 <DropZone/>
-                <Sidebar on:select={sidebarAction}/>
+                <Sidebar {action}/>
             </div>
         </MainScreen>
 	{/if}

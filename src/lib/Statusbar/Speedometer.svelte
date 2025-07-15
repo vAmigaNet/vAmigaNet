@@ -99,9 +99,9 @@
 		}
 	}
 
-	function selectAction(event: CustomEvent<ActionEvent>) {
-		event.preventDefault();
-		mode = event.detail.value;
+	function select(value: number) {
+		
+		mode = value;
 		items.forEach(function (item) {
 			item.isSelected = item.tag == mode;
 		});
@@ -116,7 +116,7 @@
 	<div class="h-full w-1 bg-black" />
 	<Menu
 		{items}
-		on:select={selectAction}
+		{select}
 		dropdownStyle="dropdown-end"
 		listStyle="menu menu-compact rounded text-sm w-64"
 	>

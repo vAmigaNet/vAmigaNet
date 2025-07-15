@@ -1,7 +1,6 @@
 <script lang="ts">
     import { run } from 'svelte/legacy';
 
-    import { createEventDispatcher } from 'svelte';
     import { Layer } from '$lib/types';
     import SidebarButton from '$lib/Sidebar/SidebarButton.svelte';
     import SidebarSection from '$lib/Sidebar/SidebarSection.svelte';
@@ -9,18 +8,21 @@
     import { debugDma, layer, layout, port1, port2, poweredOn, running, showSidebar } from '$lib/stores';
     import SidebarPad from '$lib/Sidebar/SidebarPad.svelte';
 
+    let {
+		action = () => {}
+	}: {
+		action: (sender: string, state: boolean) => void;
+	} = $props();
+
     let sel = $state('');
     let duration = 200;
 
-    const dispatch = createEventDispatcher<{ select: { sender: string; state: boolean } }>();
-
     function select(sender: string, state: boolean)
     {
-        // event.preventDefault();
         console.log('select', sender, state);
         sel = sender == sel ? '' : sender;
         console.log('sender: ', sender, ' state: ', state);
-        dispatch('select', {sender: sender, state: state});
+        action(sender, state);
     }
 
     const portIcons = [

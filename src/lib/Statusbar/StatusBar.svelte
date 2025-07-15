@@ -132,9 +132,7 @@
 					reading={$hdReading[i]}
 					writing={$hdWriting[i]}
 					unsaved={$hdUnsaved[i]}
-					on:select={(e) => {
-						hdMenuAction(i, e.detail.value);
-					}}
+					select={hdMenuAction}
 				/>
 			{/if}
 		{/each}

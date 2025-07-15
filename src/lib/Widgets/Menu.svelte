@@ -12,7 +12,7 @@
 		select = () => {},
 		children
 	}: {
-		tag: number;
+		tag?: number;
 		items?: MenuItem[];
 		isEnabled?: boolean;
 		dropdownStyle?: string;
