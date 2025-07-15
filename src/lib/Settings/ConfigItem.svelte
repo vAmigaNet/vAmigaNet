@@ -27,15 +27,15 @@
 		selectedTag = 0,
 		items = [],
 		select = () => {},
-        info = undefined
+		info = undefined
 	}: Props = $props();
 
 	const opac = $derived(locked ? 'opacity-50' : '');
 	const displayName = $derived(displayedName(selectedTag));
 
 	const infoAction = (e: Event) => {
-        console.log('infoAction', e);
-        e.preventDefault();
+		console.log('infoAction', e);
+		e.preventDefault();
 		// infoDispatcher('info', { tag: tag, value: selectedTag });
 	};
 
@@ -107,7 +107,7 @@
 					{/if}
 				</Menu>
 			{:else}
-				<Slider {min} {max} {locked} {tag} value={selectedTag} on:select>
+				<Slider {min} {max} {locked} {tag} {select}>
 					<button class="btn btn-primary {opac} w-[18rem] rounded-none border-0 text-xl font-normal"
 						>{selectedTag}</button
 					>

@@ -4,22 +4,22 @@
 	import Checkmark from './Checkmark.svelte';
 
 	let {
-	tag = 0,
-	items = [],
-	isEnabled = false,
-	dropdownStyle = '',
-	listStyle = '',
-	select = () => {},
-	children,
-}: {
-	tag: number;
-	items?: MenuItem[];
-	isEnabled?: boolean;
-	dropdownStyle?: string;
-	listStyle?: string;
-	select: (value: number) => void;
-	children?: Snippet;
-} = $props();
+		tag = 0,
+		items = [],
+		isEnabled = false,
+		dropdownStyle = '',
+		listStyle = '',
+		select = () => {},
+		children
+	}: {
+		tag: number;
+		items?: MenuItem[];
+		isEnabled?: boolean;
+		dropdownStyle?: string;
+		listStyle?: string;
+		select: (value: number) => void;
+		children?: Snippet;
+	} = $props();
 
 	const selectedItems = $derived(items.filter((item) => item.isSelected));
 
@@ -38,7 +38,6 @@
 </script>
 
 <div class="dropdown {dropdownStyle}">
-
 	<!-- <div tabindex="0" role="button" class="btn m-1">Click</div> -->
 	<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 	<label tabindex="0" class={isEnabled ? '' : 'pointer-events-none'}>
