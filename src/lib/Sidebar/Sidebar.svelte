@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { run } from 'svelte/legacy';
+
     import { createEventDispatcher } from 'svelte';
     import { Layer } from '$lib/types';
     import SidebarButton from '$lib/Sidebar/SidebarButton.svelte';
@@ -7,7 +9,7 @@
     import { debugDma, layer, layout, port1, port2, poweredOn, running, showSidebar } from '$lib/stores';
     import SidebarPad from '$lib/Sidebar/SidebarPad.svelte';
 
-    let sel = '';
+    let sel = $state('');
     let duration = 200;
 
     const dispatch = createEventDispatcher<{ select: { sender: string; state: boolean } }>();
@@ -31,11 +33,11 @@
     ]
 
     const power = {id: 'power', icon: 'icons/powerIcon.png'};
-    const pause = {id: 'pause', icon: 'icons/pauseIcon.png'};
+    const pause = $state({id: 'pause', icon: 'icons/pauseIcon.png'});
     const reset = {id: 'reset', icon: 'icons/resetIcon.png'};
     const settings = {id: 'settings', icon: 'icons/settingsIcon.png'};
-    const port1Button = {id: 'port1', icon: 'icons/device-none.png'};
-    const port2Button = {id: 'port2', icon: 'icons/device-none.png'};
+    const port1Button = $state({id: 'port1', icon: 'icons/device-none.png'});
+    const port2Button = $state({id: 'port2', icon: 'icons/device-none.png'});
     const port1Items = [
         {id: 'empty1', icon: portIcons[0]},
         {id: 'mouse1', icon: portIcons[1]},
@@ -52,27 +54,35 @@
     ];
     const shell = {id: 'shell', icon: 'icons/retroShellIcon.png'};
     const monitor = {id: 'monitor', icon: 'icons/monitorIcon.png'};
-    const layoutButton = {id: 'layout', icon: 'icons/layoutIcon.png'};
+    const layoutButton = $state({id: 'layout', icon: 'icons/layoutIcon.png'});
     const layoutItems = [
         {id: 'aspect', icon: 'icons/layoutAspectIcon.png'},
         {id: 'fit', icon: 'icons/layoutFitIcon.png'},
         {id: 'full', icon: 'icons/layoutFullIcon.png'}
     ];
 
-    $: port1Button.icon = portIcons[$port1];
-    $: port2Button.icon = portIcons[$port2];
-    $: layoutButton.icon =
-        $layout == 'full'
-            ? 'icons/layoutFullIcon.png'
-            : $layout == 'aspect'
-                ? 'icons/layoutAspectIcon.png'
-                : 'icons/layoutFitIcon.png';
+    run(() => {
+        port1Button.icon = portIcons[$port1];
+    });
+    run(() => {
+        port2Button.icon = portIcons[$port2];
+    });
+    run(() => {
+        layoutButton.icon =
+            $layout == 'full'
+                ? 'icons/layoutFullIcon.png'
+                : $layout == 'aspect'
+                    ? 'icons/layoutAspectIcon.png'
+                    : 'icons/layoutFitIcon.png';
+    });
 
-    $: if ($running) {
-        pause.icon = 'icons/pauseIcon.png';
-    } else {
-        pause.icon = 'icons/runIcon.png';
-    }
+    run(() => {
+        if ($running) {
+            pause.icon = 'icons/pauseIcon.png';
+        } else {
+            pause.icon = 'icons/runIcon.png';
+        }
+    });
 </script>
 
 {#if $showSidebar}
