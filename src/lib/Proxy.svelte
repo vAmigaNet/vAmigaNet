@@ -370,7 +370,7 @@
         })();
 
         // Trigger an exception (for debugging, only)
-        // $amiga.configure($proxy.OPT_AGNUS_REVISION, 42);
+        // $amiga.configure($wasm.OPT_AGNUS_REVISION, 42);
     }
 
     export function updateStateVariables()

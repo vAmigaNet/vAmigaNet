@@ -102,16 +102,16 @@
 	}
 
 	function handleUncatchedError(event: ErrorEvent) {
-		if (event.error instanceof WebAssembly.Exception) {
-			// event.preventDefault();
+		// if (event.error instanceof WebAssembly.Exception) {
+		if ($amiga.what() !== 0) {
 			$what = $amiga.what();
 			$errno = $amiga.errorCode();
 		}
 	}
 
 	function handleUncatchedRejection(event: PromiseRejectionEvent) {
-		if (event.reason instanceof WebAssembly.Exception) {
-			// event.preventDefault();
+		// if (event.reason instanceof WebAssembly.Exception) {
+		if ($amiga.what() !== 0) {
 			$what = $amiga.what();
 			$errno = $amiga.errorCode();
 		}

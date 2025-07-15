@@ -49,13 +49,19 @@ Amiga *amiga = nullptr;
 long errorCode;
 string what;
 
+void prepareTry()
+{
+    errorCode = 0;
+    what = "";
+}
+
 void save(VAError &error)
 {
     errorCode = error.data;
     what = error.what();
 }
 
-#define TRY try {
+#define TRY prepareTry(); try {
 #define CATCH } catch (VAError &err) { save(err); throw; }
 
 
