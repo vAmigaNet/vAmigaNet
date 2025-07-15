@@ -10,4 +10,7 @@ declare global {
 	}
 }
 
-export {};
+declare module 'svelte-icons/*' {
+	import { SvelteComponentTyped } from 'svelte';
+	export default class GiPadlock extends SvelteComponentTyped<any, any, any> {}
+}

@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
 	import GoInfo from 'svelte-icons/go/GoInfo.svelte';
 	import GiPadlock from 'svelte-icons/gi/GiPadlock.svelte';
 	import type { ActionEvent, MenuItem } from '$lib/types';
@@ -27,7 +26,8 @@
 		tag = 0,
 		selectedTag = 0,
 		items = [],
-		select = () => {}
+		select = () => {},
+        info = undefined
 	}: Props = $props();
 
 	const opac = $derived(locked ? 'opacity-50' : '');
