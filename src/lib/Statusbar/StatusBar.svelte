@@ -61,8 +61,12 @@
 			case 0:
 				fdialog.open().then(
 					function (value) {
-						console.log('Inserting disk', value);
+						
+                        // Insert disk
 						$amiga.insertDisk(value, df);
+
+                        // Start emulation if necessary
+                        if (!$amiga.running) $amiga.run();
 					},
 					function (error) {
 						console.log('error', error);
