@@ -18,12 +18,11 @@
 	}
     $: src = iconUrl($warpMode, $warp);
 
-	function action(e: MouseEvent) {
-		e.preventDefault();
+	function onclick() {
         let current = $config.get(Opt.WARP_MODE);
         $config.set(Opt.WARP_MODE, (current + 1) % 3);
         $proxy.updateStateVariables();
 	}
 </script>
 
-<StatusIcon {src} on:click={action}></StatusIcon>
+<StatusIcon {src} {onclick}></StatusIcon>

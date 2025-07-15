@@ -113,7 +113,7 @@
 </script>
 
 <div class="flex h-8">
-	<div class="h-full w-1 bg-black" />
+	<div class="h-full w-1 bg-black"></div>
 	<Menu
 		{items}
 		{select}

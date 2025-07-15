@@ -3,23 +3,20 @@
 
 	let {
 		src = '',
+		onclick,
 		children
 	}: {
 		src?: string;
+		onclick?: () => void;
 		children?: import('svelte').Snippet;
 	} = $props();
-
-	function click() {
-		e.preventDefault();
-	}
 </script>
 
-<button type="button" onclick={() => click()}>
+<button type="button" {onclick}>
 	<img
-		class="border-0 p-1.5 w-8 h-8 object-scale-down {$darkTheme ? 'invert' : ''} opacity-70"
+		class="h-8 w-8 border-0 object-scale-down p-1.5 {$darkTheme ? 'invert' : ''} opacity-70"
 		{src}
 		alt="Status bar icon"
 	/>
 </button>
 {@render children?.()}
-

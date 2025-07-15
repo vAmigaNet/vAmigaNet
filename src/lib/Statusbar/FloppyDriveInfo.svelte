@@ -4,6 +4,16 @@
 	import Menu from '$lib/Widgets/Menu.svelte';
 	import { MenuItem } from '$lib/types';
 
+	interface Props {
+		tag?: number;
+		cyl?: number;
+		disk?: boolean;
+		motor?: boolean;
+		writing?: boolean;
+		unsaved?: boolean;
+		wp?: boolean;
+		select?: (value: number, tag: number) => void;
+	}
 	let {
 		tag = 0,
 		cyl = 0,
@@ -13,16 +23,7 @@
 		unsaved = false,
 		wp = false,
 		select = () => {}
-	}: {
-		tag?: number;
-		cyl?: number;
-		disk?: boolean;
-		motor?: boolean;
-		writing?: boolean;
-		unsaved?: boolean;
-		wp?: boolean;
-		select?: (drive: number, tag: number) => void;
-	} = $props();
+	}: Props = $props();
 
 	const gray = '';
 	const green = 'bg-gradient-to-b from-green-700 to-green-500';
@@ -37,7 +38,7 @@
 		items[1].isEnabled = disk;
 		items[1] = items[1];
 	});
-	
+
 	const diskIcon = $derived(wp ? 'icons/disk-protected.png' : 'icons/disk.png');
 	const driveIcon = 'icons/floppy-drive.png';
 	const src = $derived(disk ? diskIcon : driveIcon);
