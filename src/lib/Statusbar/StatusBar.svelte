@@ -56,7 +56,8 @@
 	}
 
 	function dfMenuAction(df: number, tag: number) {
-		switch (tag) {
+        console.log('dfMenuAction', df, tag);
+        switch (tag) {
 			case 0:
 				fdialog.open().then(
 					function (value) {
@@ -112,21 +113,21 @@
 		{#each Array(4) as _, i}
 			{#if $dfConnected[i]}
 				<FloppyDriveInfo
+                    tag={i}
 					disk={$dfHasDisk[i]}
 					cyl={$dfCylinder[i]}
 					motor={$dfMotor[i]}
 					writing={$dfWriting[i]}
 					unsaved={$dfUnsaved[i]}
 					wp={$dfProtected[i]}
-					on:select={(e) => {
-						dfMenuAction(i, e.detail.value);
-					}}
+                    select={dfMenuAction}
 				/>
 			{/if}
 		{/each}
 		{#each Array(4) as _, i}
 			{#if $hdConnected[i]}
 				<HardDriveInfo
+                    tag={i}
 					cyl={$hdCylinder[i]}
 					reading={$hdReading[i]}
 					writing={$hdWriting[i]}

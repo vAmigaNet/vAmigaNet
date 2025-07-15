@@ -6,7 +6,7 @@
 	let {
 		tag = 0,
 		items = [],
-		isEnabled = false,
+		isEnabled = true,
 		dropdownStyle = '',
 		listStyle = '',
 		select = () => {},
