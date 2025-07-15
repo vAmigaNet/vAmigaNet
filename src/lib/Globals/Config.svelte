@@ -371,6 +371,7 @@
 
     export function get(option: Opt): string
     {
+        console.log("get: ", option);
         switch (option) {
 
             //
@@ -417,21 +418,21 @@
             case Opt.SLOW_RAM_DELAY:
                 return $amiga.getConfig($wasm.OPT_SLOW_RAM_DELAY).toString();
             case Opt.DF0:
-                return $amiga.getConfig($wasm.OPT_DRIVE_CONNECT, 0).toString();
+                return $amiga.getConfigId($wasm.OPT_DRIVE_CONNECT, 0).toString();
             case Opt.DF1:
-                return $amiga.getConfig($wasm.OPT_DRIVE_CONNECT, 1).toString();
+                return $amiga.getConfigId($wasm.OPT_DRIVE_CONNECT, 1).toString();
             case Opt.DF2:
-                return $amiga.getConfig($wasm.OPT_DRIVE_CONNECT, 2).toString();
+                return $amiga.getConfigId($wasm.OPT_DRIVE_CONNECT, 2).toString();
             case Opt.DF3:
-                return $amiga.getConfig($wasm.OPT_DRIVE_CONNECT, 3).toString();
+                return $amiga.getConfigId($wasm.OPT_DRIVE_CONNECT, 3).toString();
             case Opt.HD0:
-                return $amiga.getConfig($wasm.OPT_HDC_CONNECT, 0).toString();
+                return $amiga.getConfigId($wasm.OPT_HDC_CONNECT, 0).toString();
             case Opt.HD1:
-                return $amiga.getConfig($wasm.OPT_HDC_CONNECT, 1).toString();
+                return $amiga.getConfigId($wasm.OPT_HDC_CONNECT, 1).toString();
             case Opt.HD2:
-                return $amiga.getConfig($wasm.OPT_HDC_CONNECT, 2).toString();
+                return $amiga.getConfigId($wasm.OPT_HDC_CONNECT, 2).toString();
             case Opt.HD3:
-                return $amiga.getConfig($wasm.OPT_HDC_CONNECT, 3).toString();
+                return $amiga.getConfigId($wasm.OPT_HDC_CONNECT, 3).toString();
 
                 //
                 // Compatibility settings
@@ -471,25 +472,25 @@
             case Opt.FILTER_TYPE:
                 return $amiga.getConfig($wasm.OPT_FILTER_TYPE).toString();
             case Opt.AUDVOL0:
-                return $amiga.getDriveConfig($wasm.OPT_AUDVOL, 0).toString();
+                return $amiga.getConfigId($wasm.OPT_AUDVOL, 0).toString();
             case Opt.AUDVOL1:
-                return $amiga.getDriveConfig($wasm.OPT_AUDVOL, 1).toString();
+                return $amiga.getConfigId($wasm.OPT_AUDVOL, 1).toString();
             case Opt.AUDVOL2:
-                return $amiga.getDriveConfig($wasm.OPT_AUDVOL, 2).toString();
+                return $amiga.getConfigId($wasm.OPT_AUDVOL, 2).toString();
             case Opt.AUDVOL3:
-                return $amiga.getDriveConfig($wasm.OPT_AUDVOL, 3).toString();
+                return $amiga.getConfigId($wasm.OPT_AUDVOL, 3).toString();
             case Opt.AUDVOLL:
                 return $amiga.getConfig($wasm.OPT_AUDVOLL).toString();
             case Opt.AUDVOLR:
                 return $amiga.getConfig($wasm.OPT_AUDVOLR).toString();
             case Opt.STEP_VOLUME:
-                return $amiga.getDriveConfig($wasm.OPT_STEP_VOLUME, 0).toString();
+                return $amiga.getConfigId($wasm.OPT_STEP_VOLUME, 0).toString();
             case Opt.POLL_VOLUME:
-                return $amiga.getDriveConfig($wasm.OPT_POLL_VOLUME, 0).toString();
+                return $amiga.getConfigId($wasm.OPT_POLL_VOLUME, 0).toString();
             case Opt.INSERT_VOLUME:
-                return $amiga.getDriveConfig($wasm.OPT_INSERT_VOLUME, 0).toString();
+                return $amiga.getConfigId($wasm.OPT_INSERT_VOLUME, 0).toString();
             case Opt.EJECT_VOLUME:
-                return $amiga.getDriveConfig($wasm.OPT_EJECT_VOLUME, 0).toString();
+                return $amiga.getConfigId($wasm.OPT_EJECT_VOLUME, 0).toString();
 
             //
             // Video settings
@@ -605,13 +606,13 @@
                 break;
             case Opt.DF2:
                 if (Number(val) == 1) $amiga.configureId($wasm.OPT_DRIVE_CONNECT, 1, 1);
-                $amiga.configure($wasm.OPT_DRIVE_CONNECT, 2, Number(val));
+                $amiga.configureId($wasm.OPT_DRIVE_CONNECT, 2, Number(val));
                 if (Number(val) == 0) $amiga.configureId($wasm.OPT_DRIVE_CONNECT, 3, 0);
                 break;
             case Opt.DF3:
                 if (Number(val) == 1) $amiga.configureId($wasm.OPT_DRIVE_CONNECT, 1, 1);
                 if (Number(val) == 1) $amiga.configureId($wasm.OPT_DRIVE_CONNECT, 2, 1);
-                $amiga.configure($wasm.OPT_DRIVE_CONNECT, 3, Number(val));
+                $amiga.configureId($wasm.OPT_DRIVE_CONNECT, 3, Number(val));
                 break;
             case Opt.HD0:
                 $amiga.configureId($wasm.OPT_HDC_CONNECT, 0, val);

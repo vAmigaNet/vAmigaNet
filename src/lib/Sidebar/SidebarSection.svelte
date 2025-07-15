@@ -6,7 +6,7 @@
 	export let subitems = [{ id: '', icon: '' }];
 </script>
 
-<div class="flex">
+<div class="flex border-0">
 	<div>
 		<div class="border-0">
 			<SidebarButton on:select active={expanded} {item} />

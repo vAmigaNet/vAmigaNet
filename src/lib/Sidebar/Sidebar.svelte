@@ -79,8 +79,8 @@
 
 {#if $showSidebar}
     <div transition:fade={{ duration }} class="">
-        <div class="absolute top-0 left-0 bg-base-100 bg-opacity-80 flex flex-col w-16 items-center z-40">
-            <div class="flex flex-col space-y-1.5 w-[48px] mt-1.5 mb-2 border-0">
+        <div class="absolute top-0 left-0 bg-base-100 bg-opacity-80 flex flex-col w-16 pl-2 z-40">
+            <div class="flex flex-col space-y-1.5 mt-1.5 mb-2 border-0">
                 <SidebarButton on:select={select} item={power}/>
                 {#if $poweredOn}
                     <SidebarButton on:select={select} item={pause}/>

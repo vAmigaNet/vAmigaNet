@@ -251,7 +251,7 @@ EMSCRIPTEN_BINDINGS(AmigaProxy)
         .function("configure", &AmigaProxy::configure)
         .function("configureId", &AmigaProxy::configureId)
         .function("getConfig", &AmigaProxy::getConfig)
-        .function("getDriveConfig", &AmigaProxy::getDriveConfig)
+        .function("getConfigId", &AmigaProxy::getConfigId)
 
         .function("hardReset", &AmigaProxy::hardReset)
         .function("softReset", &AmigaProxy::softReset)

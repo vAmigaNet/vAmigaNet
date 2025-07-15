@@ -93,7 +93,6 @@ struct AmigaProxy
     void configureId(int option, int id, int value) { TRY amiga->configure((Option)option, (i64)id, (i64)value); CATCH }
     int getConfig(int option) { TRY return (int)amiga->getConfigItem(option); CATCH }
     int getConfigId(int option, int id) { TRY return (int)amiga->getConfigItem(option, id); CATCH }
-    int getDriveConfig(int option, int id) { TRY return (int)amiga->getConfigItem(option, id); CATCH } // DEPRECATED
 
     // Querying state
     void hardReset() { TRY amiga->hardReset(); CATCH }
