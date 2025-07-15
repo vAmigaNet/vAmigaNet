@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
 	import type { ActionEvent } from '$lib/types';
 
 	let {
@@ -22,8 +21,6 @@
 		children?: import('svelte').Snippet;
 	} = $props();
 
-	const dispatch = createEventDispatcher<{ select: ActionEvent }>();
-
 	function sliderAction(e: Event) {
 		e.preventDefault();
 		value = Number((e.target as HTMLInputElement).value);
@@ -34,16 +31,9 @@
 
 <div class="dropdown dropdown-bottom">
 	<!-- Make DropDown work in Safari using the label / tabindex trick (see DaisyUI doc) -->
-	<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-	<!-- svelte-ignore a11y_label_has_associated_control -->
      <button type="button" tabindex="0" onclick={(e) => (open = true)} class={locked ? 'pointer-events-none' : ''}>
 		{@render children?.()}
 	</button>
-    <!--
-	<label tabindex="0" onclick={(e) => (open = true)} class={locked ? 'pointer-events-none' : ''}>
-		{@render children?.()}
-	</label>
-    -->
 	<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 	{#if open}
 		<ul tabindex="0" class="dropdown-content menu bg-base-100 text-base-content mt-1 w-full">

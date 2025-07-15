@@ -219,6 +219,7 @@
 	}
 
 	function push(event: CustomEvent<{ sender: string }>) {
+		/*
 		const sender = event.detail.sender;
 		console.log('Status bar: ', sender);
 
@@ -227,6 +228,7 @@
 		if (!$showSidebar) {
 			$layer = Layer.none;
 		}
+		*/
 	}
 </script>
 
