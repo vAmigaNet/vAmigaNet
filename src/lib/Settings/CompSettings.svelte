@@ -9,13 +9,13 @@
 <div in:fade>
     <ConfigSection name="Blitter">
         <ConfigItem
-                name="Accuracy"
+                name = "Accuracy"
                 items={[
                     new MenuItem('Low', 0),
 				    new MenuItem('Medium', 1),
 				    new MenuItem('High', 2)
 				    ]}
-                on:select={(e) => $config.setNum(Opt.BLITTER_ACCURACY, e.detail.value)}
+                select={(value) => $config.setNum(Opt.BLITTER_ACCURACY, value)}
                 selectedTag={$config.getNum(Opt.BLITTER_ACCURACY)}
         />
     </ConfigSection>
@@ -26,7 +26,7 @@
                     new MenuItem('Yes', 1),
                     new MenuItem('No', 0)
                     ]}
-                on:select={(e) => $config.setNum(Opt.TODBUG, e.detail.value)}
+                select={(value) => $config.setNum(Opt.TODBUG, value)}
                 selectedTag={$config.getNum(Opt.TODBUG)}
         />
         <ConfigItem
@@ -35,7 +35,7 @@
                     new MenuItem('Yes', 1),
                     new MenuItem('No', 0)
                     ]}
-                on:select={(e) => $config.setNum(Opt.PTR_DROPS, e.detail.value)}
+                select={(value) => $config.setNum(Opt.PTR_DROPS, value)}
                 selectedTag={$config.getNum(Opt.PTR_DROPS)}
         />
     </ConfigSection>
@@ -46,7 +46,7 @@
                     new MenuItem('Yes', 1),
                     new MenuItem('No', 0)
                     ]}
-                on:select={(e) => $config.setNum(Opt.ECLOCK_SYNCING, e.detail.value)}
+                select={(value) => $config.setNum(Opt.ECLOCK_SYNCING, value)}
                 selectedTag={$config.getNum(Opt.ECLOCK_SYNCING)}
         />
     </ConfigSection>
@@ -60,7 +60,7 @@
 				    new MenuItem('Accelerated (8 x)', 8),
 				    new MenuItem('Infinite', -1),
 			    ]}
-                on:select={(e) => $config.setNum(Opt.DRIVE_SPEED, e.detail.value)}
+                select={(value) => $config.setNum(Opt.DRIVE_SPEED, value)}
                 selectedTag={$config.getNum(Opt.DRIVE_SPEED)}
         />
     </ConfigSection>
@@ -71,7 +71,7 @@
                     new MenuItem('Yes', 1),
                     new MenuItem('No', 0)
                     ]}
-                on:select={(e) => $config.setNum(Opt.CLX_SPR_SPR, e.detail.value)}
+                select={(value) => $config.setNum(Opt.CLX_SPR_SPR, value)}
                 selectedTag={$config.getNum(Opt.CLX_SPR_SPR)}
         />
         <ConfigItem
@@ -80,7 +80,7 @@
                     new MenuItem('Yes', 1),
                     new MenuItem('No', 0)
                     ]}
-                on:select={(e) => $config.setNum(Opt.CLX_SPR_PLF, e.detail.value)}
+                select={(value) => $config.setNum(Opt.CLX_SPR_PLF, value)}
                 selectedTag={$config.getNum(Opt.CLX_SPR_PLF)}
         />
         <ConfigItem
@@ -89,7 +89,7 @@
                     new MenuItem('Yes', 1),
                     new MenuItem('No', 0)
                     ]}
-                on:select={(e) => $config.setNum(Opt.CLX_PLF_PLF, e.detail.value)}
+                select={(value) => $config.setNum(Opt.CLX_PLF_PLF, value)}
                 selectedTag={$config.getNum(Opt.CLX_PLF_PLF)}
         />
     </ConfigSection>
@@ -100,7 +100,7 @@
                     new MenuItem('Yes', 1),
                     new MenuItem('No', 0)
                     ]}
-                on:select={(e) => $config.setNum(Opt.ACCURATE_KEYBOARD, e.detail.value)}
+                select={(value) => $config.setNum(Opt.ACCURATE_KEYBOARD, value)}
                 selectedTag={$config.getNum(Opt.ACCURATE_KEYBOARD)}
                 tag={1}
         />

@@ -26,7 +26,7 @@
 				new MenuItem('Always', 2)
 			]}
                 name="Enable warp mode"
-                on:select={(e) => $config.setNum(Opt.WARP_MODE, e.detail.value)}
+                select={(value) => $config.setNum(Opt.WARP_MODE, value)}
                 selectedTag={$config.getNum(Opt.WARP_MODE)}
         />
     </ConfigSection>
@@ -44,7 +44,7 @@
 				new MenuItem('Pastel', Theme.pastel)
 			]}
                 name="Color theme"
-                on:select={(e) => $config.setNum(Opt.THEME, e.detail.value)}
+                select={(value) => $config.setNum(Opt.THEME, value)}
                 selectedTag={$config.getNum(Opt.THEME)}
         />
         <ConfigItem
@@ -53,7 +53,7 @@
                     new MenuItem('No', 0)
                     ]}
                 name="Draw Canvas Border"
-                on:select={(e) => $config.setNum(Opt.CANVAS_BORDER, e.detail.value)}
+                select={(value) => $config.setNum(Opt.CANVAS_BORDER, value)}
                 selectedTag={$config.getNum(Opt.CANVAS_BORDER)}
         />
     </ConfigSection>
@@ -64,7 +64,7 @@
                     new MenuItem('No', 0)
                     ]}
                 name="Release Mouse by Shaking"
-                on:select={(e) => $config.setNum(Opt.SHAKING, e.detail.value)}
+                select={(value) => $config.setNum(Opt.SHAKING, value)}
                 selectedTag={$config.getNum(Opt.SHAKING)}
         />
     </ConfigSection>

@@ -5,10 +5,11 @@
 
 	interface Props {
 		tag: number;
-		items: MenuItem[];
-		isEnabled: boolean;
-		dropdownStyle: string;
-		listStyle: string;
+		items?: MenuItem[];
+		isEnabled?: boolean;
+		dropdownStyle?: string;
+		listStyle?: string;
+		select: (value: number) => void;
 	}
 
 	let {
@@ -16,7 +17,8 @@
 		items = [],
 		isEnabled = false,
 		dropdownStyle = '',
-		listStyle = ''
+		listStyle = '',
+		select = () => {}
 	}: Props = $props();
 
 	const selectedItems = $derived(items.filter((item) => item.isSelected));
@@ -27,7 +29,7 @@
 		// Force the dropdown to close
 		if (document.activeElement) (document.activeElement as HTMLElement).blur();
 		console.log(`Menu action: ${tag} - ${value}`);
-		// dispatch('select', { tag: tag, value: value });
+		select(value);
 	};
 
 	function style(i: number) {

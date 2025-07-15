@@ -1,105 +1,118 @@
 <script lang="ts">
-    import { createEventDispatcher } from 'svelte';
-    import GoInfo from 'svelte-icons/go/GoInfo.svelte';
-    import GiPadlock from 'svelte-icons/gi/GiPadlock.svelte';
-    import type { ActionEvent, MenuItem } from '$lib/types';
-    import Slider from '$lib/Widgets/Slider.svelte';
-    import Menu from '$lib/Widgets/Menu.svelte';
-    import Chevron from "$lib/Widgets/Chevron.svelte";
+	import { createEventDispatcher } from 'svelte';
+	import GoInfo from 'svelte-icons/go/GoInfo.svelte';
+	import GiPadlock from 'svelte-icons/gi/GiPadlock.svelte';
+	import type { ActionEvent, MenuItem } from '$lib/types';
+	import Slider from '$lib/Widgets/Slider.svelte';
+	import Menu from '$lib/Widgets/Menu.svelte';
+	import Chevron from '$lib/Widgets/Chevron.svelte';
 
-    export let name = '';
-    export let min = 0;
-    export let max = 0;
-    export let locked = false;
-    export let info = false;
-    export let tag = 0;
-    export let selectedTag = 0;
+	interface Props {
+		name?: string;
+		min?: number;
+		max?: number;
+		locked?: boolean;
+		tag?: number;
+		selectedTag?: number;
+		items?: MenuItem[];
+		select: (value: number) => void;
+		info?: (value: number) => void;
+	}
 
-    export let items: MenuItem[] = [];
+	let {
+		name = '',
+		min = 0,
+		max = 0,
+		locked = false,
+		tag = 0,
+		selectedTag = 0,
+		items = [],
+		select = () => {}
+	}: Props = $props();
 
-    const dispatcher = createEventDispatcher<{ select: ActionEvent }>();
-    const infoDispatcher = createEventDispatcher<{ info: ActionEvent }>();
+	const opac = $derived(locked ? 'opacity-50' : '');
+	const displayName = $derived(displayedName(selectedTag));
 
-    $: opac = locked ? 'opacity-50' : '';
-
-    const infoAction = (e: Event) => {
+	const infoAction = (e: Event) => {
+        console.log('infoAction', e);
         e.preventDefault();
-        infoDispatcher('info', {tag: tag, value: selectedTag});
-    };
+		// infoDispatcher('info', { tag: tag, value: selectedTag });
+	};
 
-    $: displayName = displayedName(selectedTag);
+	function displayedName(selectedTag: number): string {
+		for (const item of items) {
+			if (item.tag == selectedTag) return item.title;
+		}
+		return '???';
+	}
 
-    function displayedName(selectedTag: number): string
-    {
-        for (const item of items) {
-            if (item.tag == selectedTag) return item.title;
-        }
-        return '???';
-    }
+	$effect(() => updateSelected(selectedTag));
 
-    $: updateSelected(selectedTag);
+	function updateSelected(sel: number) {
+		items.forEach(function (item) {
+			item.isSelected = item.tag == sel;
+		});
+		items = items;
+	}
 
-    function updateSelected(sel: number)
-    {
-        items.forEach(function (item) {
-            item.isSelected = item.tag == sel;
-        });
-        items = items;
-    }
-
-    function selectAction(event: CustomEvent<ActionEvent>)
-    {
-        selectedTag = event.detail.value;
-        dispatcher('select', {tag: tag, value: selectedTag});
-    }
+	function selectAction(event: CustomEvent<ActionEvent>) {
+		selectedTag = event.detail.value;
+		select(selectedTag);
+	}
 </script>
 
-<div class="py-0.5 px-0">
-    <div class="w-full flex text-xl space-x-1 justify-between items-center">
-        <div class="border-0 bg-primary w-full h-12 flex grow overflow-hidden">
-            <div
-                    class="w-full border-0 text-xl {opac} text-primary-content flex items-center justify-between"
-            >
-                <div class="border-0 mx-2 flex grow overflow-hidden whitespace-nowrap">{name}</div>
-            </div>
-        </div>
-        <div
-                class="border-0 bg-primary w-20 h-12 flex items-center justify-center {locked
+<div class="px-0 py-0.5">
+	<div class="flex w-full items-center justify-between space-x-1 text-xl">
+		<div class="bg-primary flex h-12 w-full grow overflow-hidden border-0">
+			<div
+				class="w-full border-0 text-xl {opac} text-primary-content flex items-center justify-between"
+			>
+				<div class="mx-2 flex grow overflow-hidden border-0 whitespace-nowrap">{name}</div>
+			</div>
+		</div>
+		<div
+			class="bg-primary flex h-12 w-20 items-center justify-center border-0 {locked
 				? ''
 				: 'hidden'}"
-        >
-            <button class="h-7 w-7 text-primary-content {opac}">
-                <GiPadlock/>
-            </button>
-        </div>
-        <div
-                class="border-0 bg-primary w-20 h-12 flex items-center justify-center {info ? '' : 'hidden'}"
-        >
-            <button class="h-7 w-7 text-primary-content {opac}" on:click={infoAction}>
-                <GoInfo/>
-            </button>
-        </div>
-        <div class="border-0 bg-primary h-12">
-            {#if min === max}
-                <Menu isEnabled={!locked} {items} listStyle="w-[18rem] bg-accent text-accent-content"
-                      on:select={selectAction}>
-                    {#if locked}
-                        <button class="btn btn-primary {opac} w-[18rem] border-0 rounded-none text-xl font-normal"
-                        >{displayName}</button>
-                    {:else}
-                        <button class="btn btn-primary w-[18rem] border-0 rounded-none text-xl font-normal"
-                        >
-                            <Chevron>{displayName}</Chevron>
-                        </button
-                        >
-                    {/if}
-                </Menu>
-            {:else}
-                <Slider {min} {max} {locked} {tag} value={selectedTag} on:select>
-                    <button class="btn btn-primary {opac} w-[18rem] border-0 rounded-none text-xl font-normal"
-                    >{selectedTag}</button>
-                </Slider>
-            {/if}
-        </div>
-    </div>
+		>
+			<button class="text-primary-content h-7 w-7 {opac}">
+				<GiPadlock />
+			</button>
+		</div>
+		<div
+			class="bg-primary flex h-12 w-20 items-center justify-center border-0 {info ? '' : 'hidden'}"
+		>
+			<button class="text-primary-content h-7 w-7 {opac}" onclick={infoAction}>
+				<GoInfo />
+			</button>
+		</div>
+		<div class="bg-primary h-12 border-0">
+			{#if min === max}
+				<Menu
+					isEnabled={!locked}
+					{items}
+					{select}
+					{tag}
+					listStyle="w-[18rem] bg-accent text-accent-content"
+				>
+					{#if locked}
+						<button
+							class="btn btn-primary {opac} w-[18rem] rounded-none border-0 text-xl font-normal"
+							>{displayName}</button
+						>
+					{:else}
+						<button class="btn btn-primary w-[18rem] rounded-none border-0 text-xl font-normal">
+							<Chevron>{displayName}</Chevron>
+						</button>
+					{/if}
+				</Menu>
+			{:else}
+				<Slider {min} {max} {locked} {tag} value={selectedTag} on:select>
+					<button class="btn btn-primary {opac} w-[18rem] rounded-none border-0 text-xl font-normal"
+						>{selectedTag}</button
+					>
+				</Slider>
+			{/if}
+		</div>
+	</div>
 </div>

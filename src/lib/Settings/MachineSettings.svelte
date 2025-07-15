@@ -4,8 +4,6 @@
 	import ConfigSection from './ConfigSection.svelte';
 	import ConfigItem from '$lib/Settings/ConfigItem.svelte';
 	import { config, poweredOn, wasm } from '$lib/stores';
-
-
 </script>
 
 <div in:fade>
@@ -18,7 +16,7 @@
 				new MenuItem('68020', $wasm.CPU_68EC020)
 			]}
 			selectedTag={$config.getNum(Opt.CPU_REVISION)}
-			on:select={(e) => $config.setNum(Opt.CPU_REVISION, e.detail.value)}
+			select={(value) => $config.setNum(Opt.CPU_REVISION, value)}
 		/>
 		<ConfigItem
 			name="Frequency"
@@ -32,7 +30,7 @@
 				new MenuItem('84 Mhz', 12),
 			]}
 			selectedTag={$config.getNum(Opt.CPU_SPEED)}
-			on:select={(e) => $config.setNum(Opt.CPU_SPEED, e.detail.value)}
+			select={(value) => $config.setNum(Opt.CPU_SPEED, value)}
 		/>
 	</ConfigSection>
 	<ConfigSection name="Custom Chipset">
@@ -45,7 +43,7 @@
 				new MenuItem('ECS (2MB)', $wasm.AGNUS_ECS_2MB)
 			]}
 			selectedTag={$config.getNum(Opt.AGNUS_REVISION)}
-			on:select={(e) => $config.setNum(Opt.AGNUS_REVISION, e.detail.value)}
+			select={(value) => $config.setNum(Opt.AGNUS_REVISION, value)}
 			locked={$poweredOn}
 		/>
 		<ConfigItem
@@ -55,7 +53,7 @@
 				new MenuItem('ECS', $wasm.DENISE_ECS),
 			]}
 			selectedTag={$config.getNum(Opt.DENISE_REVISION)}
-			on:select={(e) => $config.setNum(Opt.DENISE_REVISION, e.detail.value)}
+			select={(value) => $config.setNum(Opt.DENISE_REVISION, value)}
 			locked={$poweredOn}
 		/>
 		<ConfigItem
@@ -66,7 +64,7 @@
 				new MenuItem('RICOH', $wasm.RTC_RICOH),
 			]}
 			selectedTag={$config.getNum(Opt.RTC_MODEL)}
-			on:select={(e) => $config.setNum(Opt.RTC_MODEL, e.detail.value)}
+			select={(value) => $config.setNum(Opt.RTC_MODEL, value)}
 			locked={$poweredOn}
 		/>
 	</ConfigSection>
@@ -80,7 +78,7 @@
 				new MenuItem('2048 KB', 2048)
 			]}
 			selectedTag={$config.getNum(Opt.CHIP_RAM)}
-			on:select={(e) => $config.setNum(Opt.CHIP_RAM, e.detail.value)}
+			select={(value) => $config.setNum(Opt.CHIP_RAM, value)}
 			locked={$poweredOn}
 		/>
 		<ConfigItem
@@ -92,7 +90,7 @@
 				new MenuItem('1.5 MB', 1536)
 			]}
 			selectedTag={$config.getNum(Opt.SLOW_RAM)}
-			on:select={(e) => $config.setNum(Opt.SLOW_RAM, e.detail.value)}
+			select={(value) => $config.setNum(Opt.SLOW_RAM, value)}
 			locked={$poweredOn}
 		/>
 		<ConfigItem
@@ -109,7 +107,7 @@
 				new MenuItem('8 MB', 8192)
 			]}
 			selectedTag={$config.getNum(Opt.FAST_RAM)}
-			on:select={(e) => $config.setNum(Opt.FAST_RAM, e.detail.value)}
+			select={(value) => $config.setNum(Opt.FAST_RAM, value)}
 			locked={$poweredOn}
 		/>
 		<ConfigItem
@@ -121,7 +119,7 @@
 				new MenuItem('Amiga 2000B', $wasm.BANK_MAP_A2000B),
 			]}
 			selectedTag={$config.getNum(Opt.BANK_MAP)}
-			on:select={(e) => $config.setNum(Opt.BANK_MAP, e.detail.value)}
+			select={(value) => $config.setNum(Opt.BANK_MAP, value)}
 			locked={$poweredOn}
 		/>
 		<ConfigItem
@@ -132,7 +130,7 @@
 				new MenuItem('Random', $wasm.RAM_INIT_RANDOMIZED)
 			]}
 			selectedTag={$config.getNum(Opt.INIT_PATTERN)}
-			on:select={(e) => $config.setNum(Opt.INIT_PATTERN, e.detail.value)}
+			select={(value) => $config.setNum(Opt.INIT_PATTERN, value)}
 			locked={$poweredOn}
 		/>
 		<ConfigItem
@@ -143,7 +141,7 @@
 				new MenuItem('All Ones', $wasm.UNMAPPED_ALL_ONES)
 			]}
 			selectedTag={$config.getNum(Opt.UNMAPPED)}
-			on:select={(e) => $config.setNum(Opt.UNMAPPED, e.detail.value)}
+			select={(value) => $config.setNum(Opt.UNMAPPED, value)}
 			locked={$poweredOn}
 		/>
 		<ConfigItem
@@ -153,7 +151,7 @@
 				new MenuItem('No', 0)
 			]}
 			selectedTag={$config.getNum(Opt.SLOW_RAM_MIRROR)}
-			on:select={(e) => $config.setNum(Opt.SLOW_RAM_MIRROR, e.detail.value)}
+			select={(value) => $config.setNum(Opt.SLOW_RAM_MIRROR, value)}
 		/>
 		<ConfigItem
 			name="Emulate Slow RAM Bus Delays"
@@ -162,7 +160,7 @@
 				new MenuItem('No', 0)
 			]}
 			selectedTag={$config.getNum(Opt.SLOW_RAM_DELAY)}
-			on:select={(e) => $config.setNum(Opt.SLOW_RAM_DELAY, e.detail.value)}
+			select={(value) => $config.setNum(Opt.SLOW_RAM_DELAY, value)}
 		/>
 	</ConfigSection>
 	<ConfigSection name="Floppy Drives">
@@ -173,7 +171,7 @@
 			]}
 			tag={0}
 			selectedTag={$config.getNum(Opt.DF0)}
-			on:select={(e) => $config.setNum(Opt.DF0, e.detail.value)}
+			select={(value) => $config.setNum(Opt.DF0, value)}
 			locked={$poweredOn}
 		/>
 		<ConfigItem
@@ -184,7 +182,7 @@
 			]}
 			tag={1}
 			selectedTag={$config.getNum(Opt.DF1)}
-			on:select={(e) => $config.setNum(Opt.DF1, e.detail.value)}
+			select={(value) => $config.setNum(Opt.DF1, value)}
 			locked={$poweredOn}
 		/>
 		<ConfigItem
@@ -195,7 +193,7 @@
 			]}
 			tag={2}
 			selectedTag={$config.getNum(Opt.DF2)}
-			on:select={(e) => $config.setNum(Opt.DF2, e.detail.value)}
+			select={(value) => $config.setNum(Opt.DF2, value)}
 			locked={$poweredOn || !$config.getBool(Opt.DF1) }
 		/>
 		<ConfigItem
@@ -206,7 +204,7 @@
 			]}
 			tag={3}
 			selectedTag={$config.getNum(Opt.DF3)}
-			on:select={(e) => $config.setNum(Opt.DF3, e.detail.value)}
+			select={(value) => $config.setNum(Opt.DF3, value)}
 			locked={$poweredOn || !$config.getBool(Opt.DF2) }
 		/>
 	</ConfigSection>
@@ -219,7 +217,7 @@
 			]}
 				tag={0}
 				selectedTag={$config.getNum(Opt.HD0)}
-				on:select={(e) => $config.setNum(Opt.HD0, e.detail.value)}
+				select={(value) => $config.setNum(Opt.HD0, value)}
 				locked={$poweredOn}
 		/>
 		<ConfigItem
@@ -230,7 +228,7 @@
 			]}
 				tag={1}
 				selectedTag={$config.getNum(Opt.HD1)}
-				on:select={(e) => $config.setNum(Opt.HD1, e.detail.value)}
+				select={(value) => $config.setNum(Opt.HD1, value)}
 				locked={$poweredOn}
 		/>
 		<ConfigItem
@@ -241,7 +239,7 @@
 			]}
 				tag={2}
 				selectedTag={$config.getNum(Opt.HD2)}
-				on:select={(e) => $config.setNum(Opt.HD2, e.detail.value)}
+				select={(value) => $config.setNum(Opt.HD2, value)}
 				locked={$poweredOn}
 		/>
 		<ConfigItem
@@ -252,7 +250,7 @@
 			]}
 				tag={3}
 				selectedTag={$config.getNum(Opt.HD3)}
-				on:select={(e) => $config.setNum(Opt.HD3, e.detail.value)}
+				select={(value) => $config.setNum(Opt.HD3, value)}
 				locked={$poweredOn}
 		/>
 	</ConfigSection>

@@ -15,39 +15,39 @@
     {
     }
 
-    function renderModeAction(event: CustomEvent<ActionEvent>)
+    function renderModeAction(value: number)
     {
-        $config.set(Opt.RENDER_MODE, event.detail.value);
+        $config.set(Opt.RENDER_MODE, value);
         update();
     }
 
-    function paletteAction(event: CustomEvent<ActionEvent>)
+    function paletteAction(value: number)
     {
-        $config.set(Opt.PALETTE, event.detail.value);
+        $config.set(Opt.PALETTE, value);
         update();
     }
 
-    function brightnessAction(event: CustomEvent<ActionEvent>)
+    function brightnessAction(value: number)
     {
-        $config.set(Opt.BRIGHTNESS, event.detail.value);
+        $config.set(Opt.BRIGHTNESS, value);
         update();
     }
 
-    function contrastAction(event: CustomEvent<ActionEvent>)
+    function contrastAction(value: number)
     {
-        $config.set(Opt.CONTRAST, event.detail.value);
+        $config.set(Opt.CONTRAST, value);
         update();
     }
 
-    function saturationAction(event: CustomEvent<ActionEvent>)
+    function saturationAction(value: number)
     {
-        $config.set(Opt.SATURATION, event.detail.value);
+        $config.set(Opt.SATURATION, value);
         update();
     }
 
-    function flickerAction(event: CustomEvent<ActionEvent>)
+    function flickerAction(value: number)
     {
-        $config.set(Opt.FLICKER_WEIGHT, event.detail.value);
+        $config.set(Opt.FLICKER_WEIGHT, value);
         update();
     }
 </script>
@@ -61,7 +61,7 @@
 				new MenuItem('Pixelated', RenderMode.pixelated)
 			]}
                 selectedTag={$config.getNum(Opt.RENDER_MODE)}
-                on:select={renderModeAction}
+                select={renderModeAction}
         />
     </ConfigSection>
     <ConfigSection name="Colors">
@@ -76,7 +76,7 @@
 				new MenuItem('Sepia', $wasm.PALETTE_SEPIA)
 			]}
                 selectedTag={$config.getNum(Opt.PALETTE)}
-                on:select={paletteAction}
+                select={paletteAction}
         />
         <ConfigItem
                 name="Brightness"
@@ -84,7 +84,7 @@
                 max={100}
                 tag={$wasm.OPT_BRIGHTNESS}
                 selectedTag={$config.getNum(Opt.BRIGHTNESS)}
-                on:select={brightnessAction}
+                select={brightnessAction}
         />
         <ConfigItem
                 name="Contrast"
@@ -92,7 +92,7 @@
                 max={100}
                 tag={$wasm.OPT_CONTRAST}
                 selectedTag={$config.getNum(Opt.CONTRAST)}
-                on:select={contrastAction}
+                select={contrastAction}
         />
         <ConfigItem
                 name="Saturation"
@@ -100,7 +100,7 @@
                 max={100}
                 tag={$wasm.OPT_SATURATION}
                 selectedTag={$config.getNum(Opt.SATURATION)}
-                on:select={saturationAction}
+                select={saturationAction}
         />
     </ConfigSection>
     <ConfigSection name="Interlace">
@@ -110,7 +110,7 @@
                 max={100}
                 tag={1000}
                 selectedTag={$config.getNum(Opt.FLICKER_WEIGHT)}
-                on:select={flickerAction}
+                select={flickerAction}
         />
     </ConfigSection>
 </div>

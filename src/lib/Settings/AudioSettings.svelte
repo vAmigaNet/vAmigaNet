@@ -16,7 +16,7 @@
                     new MenuItem('Nearest', 1),
                     new MenuItem('Linear', 2),
                     ]}
-				on:select={(e) => $config.setNum(Opt.SAMPLING_METHOD, e.detail.value)}
+				select={(value) => $config.setNum(Opt.SAMPLING_METHOD, value)}
 				selectedTag={$config.getNum(Opt.SAMPLING_METHOD)}
 		/>
 		<ConfigItem
@@ -31,7 +31,7 @@
                     new MenuItem('LED filter only', 6),
                     new MenuItem('High-pass only', 7),
                     ]}
-				on:select={(e) => $config.set(Opt.FILTER_TYPE, e.detail.value)}
+				select={(value) => $config.set(Opt.FILTER_TYPE, value)}
 				selectedTag={$config.get(Opt.FILTER_TYPE)}
 		/>
 	</ConfigSection>
@@ -40,7 +40,7 @@
 			name="Left Speaker Volume"
 			tag={$wasm.OPT_AUDVOLL}
 			selectedTag={$config.get(Opt.AUDVOLL)}
-			on:select={(e) => $config.set(Opt.AUDVOLL, e.detail.value)}
+			select={(value) => $config.set(Opt.AUDVOLL, value)}
 			min={0}
 			max={100}
 		/>
@@ -48,7 +48,7 @@
 			name="Right Speaker Volume"
 			tag={$wasm.OPT_AUDVOLR}
 			selectedTag={$config.get(Opt.AUDVOLR)}
-			on:select={(e) => $config.set(Opt.AUDVOLR, e.detail.value)}
+			select={(value) => $config.set(Opt.AUDVOLR, value)}
 			min={0}
 			max={100}
 		/>
@@ -56,7 +56,7 @@
 			name="Paula Channel 0 Volume"
 			tag={0}
 			selectedTag={$config.get(Opt.AUDVOL0)}
-			on:select={(e) => $config.set(Opt.AUDVOL0, e.detail.value)}
+			select={(value) => $config.set(Opt.AUDVOL0, value)}
 			min={0}
 			max={100}
 		/>
@@ -64,7 +64,7 @@
 			name="Paula Channel 1 Volume"
 			tag={1}
 			selectedTag={$config.get(Opt.AUDVOL1)}
-			on:select={(e) => $config.set(Opt.AUDVOL1, e.detail.value)}
+			select={(value) => $config.set(Opt.AUDVOL1, value)}
 			min={0}
 			max={100}
 		/>
@@ -72,7 +72,7 @@
 			name="Paula Channel 2 Volume"
 			tag={2}
 			selectedTag={$config.get(Opt.AUDVOL2)}
-			on:select={(e) => $config.set(Opt.AUDVOL2, e.detail.value)}
+			select={(value) => $config.set(Opt.AUDVOL2, value)}
 			min={0}
 			max={100}
 		/>
@@ -80,7 +80,7 @@
 			name="Paula Channel 3 Volume"
 			tag={3}
 			selectedTag={$config.get(Opt.AUDVOL3)}
-			on:select={(e) => $config.set(Opt.AUDVOL3, e.detail.value)}
+			select={(value) => $config.set(Opt.AUDVOL3, value)}
 			min={0}
 			max={100}
 		/>
@@ -90,7 +90,7 @@
 			name="Head Step Volume"
 			tag={$wasm.OPT_STEP_VOLUME}
 			selectedTag={$config.get(Opt.STEP_VOLUME)}
-			on:select={(e) => $config.set(Opt.STEP_VOLUME, e.detail.value)}
+			select={(value) => $config.set(Opt.STEP_VOLUME, value)}
 			min={0}
 			max={100}
 		/>
@@ -98,7 +98,7 @@
 			name="Poll Disk Volume"
 			tag={$wasm.OPT_POLL_VOLUME}
 			selectedTag={$config.get(Opt.POLL_VOLUME)}
-			on:select={(e) => $config.set(Opt.POLL_VOLUME, e.detail.value)}
+			select={(value) => $config.set(Opt.POLL_VOLUME, value)}
 			min={0}
 			max={100}
 		/>
@@ -106,7 +106,7 @@
 			name="Insert Disk Volume"
 			tag={$wasm.OPT_INSERT_VOLUME}
 			selectedTag={$config.get(Opt.INSERT_VOLUME)}
-			on:select={(e) => $config.set(Opt.INSERT_VOLUME, e.detail.value)}
+			select={(value) => $config.set(Opt.INSERT_VOLUME, value)}
 			min={0}
 			max={100}
 		/>
@@ -114,7 +114,7 @@
 			name="Eject Disk Volume"
 			tag={$wasm.OPT_EJECT_VOLUME}
 			selectedTag={$config.get(Opt.EJECT_VOLUME)}
-			on:select={(e) => $config.set(Opt.EJECT_VOLUME, e.detail.value)}
+			select={(value) => $config.set(Opt.EJECT_VOLUME, value)}
 			min={0}
 			max={100}
 		/>
