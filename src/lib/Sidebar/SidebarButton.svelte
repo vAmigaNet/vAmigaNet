@@ -1,26 +1,35 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
 	import { darkTheme } from '$lib/stores';
-	export let item = { id: '', icon: '' };
-	export let alt = 'Icon';
-	export let toggle = false;
-	export let active = false;
+
+	let {
+		item = { id: '', icon: '' },
+		alt = 'Icon',
+		toggle = false,
+		active = false,
+		select = () => {}
+	}: {
+		item?: any;
+		alt?: string;
+		toggle?: boolean;
+		active?: boolean;
+		select: (sender: string, state: boolean) => void;
+	} = $props();
 
 	let state = false;
-	const dispatch = createEventDispatcher<{ select: { sender: string; state: boolean } }>();
 
 	function click(e: Event) {
+		console.log('click', e);
 		e.preventDefault();
 		state = toggle ? !state : true;
 		console.log('toggle = ', toggle);
-		dispatch('select', { sender: (e.target as HTMLElement).id, state: state });
+		select((e.target as HTMLElement).id, state);
 	}
 </script>
 
 <button
 	type="button"
 	class="btn btn-lg btn-primary btn-square p-1.5 {active ? 'btn-active' : ''}"
-	on:click={click}
+	onclick={click}
 >
-	<img class="{$darkTheme ? 'invert' : ''}" id={item.id} src={item.icon} {alt} />
+	<img class={$darkTheme ? 'invert' : ''} id={item.id} src={item.icon} {alt} />
 </button>

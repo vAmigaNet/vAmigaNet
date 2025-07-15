@@ -12,12 +12,10 @@
 
     const dispatch = createEventDispatcher<{ select: { sender: string; state: boolean } }>();
 
-    function select(event: CustomEvent<{ sender: string; state: boolean }>)
+    function select(sender: string, state: boolean)
     {
-        event.preventDefault();
-
-        const sender = event.detail.sender;
-        const state = event.detail.state;
+        // event.preventDefault();
+        console.log('select', sender, state);
         sel = sender == sel ? '' : sender;
         console.log('sender: ', sender, ' state: ', state);
         dispatch('select', {sender: sender, state: state});
@@ -81,38 +79,38 @@
     <div transition:fade={{ duration }} class="">
         <div class="absolute top-0 left-0 bg-base-100 bg-opacity-80 flex flex-col w-16 pl-2 z-40">
             <div class="flex flex-col space-y-1.5 mt-1.5 mb-2 border-0">
-                <SidebarButton on:select={select} item={power}/>
+                <SidebarButton {select} item={power}/>
                 {#if $poweredOn}
-                    <SidebarButton on:select={select} item={pause}/>
-                    <SidebarButton on:select={select} item={reset}/>
+                    <SidebarButton {select} item={pause}/>
+                    <SidebarButton {select} item={reset}/>
                 {/if}
                 <SidebarPad/>
 
                 <SidebarSection
-                        on:select={select}
+                        {select}
                         expanded={sel === 'port1'}
                         item={port1Button}
                         subitems={port1Items}
                 />
                 <SidebarSection
-                        on:select={select}
+                        {select}
                         expanded={sel === 'port2'}
                         item={port2Button}
                         subitems={port2Items}
                 />
                 <SidebarPad/>
 
-                <SidebarButton on:select={select} item={settings} active={$layer === Layer.settings}/>
-                <SidebarButton on:select={select} item={shell} active={$layer === Layer.shell}/>
+                <SidebarButton {select} item={settings} active={$layer === Layer.settings}/>
+                <SidebarButton {select} item={shell} active={$layer === Layer.shell}/>
                 <SidebarPad/>
                 {#if $poweredOn}
                     <SidebarSection
-                            on:select={select}
+                            {select}
                             expanded={sel === 'layout'}
                             item={layoutButton}
                             subitems={layoutItems}
                     />
-                    <SidebarButton on:select={select} item={monitor} active={$debugDma}/>
+                    <SidebarButton {select} item={monitor} active={$debugDma}/>
                 {/if}
             </div>
         </div>
