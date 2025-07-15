@@ -19,8 +19,8 @@
 		selected = item;
 	}
 
-	function handleMessage(event: CustomEvent) {
-		update(event.detail);
+	function select(item: DataBaseItem) {
+		update(item);
         showSedcard = true;
 	}
 
@@ -41,21 +41,21 @@
 				category="Demos"
 				bind:this={demoCarousel}
 				items={demos}
-				on:message={handleMessage}
+				{select}
 			/>
 			<div class="w-hull bg-gray-500/50 text-2xl p-1 font-josefin">Games</div>
 			<Carousel
 				bind:this={gamesCarousel}
 				category="Games"
 				items={games}
-				on:message={handleMessage}
+				{select}
 			/>
 			<div class="w-hull bg-gray-500/50 text-2xl p-1 font-josefin">Tools</div>
 			<Carousel
 				bind:this={toolsCarousel}
 				category="Tools"
 				items={tools}
-				on:message={handleMessage}
+				{select}
 			/>
 	</div>
 </div>

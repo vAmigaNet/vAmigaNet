@@ -18,8 +18,8 @@
 		min?: number;
 		max?: number;
 		open?: boolean;
-		children?: import('svelte').Snippet;
         select: (value: number) => void;
+		children?: import('svelte').Snippet;
 	} = $props();
 
 	const dispatch = createEventDispatcher<{ select: ActionEvent }>();

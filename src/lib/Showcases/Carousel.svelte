@@ -3,13 +3,20 @@
 	import { kickstarts } from '$lib/stores';
 	import { fade } from 'svelte/transition';
 	import { Splide, SplideSlide } from '@splidejs/svelte-splide';
-	import { createEventDispatcher } from 'svelte';
 	import CarouselItem from '$lib/Showcases/CarouselItem.svelte';
 
-	export let category = '';
-	export let items: DataBaseItem[] = [];
+	let {
+		category = '',
+		items = [],
+		select = () => {},
+		children
+	}: {
+		category?: string;
+		items?: DataBaseItem[];
+		select: (event: DataBaseItem) => void;
+		children?: import('svelte').Snippet;
+	} = $props();
 
-	const dispatch = createEventDispatcher();
 	const options = {
 		type: 'slide',
 		perPage: 5,
@@ -18,10 +25,9 @@
 		gap: '1rem'
 	};
 
-	let cmps: CarouselItem[] = [];
-	
-	export function setActive(name: string) {
+	let cmps: CarouselItem[] = $state([]);
 
+	export function setActive(name: string) {
 		console.log('setActive: ' + category);
 		cmps.forEach((element) => {
 			console.log(element.title);
@@ -30,7 +36,6 @@
 	}
 
 	// $: enabled = $kickstarts.map(kick => kick.crc32).some(crc => item.roms.includes(crc));
-
 </script>
 
 <div class="p-4" in:fade>
@@ -38,17 +43,19 @@
 		{options}
 		on:click={(e) => {
 			if (e) {
-				dispatch('message', items[e.detail.Slide.index]);
+				console.log('Carousel clicked', e, items[e.detail.Slide.index]);
+				select(items[e.detail.Slide.index]);
+				// dispatch('message', items[e.detail.Slide.index]);
 			}
 		}}
 	>
-		{#each items as item, index }
+		{#each items as item, index}
 			<SplideSlide>
 				<CarouselItem
 					bind:this={cmps[index]}
 					src="footage/{item.url}-small.jpg"
 					title={item.title}
-					locked={!$kickstarts.map(kick => kick.crc32).some(crc => item.roms.includes(crc))}
+					locked={!$kickstarts.map((kick) => kick.crc32).some((crc) => item.roms.includes(crc))}
 				/>
 			</SplideSlide>
 		{/each}
