@@ -37,6 +37,7 @@
 	export const x2 = 0;
 	export const y2 = 0;
 
+	
 	interface Props {
 		tx1?: number;
 		tx2?: number;
@@ -46,7 +47,13 @@
 		needsDisplay?: boolean;
 	}
 
-	let { tx1 = 0, tx2 = 0, ty1 = 0, ty2 = 0, needsDisplay = $bindable(false) }: Props = $props();
+	let {
+		tx1 = 0,
+		tx2 = 0,
+		ty1 = 0,
+		ty2 = 0,
+		needsDisplay = $bindable(false)
+	}: Props = $props();
 
 	// Indicates whether the recently drawn frames were long or short frames
 	let currLOF = true;
@@ -86,6 +93,7 @@
 	// The main shader for drawing the final texture on the canvas
 	let mainShaderProgram: WebGLProgram;
 	let sampler: WebGLUniformLocation;
+
 
 	//
 	// Merge shader
@@ -216,6 +224,7 @@
 		sfTexture = createTexture(HPIXELS, VPIXELS);
 		mergeTexture = createTexture(HPIXELS, 2 * VPIXELS);
 	}
+
 
 	function updateTextureRect(x1: number, y1: number, x2: number, y2: number) {
 		const array = new Float32Array([x1, y1, x2, y1, x1, y2, x2, y2]);
@@ -596,6 +605,7 @@
 		$keyboard.releaseKey(code);
 	}
 
+
 	function lockChangeAlert() {
 		if (document.pointerLockElement === canvas) {
 			document.addEventListener('mousemove', mouseMove, false);
@@ -669,22 +679,20 @@
 				break;
 		}
 	}
-	let imageRendering = $derived(
-		$config.getNum(Opt.RENDER_MODE) == RenderMode.smooth
+	let imageRendering =
+		$derived($config.getNum(Opt.RENDER_MODE) == RenderMode.smooth
 			? 'image-rendering: auto'
-			: 'image-rendering: pixelated'
-	);
+			: 'image-rendering: pixelated');
 	run(() => {
 		if (gl) {
 			updateTextureRect(tx1, ty1, tx2, ty2);
 		}
 	});
-
 	//
 	// Mouse
 	//
 
-	$effect(() => {
+	run(() => {
 		if ($MsgShaking) {
 			console.log('MSG_SHAKING received');
 
@@ -693,7 +701,13 @@
 		}
 	});
 
-	export { tx1, tx2, ty1, ty2, needsDisplay };
+	export {
+		tx1,
+		tx2,
+		ty1,
+		ty2,
+		needsDisplay,
+	}
 </script>
 
 <canvas
