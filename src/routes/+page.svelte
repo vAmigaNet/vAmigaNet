@@ -91,7 +91,7 @@
 				$aspectWidth = ($aspectHeight * 4) / 3;
 			}
 
-			emulator.updateRect($layout);
+			// emulator.updateRect($layout);
 			// console.log('dimensions: ', $canvasWidth, ', ', $canvasHeight);
 			// console.log('aspect dimensions: ', $aspectWidth, ', ', $aspectHeight);
 		}
