@@ -1,94 +1,96 @@
-<svelte:options accessors={true}/>
+<svelte:options accessors={true} />
 
 <script lang="ts">
-    import { onDestroy, onMount } from 'svelte';
-    import { InputDevice, Opt } from '$lib/types';
-    import {
-        amiga,
-        config,
-        denise,
-        joystick1,
-        joystick2,
-        keyboard,
-        keyset1,
-        keyset2,
-        mouse1,
-        mouse2,
-        MsgShaking,
-        port1,
-        port2,
-        wasm,
-        running
-    } from '$lib/stores';
-    import { AMIGA_KEYS, HPIXELS, VPIXELS } from '$lib/constants';
-    import { RenderMode } from './types';
+	import { onDestroy, onMount } from 'svelte';
+	import { InputDevice, Opt } from '$lib/types';
+	import {
+		amiga,
+		config,
+		denise,
+		joystick1,
+		joystick2,
+		keyboard,
+		keyset1,
+		keyset2,
+		mouse1,
+		mouse2,
+		MsgShaking,
+		port1,
+		port2,
+		wasm,
+		running
+	} from '$lib/stores';
+	import { AMIGA_KEYS, HPIXELS, VPIXELS } from '$lib/constants';
+	import { RenderMode } from './types';
 
-    // Reference to the canvas element
-    let canvas: HTMLCanvasElement;
+	// Reference to the canvas element
+	let canvas: HTMLCanvasElement;
 
-    // The rendering context of the canvas
-    let gl: WebGL2RenderingContext;
+	// The rendering context of the canvas
+	let gl: WebGL2RenderingContext;
 
-    // Texture coordinates
-    export let x1 = 0;
-    export let y1 = 0;
-    export let x2 = 0;
-    export let y2 = 0;
-    export let tx1 = 0;
-    export let tx2 = 0;
-    export let ty1 = 0;
-    export let ty2 = 0;
+	// Texture coordinates
+	export const x1 = 0;
+	export const y1 = 0;
+	export const x2 = 0;
+	export const y2 = 0;
+	export let tx1 = 0;
+	export let tx2 = 0;
+	export let ty1 = 0;
+	export let ty2 = 0;
 
-    // Indicates if a new frame has to be rendered
-    export let needsDisplay = false;
+	// Indicates if a new frame has to be rendered
+	export let needsDisplay = false;
 
-    // Indicates whether the recently drawn frames were long or short frames
-    let currLOF = true;
-    let prevLOF = true;
+	// Indicates whether the recently drawn frames were long or short frames
+	let currLOF = true;
+	let prevLOF = true;
 
-    // Frame counter
-    let frameNr = 0;
+	// Frame counter
+	let frameNr = 0;
 
-    // Indicates if the mouse has been captured
-    let isLocked = () => document.pointerLockElement === canvas;
+	// Indicates if the mouse has been captured
+	let isLocked = () => document.pointerLockElement === canvas;
 
-    // Indicates if a joystick emulation key is currently pressed
-    let keyUp = false;
-    let keyDown = false;
-    let keyLeft = false;
-    let keyRight = false;
+	// Indicates if a joystick emulation key is currently pressed
+	let keyUp = false;
+	let keyDown = false;
+	let keyLeft = false;
+	let keyRight = false;
 
-    // Variable used to emulate interlace flickering
-    let flickerCnt = 0;
+	// Variable used to emulate interlace flickering
+	let flickerCnt = 0;
 
-    // Buffers
-    let vBuffer: WebGLBuffer;
-    let tBuffer: WebGLBuffer;
+	// Buffers
+	let vBuffer: WebGLBuffer;
+	let tBuffer: WebGLBuffer;
 
-    // Textures
-    let lfTexture: WebGLTexture;
-    let sfTexture: WebGLTexture;
-    let mergeTexture: WebGLTexture;
+	// Textures
+	let lfTexture: WebGLTexture;
+	let sfTexture: WebGLTexture;
+	let mergeTexture: WebGLTexture;
 
-    // The merge shader for rendering the merge texture
-    let mergeShaderProgram: WebGLProgram;
-    let lfWeight: WebGLUniformLocation;
-    let sfWeight: WebGLUniformLocation;
-    let sfSampler: WebGLUniformLocation;
-    let lfSampler: WebGLUniformLocation;
+	// The merge shader for rendering the merge texture
+	let mergeShaderProgram: WebGLProgram;
+	let lfWeight: WebGLUniformLocation | null;
+	let sfWeight: WebGLUniformLocation | null;
+	let sfSampler: WebGLUniformLocation | null;
+	let lfSampler: WebGLUniformLocation | null;
 
-    // The main shader for drawing the final texture on the canvas
-    let mainShaderProgram: WebGLProgram;
-    let sampler: WebGLUniformLocation;
+	// The main shader for drawing the final texture on the canvas
+	let mainShaderProgram: WebGLProgram;
+	let sampler: WebGLUniformLocation;
 
-    $: imageRendering = $config.getNum(Opt.RENDER_MODE) == RenderMode.smooth ?
-        'image-rendering: auto' : 'image-rendering: pixelated';
+	$: imageRendering =
+		$config.getNum(Opt.RENDER_MODE) == RenderMode.smooth
+			? 'image-rendering: auto'
+			: 'image-rendering: pixelated';
 
-    //
-    // Merge shader
-    //
+	//
+	// Merge shader
+	//
 
-    const vsMerge = `
+	const vsMerge = `
     	attribute vec4 aVertexPosition;
     	varying highp vec2 vTextureCoord;
     	void main() {
@@ -97,7 +99,7 @@
     	}
    	`;
 
-    const fsMerge = `
+	const fsMerge = `
 		precision mediump float;
 
 		varying highp vec2 vTextureCoord;
@@ -121,11 +123,11 @@
 		}
    `;
 
-    //
-    // Main shader
-    //
+	//
+	// Main shader
+	//
 
-    const vsMain = `
+	const vsMain = `
     	attribute vec4 aVertexPosition;
     	attribute vec2 aTextureCoord;
     	varying highp vec2 vTextureCoord;
@@ -135,7 +137,7 @@
     	}
    	`;
 
-    const fsMain = `
+	const fsMain = `
 		precision mediump float;
     
 		varying highp vec2 vTextureCoord;
@@ -160,125 +162,124 @@
     	}
    `;
 
-    function initWebGL()
-    {
-        // General WebGL options
-        const options = {
-            alpha: false,
-            antialias: false,
-            depth: false,
-            preserveDrawingBuffer: false,
-            stencil: false
-        };
+	function initWebGL() {
+		// General WebGL options
+		const options = {
+			alpha: false,
+			antialias: false,
+			depth: false,
+			preserveDrawingBuffer: false,
+			stencil: false
+		};
 
-        // Only proceed if WebGL2 is supported
-        if (!(canvas.getContext('webgl2', options) instanceof WebGL2RenderingContext)) {
-            throw new Error('vAmiga.net needs WebGL2 to run.');
-        }
+		// Only proceed if WebGL2 is supported
+		if (!(canvas.getContext('webgl2', options) instanceof WebGL2RenderingContext)) {
+			throw new Error('vAmiga.net needs WebGL2 to run.');
+		}
 
-        // Store the context for further use
-        gl = canvas.getContext('webgl2', options) as WebGL2RenderingContext;
-        gl.disable(gl.BLEND);
-        gl.disable(gl.DEPTH_TEST);
-        gl.disable(gl.SCISSOR_TEST);
-        gl.disable(gl.STENCIL_TEST);
+		// Store the context for further use
+		gl = canvas.getContext('webgl2', options) as WebGL2RenderingContext;
+		gl.disable(gl.BLEND);
+		gl.disable(gl.DEPTH_TEST);
+		gl.disable(gl.SCISSOR_TEST);
+		gl.disable(gl.STENCIL_TEST);
 
-        // Start with a clean buffer
-        gl.clearColor(0.0, 0.0, 0.0, 1.0);
-        gl.clear(gl.COLOR_BUFFER_BIT);
+		// Start with a clean buffer
+		gl.clearColor(0.0, 0.0, 0.0, 1.0);
+		gl.clear(gl.COLOR_BUFFER_BIT);
 
-        // Create the merge shader
-        mergeShaderProgram = compileProgram(vsMerge, fsMerge);
-        lfSampler = gl.getUniformLocation(mergeShaderProgram, 'u_lfSampler');
-        sfSampler = gl.getUniformLocation(mergeShaderProgram, 'u_sfSampler');
+		// Create the merge shader
+		mergeShaderProgram = compileProgram(vsMerge, fsMerge);
+		lfSampler = gl.getUniformLocation(mergeShaderProgram, 'u_lfSampler');
+		sfSampler = gl.getUniformLocation(mergeShaderProgram, 'u_sfSampler');
 
-        // Create the main shader
-        mainShaderProgram = compileProgram(vsMain, fsMain);
-        lfWeight = gl.getUniformLocation(mainShaderProgram, 'u_lweight');
-        sfWeight = gl.getUniformLocation(mainShaderProgram, 'u_sweight');
-        sampler = gl.getUniformLocation(mainShaderProgram, 'sampler')!;
-        gl.uniform1i(sampler, 0);
+		// Create the main shader
+		mainShaderProgram = compileProgram(vsMain, fsMain);
+		lfWeight = gl.getUniformLocation(mainShaderProgram, 'u_lweight');
+		sfWeight = gl.getUniformLocation(mainShaderProgram, 'u_sweight');
+		sampler = gl.getUniformLocation(mainShaderProgram, 'sampler')!;
+		gl.uniform1i(sampler, 0);
 
-        // Set up the vertex coordinate buffer
-        const vCoords = new Float32Array([-1.0, 1.0, 1.0, 1.0, -1.0, -1.0, 1.0, -1.0]);
-        vBuffer = createBuffer(vCoords);
-        setAttribute(mainShaderProgram, 'aVertexPosition');
+		// Set up the vertex coordinate buffer
+		const vCoords = new Float32Array([-1.0, 1.0, 1.0, 1.0, -1.0, -1.0, 1.0, -1.0]);
+		vBuffer = createBuffer(vCoords);
+		setAttribute(mainShaderProgram, 'aVertexPosition');
 
-        // Set up the texture coordinate buffer
-        const tCoords = new Float32Array([0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0]);
-        tBuffer = createBuffer(tCoords);
-        setAttribute(mainShaderProgram, 'aTextureCoord');
+		// Set up the texture coordinate buffer
+		const tCoords = new Float32Array([0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0]);
+		tBuffer = createBuffer(tCoords);
+		setAttribute(mainShaderProgram, 'aTextureCoord');
 
-        // Create textures
-        lfTexture = createTexture(HPIXELS, VPIXELS);
-        sfTexture = createTexture(HPIXELS, VPIXELS);
-        mergeTexture = createTexture(HPIXELS, 2 * VPIXELS);
-    }
+		// Create textures
+		lfTexture = createTexture(HPIXELS, VPIXELS);
+		sfTexture = createTexture(HPIXELS, VPIXELS);
+		mergeTexture = createTexture(HPIXELS, 2 * VPIXELS);
+	}
 
-    $: if (gl) {
-        updateTextureRect(tx1, ty1, tx2, ty2);
-    }
+	$: if (gl) {
+		updateTextureRect(tx1, ty1, tx2, ty2);
+	}
 
-    function updateTextureRect(x1: number, y1: number, x2: number, y2: number)
-    {
-        const array = new Float32Array([x1, y1, x2, y1, x1, y2, x2, y2]);
-        gl.bindBuffer(gl.ARRAY_BUFFER, tBuffer);
-        gl.bufferSubData(gl.ARRAY_BUFFER, 0, array);
-    }
+	function updateTextureRect(x1: number, y1: number, x2: number, y2: number) {
+		const array = new Float32Array([x1, y1, x2, y1, x1, y2, x2, y2]);
+		gl.bindBuffer(gl.ARRAY_BUFFER, tBuffer);
+		gl.bufferSubData(gl.ARRAY_BUFFER, 0, array);
+	}
 
-    function resizeCanvasToDisplaySize()
-    {
-        // Lookup the size the browser is displaying the canvas
-        const displayWidth = canvas.clientWidth;
-        const displayHeight = canvas.clientHeight;
+	function resizeCanvasToDisplaySize() {
+		// Lookup the size the browser is displaying the canvas
+		const displayWidth = canvas.clientWidth;
+		const displayHeight = canvas.clientHeight;
 
-        // Check if the canvas size matches
-        const needResize = canvas.width !== displayWidth || canvas.height !== displayHeight;
+		// Check if the canvas size matches
+		const needResize = canvas.width !== displayWidth || canvas.height !== displayHeight;
 
-        // Rectify the canvas size if not
-        if (needResize) {
-            canvas.width = displayWidth;
-            canvas.height = displayHeight;
-            /*
+		// Rectify the canvas size if not
+		if (needResize) {
+			canvas.width = displayWidth;
+			canvas.height = displayHeight;
+			/*
             canvas.width = x2 - x1;
             canvas.height = y2 - y1;
             */
-        }
-    }
+		}
+	}
 
-    function compileProgram(vSource: string, fSource: string)
-    {
-        const vert = compileShader(gl.VERTEX_SHADER, vSource);
-        const frag = compileShader(gl.FRAGMENT_SHADER, fSource);
-        const prog = gl.createProgram();
+	function compileProgram(vSource: string, fSource: string) {
+		const vert = compileShader(gl.VERTEX_SHADER, vSource);
+		const frag = compileShader(gl.FRAGMENT_SHADER, fSource);
+		const prog = gl.createProgram();
 
-        gl.attachShader(prog, vert);
-        gl.attachShader(prog, frag);
-        gl.linkProgram(prog);
+		gl.attachShader(prog, vert);
+		gl.attachShader(prog, frag);
+		gl.linkProgram(prog);
 
-        if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
-            throw new Error(`Shader link error: ${gl.getProgramInfoLog(prog)}`);
-        }
+		if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+			throw new Error(`Shader link error: ${gl.getProgramInfoLog(prog)}`);
+		}
 
-        gl.useProgram(prog);
-        return prog;
-    }
+		gl.useProgram(prog);
+		return prog;
+	}
 
-    function compileShader(type: number, source: string)
-    {
-        const shader = gl.createShader(type);
-        gl.shaderSource(shader, source);
-        gl.compileShader(shader);
+	function compileShader(type: number, source: string) {
+		const shader = gl.createShader(type);
 
-        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-            throw new Error(`Shader compile error: ${gl.getShaderInfoLog(shader)}`);
-        }
-        return shader;
-    }
+		if (!shader) {
+			throw new Error('Failed to create shader.');
+		}
 
-    function createTexture(width: number, height: number, method = 0)
-    {
-        /*
+		gl.shaderSource(shader, source);
+		gl.compileShader(shader);
+
+		if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+			throw new Error(`Shader compile error: ${gl.getShaderInfoLog(shader)}`);
+		}
+		return shader!;
+	}
+
+	function createTexture(width: number, height: number, method = 0) {
+		/*
         let pixels = new Uint8Array(width * height * 4);
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
@@ -297,417 +298,401 @@
         }
         */
 
-        const texture = gl.createTexture();
-        const samplingMethod = method == 0 ? gl.NEAREST : gl.LINEAR;
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, samplingMethod);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, samplingMethod);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+		const texture = gl.createTexture();
+		if (!texture) {
+			throw new Error('Failed to create texture.');
+		}
+		const samplingMethod = method == 0 ? gl.NEAREST : gl.LINEAR;
+		gl.bindTexture(gl.TEXTURE_2D, texture);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, samplingMethod);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, samplingMethod);
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
 
-        return texture;
-    }
+		return texture;
+	}
 
-    function createBuffer(values: Float32Array)
-    {
-        const buffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-        gl.bufferData(gl.ARRAY_BUFFER, values, gl.STATIC_DRAW);
-        return buffer;
-    }
+	function createBuffer(values: Float32Array) {
+		const buffer = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+		gl.bufferData(gl.ARRAY_BUFFER, values, gl.STATIC_DRAW);
+		return buffer;
+	}
 
-    function setAttribute(program: WebGLProgram, attribute: string)
-    {
-        const a = gl.getAttribLocation(program, attribute);
-        gl.enableVertexAttribArray(a);
-        gl.vertexAttribPointer(a, 2, gl.FLOAT, false, 0, 0);
-    }
+	function setAttribute(program: WebGLProgram, attribute: string) {
+		const a = gl.getAttribLocation(program, attribute);
+		gl.enableVertexAttribArray(a);
+		gl.vertexAttribPointer(a, 2, gl.FLOAT, false, 0, 0);
+	}
 
-    export function update()
-    {
-        // Rectify canvas size if needed
-        resizeCanvasToDisplaySize();
+	export function update() {
+		// Rectify canvas size if needed
+		resizeCanvasToDisplaySize();
 
-        // Get the latest half-picture from the emulator
-        updateTexture();
+		// Get the latest half-picture from the emulator
+		updateTexture();
 
-        // Ask the emulator to compute the next frame
-        $amiga.wakeUp();
-    }
+		// Ask the emulator to compute the next frame
+		$amiga.wakeUp();
+	}
 
-    function updateTexture()
-    {
-        const w = HPIXELS;
-        const h = VPIXELS;
+	function updateTexture() {
+		const w = HPIXELS;
+		const h = VPIXELS;
 
-        if ($amiga.poweredOff()) {
-            // Get the noise texture
-            const noise = $denise.noise();
+		if ($amiga.poweredOff()) {
+			// Get the noise texture
+			const noise = $denise.noise();
 
-            // Ensure that the merge shader is used
-            prevLOF = currLOF;
-            currLOF = !prevLOF;
+			// Ensure that the merge shader is used
+			prevLOF = currLOF;
+			currLOF = !prevLOF;
 
-            // Update the GPU texture
-            const tex = new Uint8Array($wasm.HEAPU8.buffer, noise, w * h * 4);
-            if (currLOF) {
-                gl.activeTexture(gl.TEXTURE0);
-                gl.bindTexture(gl.TEXTURE_2D, lfTexture);
-                gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, tex);
-            } else {
-                gl.activeTexture(gl.TEXTURE1);
-                gl.bindTexture(gl.TEXTURE_2D, sfTexture);
-                gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, tex);
-            }
-        } else {
-            // Get the emulator texture
-            const frame = $denise.getEmulatorTexture();
+			// Update the GPU texture
+			const tex = new Uint8Array($wasm.HEAPU8.buffer, noise, w * h * 4);
+			if (currLOF) {
+				gl.activeTexture(gl.TEXTURE0);
+				gl.bindTexture(gl.TEXTURE_2D, lfTexture);
+				gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, tex);
+			} else {
+				gl.activeTexture(gl.TEXTURE1);
+				gl.bindTexture(gl.TEXTURE_2D, sfTexture);
+				gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, tex);
+			}
+		} else {
+			// Get the emulator texture
+			const frame = $denise.getEmulatorTexture();
 
-            // Store the LOF bits
-            prevLOF = frame.prevLof;
-            currLOF = frame.currLof;
+			// Store the LOF bits
+			prevLOF = frame.prevLof;
+			currLOF = frame.currLof;
 
-            // Check for duplicate frames or frame drops
-            if (frame.frameNr != frameNr + 1) {
-                // console.log('Frame sync mismatch: ' + frameNr + ' -> ' + frame.frameNr);
+			// Check for duplicate frames or frame drops
+			if (frame.frameNr != frameNr + 1) {
+				// console.log('Frame sync mismatch: ' + frameNr + ' -> ' + frame.frameNr);
 
-                // Return immediately if we alredy have this texture
-                if (frame.frameNr == frameNr) return;
-            }
-            frameNr = frame.frameNr;
+				// Return immediately if we alredy have this texture
+				if (frame.frameNr == frameNr) return;
+			}
+			frameNr = frame.frameNr;
 
-            // Update the GPU texture
-            const tex = new Uint8Array($wasm.HEAPU8.buffer, frame.data, w * h * 4);
-            if (currLOF) {
-                gl.activeTexture(gl.TEXTURE0);
-                gl.bindTexture(gl.TEXTURE_2D, lfTexture);
-                gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, tex);
-            } else {
-                gl.activeTexture(gl.TEXTURE1);
-                gl.bindTexture(gl.TEXTURE_2D, sfTexture);
-                gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, tex);
-            }
-        }
+			// Update the GPU texture
+			const tex = new Uint8Array($wasm.HEAPU8.buffer, frame.data, w * h * 4);
+			if (currLOF) {
+				gl.activeTexture(gl.TEXTURE0);
+				gl.bindTexture(gl.TEXTURE_2D, lfTexture);
+				gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, tex);
+			} else {
+				gl.activeTexture(gl.TEXTURE1);
+				gl.bindTexture(gl.TEXTURE_2D, sfTexture);
+				gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, tex);
+			}
+		}
 
-        needsDisplay = true;
-        return;
-    }
+		needsDisplay = true;
+		return;
+	}
 
-    export function render()
-    {
-        if (needsDisplay) {
+	export function render() {
+		if (needsDisplay) {
+			// Merge half-pictures
+			createMergeTexture();
 
-            // Merge half-pictures
-            createMergeTexture();
+			// Render to final texture to the canvas
+			renderFinalTexture();
 
-            // Render to final texture to the canvas
-            renderFinalTexture();
+			needsDisplay = false;
+		}
+	}
 
-            needsDisplay = false;
-        }
-    }
+	function createMergeTexture() {
+		if (currLOF == prevLOF) {
+			if (currLOF) {
+				// Case 1: Non-interlace mode, two long frames in a row
+				gl.useProgram(mergeShaderProgram);
+				gl.uniform1i(lfSampler, 0);
+				gl.uniform1i(sfSampler, 0);
+			} else {
+				// Case 2: Non-interlace mode, two short frames in a row
+				gl.useProgram(mergeShaderProgram);
+				gl.uniform1i(lfSampler, 1);
+				gl.uniform1i(sfSampler, 1);
+			}
+		} else {
+			// Case 3: Interlace mode, long frame followed by a short frame
+			gl.useProgram(mergeShaderProgram);
+			gl.uniform1i(lfSampler, 1);
+			gl.uniform1i(sfSampler, 0);
+		}
 
-    function createMergeTexture()
-    {
-        if (currLOF == prevLOF) {
-            if (currLOF) {
-                // Case 1: Non-interlace mode, two long frames in a row
-                gl.useProgram(mergeShaderProgram);
-                gl.uniform1i(lfSampler, 0);
-                gl.uniform1i(sfSampler, 0);
-            } else {
-                // Case 2: Non-interlace mode, two short frames in a row
-                gl.useProgram(mergeShaderProgram);
-                gl.uniform1i(lfSampler, 1);
-                gl.uniform1i(sfSampler, 1);
-            }
-        } else {
-            // Case 3: Interlace mode, long frame followed by a short frame
-            gl.useProgram(mergeShaderProgram);
-            gl.uniform1i(lfSampler, 1);
-            gl.uniform1i(sfSampler, 0);
-        }
+		const fb = gl.createFramebuffer();
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D, lfTexture);
+		gl.activeTexture(gl.TEXTURE1);
+		gl.bindTexture(gl.TEXTURE_2D, sfTexture);
+		gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+		gl.viewport(0, 0, HPIXELS, 2 * VPIXELS);
+		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, mergeTexture, 0);
+		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+	}
 
-        const fb = gl.createFramebuffer();
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, lfTexture);
-        gl.activeTexture(gl.TEXTURE1);
-        gl.bindTexture(gl.TEXTURE_2D, sfTexture);
-        gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
-        gl.viewport(0, 0, HPIXELS, 2 * VPIXELS);
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, mergeTexture, 0);
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    }
+	function renderFinalTexture() {
+		// Render to the canvas instead of the framebuffer
+		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+		gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D, mergeTexture);
+		gl.useProgram(mainShaderProgram);
+		gl.uniform1f(lfWeight, 1.0);
+		gl.uniform1f(sfWeight, 1.0);
 
-    function renderFinalTexture()
-    {
-        // Render to the canvas instead of the framebuffer
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, mergeTexture);
-        gl.useProgram(mainShaderProgram);
-        gl.uniform1f(lfWeight, 1.0);
-        gl.uniform1f(sfWeight, 1.0);
+		// Emulate flicker in interlace mode
+		if (currLOF != prevLOF) {
+			let weight = $config.getNum(Opt.FLICKER_WEIGHT);
+			if (weight > 0 && $running) {
+				const scaled = 1.0 - weight / 100;
+				gl.uniform1f(lfWeight, flickerCnt % 4 >= 2 ? 1.0 : scaled);
+				gl.uniform1f(sfWeight, flickerCnt % 4 >= 2 ? scaled : 1.0);
+				flickerCnt += 1;
+			}
+		}
 
-        // Emulate flicker in interlace mode
-        if (currLOF != prevLOF) {
-            let weight = $config.getNum(Opt.FLICKER_WEIGHT);
-            if (weight > 0 && $running) {
-                const scaled = 1.0 - (weight / 100);
-                gl.uniform1f(lfWeight, flickerCnt % 4 >= 2 ? 1.0 : scaled);
-                gl.uniform1f(sfWeight, flickerCnt % 4 >= 2 ? scaled : 1.0);
-                flickerCnt += 1;
-            }
-        }
+		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+	}
 
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    }
+	onMount(() => {
+		console.log('*** onMount()');
 
-    onMount(() => {
-        console.log('*** onMount()');
+		// Add event listeners
+		document.addEventListener('pointerlockchange', lockChangeAlert, false);
 
-        // Add event listeners
-        document.addEventListener('pointerlockchange', lockChangeAlert, false);
+		initWebGL();
+		updateTextureRect(tx1, ty1, tx2, ty2);
+	});
 
-        initWebGL();
-        updateTextureRect(tx1, ty1, tx2, ty2);
-    });
+	onDestroy(() => {
+		console.log('*** onDestroy()');
 
-    onDestroy(() => {
-        console.log('*** onDestroy()');
+		// Remove event listeners
+		document.removeEventListener('pointerlockchange', lockChangeAlert);
+	});
 
-        // Remove event listeners
-        document.removeEventListener('pointerlockchange', lockChangeAlert);
-    });
+	//
+	// Keyboard
+	//
 
-    //
-    // Keyboard
-    //
+	// Translates a key press event to a list of gamepad actions
+	function keyDownEvents(key: string, port: number) {
+		let action = undefined;
+		if (port == 1 && $port1 == InputDevice.keyset1) action = $keyset1[key];
+		if (port == 1 && $port1 == InputDevice.keyset2) action = $keyset2[key];
+		if (port == 2 && $port2 == InputDevice.keyset1) action = $keyset1[key];
+		if (port == 2 && $port2 == InputDevice.keyset2) action = $keyset2[key];
 
-    // Translates a key press event to a list of gamepad actions
-    function keyDownEvents(key: string, port: number)
-    {
-        let action = undefined;
-        if (port == 1 && $port1 == InputDevice.keyset1) action = $keyset1[key];
-        if (port == 1 && $port1 == InputDevice.keyset2) action = $keyset2[key];
-        if (port == 2 && $port2 == InputDevice.keyset1) action = $keyset1[key];
-        if (port == 2 && $port2 == InputDevice.keyset2) action = $keyset2[key];
+		switch (action) {
+			case undefined:
+				return [];
+			case $wasm.PULL_UP:
+				keyUp = true;
+				return [$wasm.PULL_UP];
+			case $wasm.PULL_DOWN:
+				keyDown = true;
+				return [$wasm.PULL_DOWN];
+			case $wasm.PULL_LEFT:
+				keyLeft = true;
+				return [$wasm.PULL_LEFT];
+			case $wasm.PULL_RIGHT:
+				keyRight = true;
+				return [$wasm.PULL_RIGHT];
+			case $wasm.PRESS_FIRE:
+				return [$wasm.PRESS_FIRE];
+			case $wasm.PRESS_FIRE2:
+				return [$wasm.PRESS_FIRE2];
+			case $wasm.PRESS_FIRE3:
+				return [$wasm.PRESS_FIRE3];
+		}
+	}
 
-        switch (action) {
-            case undefined:
-                return [];
-            case $wasm.PULL_UP:
-                keyUp = true;
-                return [$wasm.PULL_UP];
-            case $wasm.PULL_DOWN:
-                keyDown = true;
-                return [$wasm.PULL_DOWN];
-            case $wasm.PULL_LEFT:
-                keyLeft = true;
-                return [$wasm.PULL_LEFT];
-            case $wasm.PULL_RIGHT:
-                keyRight = true;
-                return [$wasm.PULL_RIGHT];
-            case $wasm.PRESS_FIRE:
-                return [$wasm.PRESS_FIRE];
-            case $wasm.PRESS_FIRE2:
-                return [$wasm.PRESS_FIRE2];
-            case $wasm.PRESS_FIRE3:
-                return [$wasm.PRESS_FIRE3];
-        }
-    }
+	// Translates a key release event to a list of gamepad actions
+	function keyUpEvents(key: string, port: number) {
+		let action = undefined;
+		if (port == 1 && $port1 == InputDevice.keyset1) action = $keyset1[key];
+		if (port == 1 && $port1 == InputDevice.keyset2) action = $keyset2[key];
+		if (port == 2 && $port2 == InputDevice.keyset1) action = $keyset1[key];
+		if (port == 2 && $port2 == InputDevice.keyset2) action = $keyset2[key];
 
-    // Translates a key release event to a list of gamepad actions
-    function keyUpEvents(key: string, port: number)
-    {
-        let action = undefined;
-        if (port == 1 && $port1 == InputDevice.keyset1) action = $keyset1[key];
-        if (port == 1 && $port1 == InputDevice.keyset2) action = $keyset2[key];
-        if (port == 2 && $port2 == InputDevice.keyset1) action = $keyset1[key];
-        if (port == 2 && $port2 == InputDevice.keyset2) action = $keyset2[key];
+		switch (action) {
+			case undefined:
+				return [];
+			case $wasm.PULL_UP:
+				keyUp = false;
+				return keyDown ? [$wasm.PULL_DOWN] : [$wasm.RELEASE_Y];
+			case $wasm.PULL_DOWN:
+				keyDown = false;
+				return keyUp ? [$wasm.PULL_UP] : [$wasm.RELEASE_Y];
+			case $wasm.PULL_LEFT:
+				keyLeft = false;
+				return keyRight ? [$wasm.PULL_RIGHT] : [$wasm.RELEASE_X];
+			case $wasm.PULL_RIGHT:
+				keyRight = false;
+				return keyLeft ? [$wasm.PULL_LEFT] : [$wasm.RELEASE_X];
+			case $wasm.PRESS_FIRE:
+				return [$wasm.RELEASE_FIRE];
+			case $wasm.PRESS_FIRE2:
+				return [$wasm.RELEASE_FIRE2];
+			case $wasm.PRESS_FIRE3:
+				return [$wasm.RELEASE_FIRE3];
+		}
+	}
 
-        switch (action) {
-            case undefined:
-                return [];
-            case $wasm.PULL_UP:
-                keyUp = false;
-                return keyDown ? [$wasm.PULL_DOWN] : [$wasm.RELEASE_Y];
-            case $wasm.PULL_DOWN:
-                keyDown = false;
-                return keyUp ? [$wasm.PULL_UP] : [$wasm.RELEASE_Y];
-            case $wasm.PULL_LEFT:
-                keyLeft = false;
-                return keyRight ? [$wasm.PULL_RIGHT] : [$wasm.RELEASE_X];
-            case $wasm.PULL_RIGHT:
-                keyRight = false;
-                return keyLeft ? [$wasm.PULL_LEFT] : [$wasm.RELEASE_X];
-            case $wasm.PRESS_FIRE:
-                return [$wasm.RELEASE_FIRE];
-            case $wasm.PRESS_FIRE2:
-                return [$wasm.RELEASE_FIRE2];
-            case $wasm.PRESS_FIRE3:
-                return [$wasm.RELEASE_FIRE3];
-        }
-    }
+	function keyDownAction(e: KeyboardEvent) {
+		console.log('keyDownAction', e.code);
 
-    function keyDownAction(e: KeyboardEvent)
-    {
+		if (e.repeat) {
+			return;
+		}
 
-        console.log("keyDownAction", e.code);
+		// Check for joystick emulation keys on port 1
+		let events = keyDownEvents(e.code, 1);
+		if (events?.length) {
+			console.log('Emulation keys: ', events);
+			events?.forEach((event) => $joystick1.trigger(event));
+			return; // Only if "connect emulation keys"
+		}
 
-        if (e.repeat) {
-            return;
-        }
+		// Check for joystick emulation keys on port 2
+		events = keyDownEvents(e.code, 2);
+		if (events?.length) {
+			events?.forEach((event) => $joystick2.trigger(event));
+			return; // Only if "connect emulation keys"
+		}
 
-        // Check for joystick emulation keys on port 1
-        let events = keyDownEvents(e.code, 1);
-        if (events?.length) {
-            console.log("Emulation keys: ", events);
-            events?.forEach((event) => $joystick1.trigger(event));
-            return; // Only if "connect emulation keys"
-        }
+		const code = AMIGA_KEYS[e.code];
+		if (code !== undefined) {
+			$keyboard.pressKey(code);
+			e.preventDefault();
+			e.stopPropagation();
+		}
+	}
 
-        // Check for joystick emulation keys on port 2
-        events = keyDownEvents(e.code, 2);
-        if (events?.length) {
-            events?.forEach((event) => $joystick2.trigger(event));
-            return; // Only if "connect emulation keys"
-        }
+	function keyUpAction(e: KeyboardEvent) {
+		// console.log('keyUp: ', e);
 
-        const code = AMIGA_KEYS[e.code];
-        if (code !== undefined) {
-            $keyboard.pressKey(code);
-            e.preventDefault();
-            e.stopPropagation();
-        }
-    }
+		// Check for joystick emulation keys on port 1
+		let events = keyUpEvents(e.code, 1);
+		if (events?.length) {
+			events?.forEach((event) => $joystick1.trigger(event));
+			return; // Only if "connect emulation keys"
+		}
 
-    function keyUpAction(e: KeyboardEvent)
-    {
-        // console.log('keyUp: ', e);
+		// Check for joystick emulation keys on port 2
+		events = keyUpEvents(e.code, 2);
+		if (events?.length) {
+			events?.forEach((event) => $joystick2.trigger(event));
+			return; // Only if "connect emulation keys"
+		}
 
-        // Check for joystick emulation keys on port 1
-        let events = keyUpEvents(e.code, 1);
-        if (events?.length) {
-            events?.forEach((event) => $joystick1.trigger(event));
-            return; // Only if "connect emulation keys"
-        }
+		const code = AMIGA_KEYS[e.code];
+		if (code === undefined) return;
 
-        // Check for joystick emulation keys on port 2
-        events = keyUpEvents(e.code, 2);
-        if (events?.length) {
-            events?.forEach((event) => $joystick2.trigger(event));
-            return; // Only if "connect emulation keys"
-        }
+		$keyboard.releaseKey(code);
+	}
 
-        const code = AMIGA_KEYS[e.code];
-        if (code === undefined) return;
+	//
+	// Mouse
+	//
 
-        $keyboard.releaseKey(code);
-    }
+	$: if ($MsgShaking) {
+		console.log('MSG_SHAKING received');
 
-    //
-    // Mouse
-    //
+		// Release the mouse if configured so
+		if ($config.getBool(Opt.SHAKING)) unlockMouse();
+	}
 
-    $: if ($MsgShaking) {
-        console.log('MSG_SHAKING received');
+	function lockChangeAlert() {
+		if (document.pointerLockElement === canvas) {
+			document.addEventListener('mousemove', mouseMove, false);
+			console.log('addEventListener: mousemove:', isLocked());
+		} else {
+			document.removeEventListener('mousemove', mouseMove);
+			console.log('removeEventListener: mousemove:', isLocked());
+		}
+	}
 
-        // Release the mouse if configured so
-        if ($config.getBool(Opt.SHAKING)) unlockMouse();
-    }
+	async function lockMouse() {
+		if (!isLocked()) {
+			console.log('lockMouse');
+			await canvas.requestPointerLock();
+		}
+	}
 
-    function lockChangeAlert()
-    {
-        if (document.pointerLockElement === canvas) {
-            document.addEventListener('mousemove', mouseMove, false);
-            console.log('addEventListener: mousemove:', isLocked());
-        } else {
-            document.removeEventListener('mousemove', mouseMove);
-            console.log('removeEventListener: mousemove:', isLocked());
-        }
-    }
+	function unlockMouse() {
+		if (isLocked()) {
+			console.log('unlockMouse');
+			document.exitPointerLock();
+		}
+	}
 
-    async function lockMouse()
-    {
-        if (!isLocked()) {
-            console.log('lockMouse');
-            await canvas.requestPointerLock();
-        }
-    }
+	function mousePort() {
+		return $port1 == InputDevice.mouse ? $mouse1 : $port2 == InputDevice.mouse ? $mouse2 : null;
+	}
 
-    function unlockMouse()
-    {
-        if (isLocked()) {
-            console.log('unlockMouse');
-            document.exitPointerLock();
-        }
-    }
+	function mouseMove(event: MouseEvent) {
+		const x = event.movementX / 2;
+		const y = event.movementY / 2;
 
-    function mousePort() {
-        return $port1 == InputDevice.mouse ? $mouse1 : $port2 == InputDevice.mouse ? $mouse2 : null;
-    }
+		// Check for a shaking mouse
+		$mouse1.detectShakeRel(x, y);
 
-    function mouseMove(event: MouseEvent)
-    {
-        const x = event.movementX / 2;
-        const y = event.movementY / 2;
+		mousePort()?.setDxDy(x, y);
+	}
 
-        // Check for a shaking mouse
-        $mouse1.detectShakeRel(x, y);
+	async function mouseDown(e: MouseEvent) {
+		console.log('mousedown: ', e.button);
 
-        mousePort()?.setDxDy(x, y);
-    }
+		if (!isLocked()) {
+			console.log('Locking mouse...');
+			await lockMouse();
+		} else {
+			switch (e.button) {
+				case 0:
+					mousePort()?.trigger($wasm.PRESS_LEFT);
+					break;
+				case 1:
+					mousePort()?.trigger($wasm.PRESS_MIDDLE);
+					break;
+				case 2:
+					mousePort()?.trigger($wasm.PRESS_RIGHT);
+					break;
+			}
+		}
+	}
 
-    async function mouseDown(e: MouseEvent)
-    {
-        console.log('mousedown: ', e.button);
-
-        if (!isLocked()) {
-            console.log('Locking mouse...');
-            await lockMouse();
-        } else {
-            switch (e.button) {
-                case 0:
-                    mousePort()?.trigger($wasm.PRESS_LEFT);
-                    break;
-                case 1:
-                    mousePort()?.trigger($wasm.PRESS_MIDDLE);
-                    break;
-                case 2:
-                    mousePort()?.trigger($wasm.PRESS_RIGHT);
-                    break;
-            }
-        }
-    }
-
-    function mouseUp(e: MouseEvent)
-    {
-        console.log('mouseUp: ', e.button);
-        switch (e.button) {
-            case 0:
-                mousePort()?.trigger($wasm.RELEASE_LEFT);
-                break;
-            case 1:
-                mousePort()?.trigger($wasm.RELEASE_MIDDLE);
-                break;
-            case 2:
-                mousePort()?.trigger($wasm.RELEASE_RIGHT);
-                break;
-        }
-    }
+	function mouseUp(e: MouseEvent) {
+		console.log('mouseUp: ', e.button);
+		switch (e.button) {
+			case 0:
+				mousePort()?.trigger($wasm.RELEASE_LEFT);
+				break;
+			case 1:
+				mousePort()?.trigger($wasm.RELEASE_MIDDLE);
+				break;
+			case 2:
+				mousePort()?.trigger($wasm.RELEASE_RIGHT);
+				break;
+		}
+	}
 </script>
 
 <canvas
-        on:keydown={keyDownAction}
-        on:keyup={keyUpAction}
-        on:mousedown={mouseDown}
-        on:mouseup={mouseUp}
-        bind:this={canvas}
-        style={imageRendering}
-        class="w-full h-full focus:outline-none focus:ring-0"
-        tabindex="-1"
+	on:keydown={keyDownAction}
+	on:keyup={keyUpAction}
+	on:mousedown={mouseDown}
+	on:mouseup={mouseUp}
+	bind:this={canvas}
+	style={imageRendering}
+	class="h-full w-full focus:ring-0 focus:outline-none"
+	tabindex="-1"
 >
 </canvas>
