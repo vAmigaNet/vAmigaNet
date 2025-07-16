@@ -16,15 +16,8 @@
 
 	let textcol = $derived(active ? 'text-white' : 'text-gray-400');
 	let border = $derived(active ? 'border-white border-2' : 'border-gray-700 border-2');
-	
 	let brightness = $derived(active ? 'brightness-125' : '');
-
-	export {
-		title,
-		src,
-		active,
-		locked,
-	}
+	let opacity = $derived(active ? 'opacity-100' : 'opacity-100');
 </script>
 
 <div class="">
