@@ -3,7 +3,11 @@
     import { joystick1, joystick2, port1, port2, wasm } from '$lib/stores';
     import { InputDevice } from '$lib/types';
 
-    export let gamepads = {};
+    interface Props {
+        gamepads?: { [index: number]: Gamepad };
+    }
+
+    let { gamepads = $bindable({}) }: Props = $props();
 
     onMount(() => {
 

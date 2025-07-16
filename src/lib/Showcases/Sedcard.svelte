@@ -4,13 +4,17 @@
 	import IoMdClose from 'svelte-icons/io/IoMdClose.svelte';
 	import { proxy, kickstarts } from '$lib/stores';
 
-	export let selected: DataBaseItem | null;
-	export let show = true;
+	interface Props {
+		selected: DataBaseItem | null;
+		show?: boolean;
+	}
 
-	$: src = 'footage/' + (selected?.url ?? '') + '-large.jpg';
+	let { selected, show = $bindable(true) }: Props = $props();
 
-	$: enabled = $kickstarts.map(kick => kick.crc32).some(crc => selected?.roms.includes(crc));
-	$: disabled = !enabled; 
+	let src = $derived('footage/' + (selected?.url ?? '') + '-large.jpg');
+
+	let enabled = $derived($kickstarts.map(kick => kick.crc32).some(crc => selected?.roms.includes(crc)));
+	let disabled = $derived(!enabled); 
 
 	function close() {
 		show = false;
@@ -33,7 +37,7 @@
 		<!-- Description -->
 		<div class="relative border-0">
 			<div class="absolute top-0 right-0">
-				<button class="btn btn-sm btn-square flex p-0 border-2 border-white" on:click={close}
+				<button class="btn btn-sm btn-square flex p-0 border-2 border-white" onclick={close}
 					><IoMdClose /></button
 				>
 			</div>
@@ -50,13 +54,13 @@
 					Please install Kickstart 1.2 or Kickstart 1.3 to unlock this title.
 				</div>
 				<div class="mt-4 relative">
-					<button class="btn btn-disabled bg-gray-500 text-white opacity-20" on:click={runTitle}
+					<button class="btn btn-disabled bg-gray-500 text-white opacity-20" onclick={runTitle}
 						>Start</button
 					>
 				</div>
 			{:else}
 				<div class="mt-4 relative">
-					<button class="btn btn-primary" on:click={runTitle}>Start</button>
+					<button class="btn btn-primary" onclick={runTitle}>Start</button>
 				</div>
 			{/if}
 		</div>
