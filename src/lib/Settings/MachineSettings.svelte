@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { fade } from 'svelte/transition';
 	import { MenuItem, Opt } from "$lib/types";
+	import { fade } from 'svelte/transition';
 	import ConfigSection from './ConfigSection.svelte';
 	import ConfigItem from '$lib/Settings/ConfigItem.svelte';
 	import { config, poweredOn, wasm } from '$lib/stores';

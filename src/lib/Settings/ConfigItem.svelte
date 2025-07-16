@@ -1,7 +1,7 @@
 <script lang="ts">
+	import type { ActionEvent, MenuItem } from '$lib/types';
 	import GoInfo from 'svelte-icons/go/GoInfo.svelte';
 	import GiPadlock from 'svelte-icons/gi/GiPadlock.svelte';
-	import type { ActionEvent, MenuItem } from '$lib/types';
 	import Slider from '$lib/Widgets/Slider.svelte';
 	import Menu from '$lib/Widgets/Menu.svelte';
 	import Chevron from '$lib/Widgets/Chevron.svelte';

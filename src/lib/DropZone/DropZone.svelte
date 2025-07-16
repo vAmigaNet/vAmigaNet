@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { Layer } from '$lib/types';
+	import { fade } from 'svelte/transition';
+	import DropZoneCell from '$lib/DropZone/DropZoneCell.svelte';
 	import {
 		amiga,
 		dfConnected,
@@ -9,8 +11,6 @@
 		hdConnected,
 		layer
 	} from '$lib/stores';
-	import { fade } from 'svelte/transition';
-	import DropZoneCell from '$lib/DropZone/DropZoneCell.svelte';
 
 	function insert(drive: number) {
 		if ($dragItem) {

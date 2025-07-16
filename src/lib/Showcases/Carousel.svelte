@@ -1,9 +1,9 @@
 <script lang="ts">
 	import type { DataBaseItem } from '$lib/types';
-	import { kickstarts } from '$lib/stores';
 	import { fade } from 'svelte/transition';
 	import { Splide, SplideSlide } from '@splidejs/svelte-splide';
 	import CarouselItem from '$lib/Showcases/CarouselItem.svelte';
+	import { kickstarts } from '$lib/stores';
 
 	interface Props {
 		category?: string;

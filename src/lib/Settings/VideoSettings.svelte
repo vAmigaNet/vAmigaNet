@@ -1,11 +1,10 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { MenuItem, Opt, RenderMode } from '$lib/types';
-    import { config, wasm } from '$lib/stores';
-    import type { ActionEvent } from '$lib/types';
     import { fade } from 'svelte/transition';
     import ConfigSection from './ConfigSection.svelte';
     import ConfigItem from '$lib/Settings/ConfigItem.svelte';
+    import { config, wasm } from '$lib/stores';
 
     onMount(() => {
         update();

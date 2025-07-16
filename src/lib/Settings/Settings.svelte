@@ -1,13 +1,13 @@
 <script lang="ts">
     import { fade } from 'svelte/transition';
     import { Layer } from "$lib/types";
-    import { config, layer } from "$lib/stores";
     import ConfigCategory from '$lib/Settings/ConfigCategory.svelte';
     import GeneralSettings from '$lib/Settings/GeneralSettings.svelte';
     import MachineSettings from '$lib/Settings/MachineSettings.svelte';
     import CompSettings from '$lib/Settings/CompSettings.svelte';
     import VideoSettings from '$lib/Settings/VideoSettings.svelte';
     import AudioSettings from '$lib/Settings/AudioSettings.svelte';
+    import { config, layer } from "$lib/stores";
 
     // The currently active tab
     let active = 'GENERAL';

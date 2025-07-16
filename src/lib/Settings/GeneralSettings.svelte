@@ -1,9 +1,9 @@
 <script lang="ts">
-    import { fade } from 'svelte/transition';
     import { MenuItem, Opt, Theme } from "$lib/types";
-    import { config } from '$lib/stores';
-    import ConfigSection from './ConfigSection.svelte';
+    import { fade } from 'svelte/transition';
+    import ConfigSection from '$lib/Settings/ConfigSection.svelte';
     import ConfigItem from '$lib/Settings/ConfigItem.svelte';
+    import { config } from '$lib/stores';
 
     function saveAction()
     {

@@ -2,7 +2,6 @@
 	import { invert } from '$lib/stores';
 	import FaTimes from 'svelte-icons/fa/FaTimes.svelte';
 	import { audio } from '$lib/stores';
-	import Proxy from '$lib/Proxy.svelte';
 
 	interface Props {
 		id: number;

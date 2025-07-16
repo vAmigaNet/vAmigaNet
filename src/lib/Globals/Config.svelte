@@ -827,6 +827,7 @@
         document.querySelector('html')?.setAttribute('data-theme', newTheme);
     }
 
+    /*
     function connectDrive(nr: number, connect: boolean)
     {
         if (connect) {
@@ -839,4 +840,5 @@
             }
         }
     }
+    */
 </script>

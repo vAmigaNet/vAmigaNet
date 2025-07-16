@@ -13,7 +13,6 @@
 		canvasWidth,
 		config,
 		gamepadManager,
-		initialized,
 		layout,
 		poweredOn,
 		wasm

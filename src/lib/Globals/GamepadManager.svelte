@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { joystick1, joystick2, port1, port2, wasm } from '$lib/stores';
     import { InputDevice } from '$lib/types';
+    import { joystick1, joystick2, port1, port2, wasm } from '$lib/stores';
 
     interface Props {
         gamepads?: { [index: number]: Gamepad };
@@ -66,7 +66,5 @@
             joystickPort()?.trigger($wasm.RELEASE_Y);
         }
     }
-
-    // $: console.log("Gamepads: ", gamepads);
 
 </script>
