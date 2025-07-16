@@ -22,10 +22,10 @@
 	import { RenderMode } from './types';
 
 	// Reference to the canvas element
-	let canvas: HTMLCanvasElement = $state();
+	let canvas: HTMLCanvasElement = $state()!;
 
 	// The rendering context of the canvas
-	let gl: WebGL2RenderingContext = $state();
+	let gl: WebGL2RenderingContext = $state()!;
 
 	// Texture coordinates
 	interface Props {

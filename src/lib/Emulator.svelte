@@ -20,7 +20,7 @@
 	} from '$lib/stores';
 
 	// Component references
-	let glCanvas: GLCanvas = $state();
+	let glCanvas: GLCanvas = $state()!;
 
 	// Texture cutout
 	let x1 = $state(0);

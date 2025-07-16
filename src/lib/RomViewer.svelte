@@ -11,7 +11,7 @@
 	import FileDialog from '$lib/Utils/FileDialog.svelte';
 
 	// Connect to Dexie DB
-	let roms: RomEntry[] = $state();
+	let roms: RomEntry[] = $state([]);
 	let myQuery = liveQuery(() => (browser ? db.roms.orderBy('title').toArray() : []));
 	myQuery.subscribe((value) => {
 		roms = value;
@@ -128,7 +128,7 @@
 	const debug = ''; // 'border-2';
 	let activeTab = $state(0);
 
-	let fdialog: FileDialog = $state();
+	let fdialog: FileDialog | undefined = $state();
 
 	function addAction(e: CustomEvent<{ file: Uint8Array }>) {
 		console.log('addAction');
