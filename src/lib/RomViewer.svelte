@@ -11,13 +11,17 @@
 	import FileDialog from '$lib/Utils/FileDialog.svelte';
 
 	// Connect to Dexie DB
-	let roms: RomEntry[];
+	let roms: RomEntry[] = $state();
 	let myQuery = liveQuery(() => (browser ? db.roms.orderBy('title').toArray() : []));
 	myQuery.subscribe((value) => {
 		roms = value;
 	});
 
-	export let show = true;
+	interface Props {
+		show?: boolean;
+	}
+
+	let { show = $bindable(true) }: Props = $props();
 
 	async function addRomToDatabase(rom: Uint8Array, ext: Uint8Array | null = null, extStart = 0) {
 		let info = $memory.analyzeRom(rom, rom.length);
@@ -79,9 +83,11 @@
 		}
 	}
 
-	$: if ($initialized) {
-		installDefaultRoms();
-	}
+	$effect(() => {
+		if ($initialized) {
+			installDefaultRoms();
+		}
+	});
 
 	function imageUrl(rom: RomEntry) {
 		return rom.isHyperion
@@ -100,13 +106,6 @@
 		show = false;
 		$layer = Layer.none;
 	}
-
-	/*
-	async function addAction(e: MouseEvent)
-	{
-		console.log('addAction:');
-	}
-   */
 
 	async function deleteAction(e: MouseEvent, id: number) {
 		console.log('deleteAction: ', id);
@@ -127,9 +126,9 @@
 	}
 
 	const debug = ''; // 'border-2';
-	let activeTab = 0;
+	let activeTab = $state(0);
 
-	let fdialog: FileDialog;
+	let fdialog: FileDialog = $state();
 
 	function addAction(e: CustomEvent<{ file: Uint8Array }>) {
 		console.log('addAction');
@@ -144,14 +143,14 @@
 <div class="{debug} flex h-full flex-col border-green-500">
 	<div class="mx-2 flex items-center space-x-2">
 		<div class="{debug} tabs tabs-box flex grow">
-			<button class="tab" class:tab-active={activeTab === 0} on:click={() => (activeTab = 0)}
+			<button class="tab" class:tab-active={activeTab === 0} onclick={() => (activeTab = 0)}
 				>Installed Roms
 			</button>
-			<button class="tab" class:tab-active={activeTab === 1} on:click={() => (activeTab = 1)}
+			<button class="tab" class:tab-active={activeTab === 1} onclick={() => (activeTab = 1)}
 				>Legal Information
 			</button>
-			<div class="flex grow justify-end items-center">
-				<button class="btn btn-sm btn-primary flex w-8 p-0" on:click={close}>
+			<div class="flex grow items-center justify-end">
+				<button class="btn btn-sm btn-primary flex w-8 p-0" onclick={close}>
 					<IoMdClose />
 				</button>
 			</div>
@@ -181,14 +180,14 @@
 										<div class="{debug} flex h-full items-center">
 											<button
 												class="btn btn-primary btn-outline btn-sm"
-												on:click={(e) => installAction(e, rom.crc32)}
+												onclick={(e) => installAction(e, rom.crc32)}
 												>Install
 											</button>
 										</div>
 										<div class="{debug} flex h-full items-center">
 											<button
 												class="btn btn-primary btn-outline btn-sm w-8 p-1.5"
-												on:click={(e) => deleteAction(e, rom.crc32)}
+												onclick={(e) => deleteAction(e, rom.crc32)}
 											>
 												<FaTrash />
 											</button>
@@ -210,7 +209,7 @@
 								<div class="{debug} flex h-full items-center">
 									<button
 										class="btn btn-primary btn-outline btn-sm w-8 p-1.5"
-										on:click={fdialog.open}
+										onclick={fdialog.open}
 									>
 										<FaPlus />
 									</button>
