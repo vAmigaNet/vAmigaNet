@@ -1,5 +1,9 @@
 <script lang="ts">
-    export let shadow = true;
+    interface Props {
+        shadow?: boolean;
+    }
+
+    let { shadow = true }: Props = $props();
 </script>
 
 <div class="pointer-events-none">

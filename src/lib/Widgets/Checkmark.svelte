@@ -1,6 +1,10 @@
 <script lang="ts">
-	export let enabled: boolean;
-	export let visible: boolean;
+	interface Props {
+		enabled: boolean;
+		visible: boolean;
+	}
+
+	let { enabled, visible }: Props = $props();
 </script>
 
 {#if enabled}
