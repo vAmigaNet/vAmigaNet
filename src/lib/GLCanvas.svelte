@@ -1,8 +1,4 @@
-<!-- <svelte:options ={true} /> -->
-
 <script lang="ts">
-	import { run } from 'svelte/legacy';
-
 	import { onDestroy, onMount } from 'svelte';
 	import { InputDevice, Opt } from '$lib/types';
 	import {
@@ -31,9 +27,9 @@
 	// The rendering context of the canvas
 	let gl: WebGL2RenderingContext = $state();
 
-	// Texture coordinates	
+	// Texture coordinates
 	interface Props {
-        x1?: number;
+		x1?: number;
 		y1?: number;
 		x2?: number;
 		y2?: number;
@@ -95,7 +91,6 @@
 	// The main shader for drawing the final texture on the canvas
 	let mainShaderProgram: WebGLProgram;
 	let sampler: WebGLUniformLocation;
-
 
 	//
 	// Merge shader
@@ -227,9 +222,9 @@
 		mergeTexture = createTexture(HPIXELS, 2 * VPIXELS);
 	}
 
-
 	function updateTextureRect(x1: number, y1: number, x2: number, y2: number) {
-		const array = new Float32Array([x1, y1, x2, y1, x1, y2, x2, y2]);
+        console.log(`updateTextureRect(${x1}, ${y1}, ${x2}, ${y2})`);
+        const array = new Float32Array([x1, y1, x2, y1, x1, y2, x2, y2]);
 		gl.bindBuffer(gl.ARRAY_BUFFER, tBuffer);
 		gl.bufferSubData(gl.ARRAY_BUFFER, 0, array);
 	}
@@ -607,7 +602,6 @@
 		$keyboard.releaseKey(code);
 	}
 
-
 	function lockChangeAlert() {
 		if (document.pointerLockElement === canvas) {
 			document.addEventListener('mousemove', mouseMove, false);
@@ -681,20 +675,23 @@
 				break;
 		}
 	}
-	let imageRendering =
-		$derived($config.getNum(Opt.RENDER_MODE) == RenderMode.smooth
+	let imageRendering = $derived(
+		$config.getNum(Opt.RENDER_MODE) == RenderMode.smooth
 			? 'image-rendering: auto'
-			: 'image-rendering: pixelated');
-	run(() => {
-		if (gl) {
+			: 'image-rendering: pixelated'
+	);
+ 
+    $effect(() => { 
+        if (gl) {
 			updateTextureRect(tx1, ty1, tx2, ty2);
 		}
-	});
+    })
+
 	//
 	// Mouse
 	//
 
-	run(() => {
+	$effect(() => {
 		if ($MsgShaking) {
 			console.log('MSG_SHAKING received');
 
@@ -703,13 +700,7 @@
 		}
 	});
 
-	export {
-		tx1,
-		tx2,
-		ty1,
-		ty2,
-		needsDisplay,
-	}
+	export { tx1, tx2, ty1, ty2, needsDisplay };
 </script>
 
 <canvas
