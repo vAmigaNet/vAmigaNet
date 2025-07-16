@@ -5,17 +5,13 @@
 	import { Splide, SplideSlide } from '@splidejs/svelte-splide';
 	import CarouselItem from '$lib/Showcases/CarouselItem.svelte';
 
-	let {
-		category = '',
-		items = [],
-		select = () => {},
-		children
-	}: {
+	interface Props {
 		category?: string;
 		items?: DataBaseItem[];
 		select: (event: DataBaseItem) => void;
 		children?: import('svelte').Snippet;
-	} = $props();
+	}
+	let { category = '', items = [], select = () => {}, children }: Props = $props();
 
 	const options = {
 		type: 'slide',
