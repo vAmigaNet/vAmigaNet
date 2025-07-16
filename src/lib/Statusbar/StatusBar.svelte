@@ -41,9 +41,7 @@
 	const bg = 'bg-gradient-to-t from-primary to-primary/80';
 
 	export function update(animationFrame: number, now: DOMHighResTimeStamp) {
-		if (speedometer) {
-			speedometer.update(animationFrame, now);
-		}
+		speedometer?.update(animationFrame, now);
 	}
 
 	function toggleSidebar(e: Event) {

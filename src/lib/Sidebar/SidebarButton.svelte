@@ -1,19 +1,20 @@
 <script lang="ts">
 	import { darkTheme } from '$lib/stores';
 
+	interface Props {
+		item?: { id: string; icon: string };
+		alt?: string;
+		toggle?: boolean;
+		active?: boolean;
+		select: (sender: string, state: boolean) => void;
+	}
 	let {
 		item = { id: '', icon: '' },
 		alt = 'Icon',
 		toggle = false,
 		active = false,
 		select = () => {}
-	}: {
-		item?: any;
-		alt?: string;
-		toggle?: boolean;
-		active?: boolean;
-		select: (sender: string, state: boolean) => void;
-	} = $props();
+	}: Props = $props();
 
 	let state = false;
 

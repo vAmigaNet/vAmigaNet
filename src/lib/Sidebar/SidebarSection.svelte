@@ -2,17 +2,18 @@
 	import SidebarButton from '$lib/Sidebar/SidebarButton.svelte';
 	import { fade } from 'svelte/transition';
 
+	interface Props {
+		expanded?: boolean;
+		item?: { id: string; icon: string };
+		subitems?: { id: string; icon: string }[];
+		select: (sender: string, state: boolean) => void;
+	}
 	let {
 		expanded = false,
 		item = { id: '', icon: '' },
 		subitems = [{ id: '', icon: '' }],
 		select = () => {}
-	}: {
-		expanded?: boolean;
-		item?: any;
-		subitems?: any;
-		select: (sender: string, state: boolean) => void;
-	} = $props();
+	}: Props = $props();
 </script>
 
 <div class="flex border-0">

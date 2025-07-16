@@ -1,8 +1,8 @@
 <script lang="ts">
 
     let fileDialog: HTMLInputElement;
-    let promiseResolve;
-    let promiseReject;
+    let promiseResolve: any;
+    let promiseReject: any;
 
     export function open()
     {
@@ -17,8 +17,8 @@
 
     async function okAction()
     {
-        if (fileDialog.files?.length > 0) {
-            let file = fileDialog.files![0];
+        if (fileDialog.files && fileDialog.files.length > 0) {
+            let file = fileDialog.files[0];
             let u8 = await readFileStream(file) as Uint8Array;
             promiseResolve(u8);
         } else {
