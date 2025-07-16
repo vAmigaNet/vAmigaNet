@@ -31,26 +31,28 @@
 	// The rendering context of the canvas
 	let gl: WebGL2RenderingContext = $state();
 
-	// Texture coordinates
-	export const x1 = 0;
-	export const y1 = 0;
-	export const x2 = 0;
-	export const y2 = 0;
-
-	
+	// Texture coordinates	
 	interface Props {
+        x1?: number;
+		y1?: number;
+		x2?: number;
+		y2?: number;
 		tx1?: number;
-		tx2?: number;
 		ty1?: number;
+		tx2?: number;
 		ty2?: number;
 		// Indicates if a new frame has to be rendered
 		needsDisplay?: boolean;
 	}
 
 	let {
+		x1 = 0,
+		y1 = 0,
+		x2 = 0,
+		y2 = 0,
 		tx1 = 0,
-		tx2 = 0,
 		ty1 = 0,
+		tx2 = 0,
 		ty2 = 0,
 		needsDisplay = $bindable(false)
 	}: Props = $props();
