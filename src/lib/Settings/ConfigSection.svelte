@@ -12,5 +12,5 @@
 	<div class="w-full flex">
 		<div class="text-xl text-base-content">{name}</div>
 	</div>
-	 children}{@render children?.()}
+	 {@render children?.()}
 </div>
