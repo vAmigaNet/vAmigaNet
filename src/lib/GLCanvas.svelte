@@ -1,6 +1,8 @@
-<svelte:options accessors={true} />
+<!-- <svelte:options ={true} /> -->
 
 <script lang="ts">
+	import { run } from 'svelte/legacy';
+
 	import { onDestroy, onMount } from 'svelte';
 	import { InputDevice, Opt } from '$lib/types';
 	import {
@@ -24,23 +26,34 @@
 	import { RenderMode } from './types';
 
 	// Reference to the canvas element
-	let canvas: HTMLCanvasElement;
+	let canvas: HTMLCanvasElement = $state();
 
 	// The rendering context of the canvas
-	let gl: WebGL2RenderingContext;
+	let gl: WebGL2RenderingContext = $state();
 
 	// Texture coordinates
 	export const x1 = 0;
 	export const y1 = 0;
 	export const x2 = 0;
 	export const y2 = 0;
-	export let tx1 = 0;
-	export let tx2 = 0;
-	export let ty1 = 0;
-	export let ty2 = 0;
 
-	// Indicates if a new frame has to be rendered
-	export let needsDisplay = false;
+	
+	interface Props {
+		tx1?: number;
+		tx2?: number;
+		ty1?: number;
+		ty2?: number;
+		// Indicates if a new frame has to be rendered
+		needsDisplay?: boolean;
+	}
+
+	let {
+		tx1 = 0,
+		tx2 = 0,
+		ty1 = 0,
+		ty2 = 0,
+		needsDisplay = $bindable(false)
+	}: Props = $props();
 
 	// Indicates whether the recently drawn frames were long or short frames
 	let currLOF = true;
@@ -81,10 +94,6 @@
 	let mainShaderProgram: WebGLProgram;
 	let sampler: WebGLUniformLocation;
 
-	$: imageRendering =
-		$config.getNum(Opt.RENDER_MODE) == RenderMode.smooth
-			? 'image-rendering: auto'
-			: 'image-rendering: pixelated';
 
 	//
 	// Merge shader
@@ -216,9 +225,6 @@
 		mergeTexture = createTexture(HPIXELS, 2 * VPIXELS);
 	}
 
-	$: if (gl) {
-		updateTextureRect(tx1, ty1, tx2, ty2);
-	}
 
 	function updateTextureRect(x1: number, y1: number, x2: number, y2: number) {
 		const array = new Float32Array([x1, y1, x2, y1, x1, y2, x2, y2]);
@@ -599,16 +605,6 @@
 		$keyboard.releaseKey(code);
 	}
 
-	//
-	// Mouse
-	//
-
-	$: if ($MsgShaking) {
-		console.log('MSG_SHAKING received');
-
-		// Release the mouse if configured so
-		if ($config.getBool(Opt.SHAKING)) unlockMouse();
-	}
 
 	function lockChangeAlert() {
 		if (document.pointerLockElement === canvas) {
@@ -683,13 +679,42 @@
 				break;
 		}
 	}
+	let imageRendering =
+		$derived($config.getNum(Opt.RENDER_MODE) == RenderMode.smooth
+			? 'image-rendering: auto'
+			: 'image-rendering: pixelated');
+	run(() => {
+		if (gl) {
+			updateTextureRect(tx1, ty1, tx2, ty2);
+		}
+	});
+	//
+	// Mouse
+	//
+
+	run(() => {
+		if ($MsgShaking) {
+			console.log('MSG_SHAKING received');
+
+			// Release the mouse if configured so
+			if ($config.getBool(Opt.SHAKING)) unlockMouse();
+		}
+	});
+
+	export {
+		tx1,
+		tx2,
+		ty1,
+		ty2,
+		needsDisplay,
+	}
 </script>
 
 <canvas
-	on:keydown={keyDownAction}
-	on:keyup={keyUpAction}
-	on:mousedown={mouseDown}
-	on:mouseup={mouseUp}
+	onkeydown={keyDownAction}
+	onkeyup={keyUpAction}
+	onmousedown={mouseDown}
+	onmouseup={mouseUp}
 	bind:this={canvas}
 	style={imageRendering}
 	class="h-full w-full focus:ring-0 focus:outline-none"
