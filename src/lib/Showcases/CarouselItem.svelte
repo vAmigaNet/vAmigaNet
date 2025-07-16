@@ -1,17 +1,30 @@
-<svelte:options accessors={true} />
-
 <script lang="ts">
 	import FaLock from 'svelte-icons/fa/FaLock.svelte';
 
-	export let title = '???';
-	export let src = '';
-	export let active = false;
-	export let locked = false; 
+	interface Props {
+		title?: string;
+		src?: string;
+		active?: boolean;
+		locked?: boolean;
+	}
+	let {
+		title = '???',
+		src = '',
+		active = false,
+		locked = false
+	}: Props = $props();
 
-	$: textcol = active ? 'text-white' : 'text-gray-400';
-	$: border = active ? 'border-white border-2' : 'border-gray-700 border-2';
-	$: opacity = '';
-	$: brightness = active ? 'brightness-125' : '';
+	let textcol = $derived(active ? 'text-white' : 'text-gray-400');
+	let border = $derived(active ? 'border-white border-2' : 'border-gray-700 border-2');
+	
+	let brightness = $derived(active ? 'brightness-125' : '');
+
+	export {
+		title,
+		src,
+		active,
+		locked,
+	}
 </script>
 
 <div class="">

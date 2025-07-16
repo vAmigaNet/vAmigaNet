@@ -1,9 +1,14 @@
 <script lang="ts">
-    export let name = '';
-    export let active = '';
-    export let style = 'text-3xl';
+    interface Props {
+        name?: string;
+        active?: string;
+        style?: string;
+        onclick?: () => void;
+    }
+
+    let { name = '', active = '', style = 'text-3xl', onclick }: Props = $props();
 </script>
 
-<button on:click class="btn btn-ghost p-0 font-thin {active === name ? 'btn-active' : ''} {style}">
+<button {onclick} class="btn btn-ghost p-0 font-thin {active === name ? 'btn-active' : ''} {style}">
     {name}
 </button>

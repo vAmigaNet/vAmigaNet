@@ -6,30 +6,42 @@
 	import Menu from '$lib/Widgets/Menu.svelte';
 	import { MenuItem } from '$lib/types';
 
-	export let acceleration = 1.0;
-	export let mhz = 0.0;
-	export let emuFps = 0.0;
-	export let gpuFps = 0.0;
-	export let latchedTimestamp = 0.0;
-	export let latchedCycle = 0.0;
-	export let latchedEmuFrame = 0.0;
-	export let latchedGpuFrame = 0.0;
+	interface Props {
+		acceleration?: number;
+		mhz?: number;
+		emuFps?: number;
+		gpuFps?: number;
+		latchedTimestamp?: number;
+		latchedCycle?: number;
+		latchedEmuFrame?: number;
+		latchedGpuFrame?: number;
+	}
+	let {
+		acceleration = $bindable(1.0),
+		mhz = $bindable(0.0),
+		emuFps = $bindable(0.0),
+		gpuFps = $bindable(0.0),
+		latchedTimestamp = $bindable(0.0),
+		latchedCycle = $bindable(0.0),
+		latchedEmuFrame = $bindable(0.0),
+		latchedGpuFrame = $bindable(0.0)
+	}: Props = $props();
 
 	let mode = 0;
-	let value = '';
-	$: color = $darkTheme ? 'text-gray-300' : 'text-black';
+	let value = $state('');
+	let color = $derived($darkTheme ? 'text-gray-300' : 'text-black');
 
-	let items: MenuItem[] = [
+	let items: MenuItem[] = $state([
 		new MenuItem('Amiga Frequency', 0),
 		new MenuItem('Amiga Refresh Rate', 1),
 		new MenuItem('Host CPU Load', 2),
 		new MenuItem('Host GPU Refresh Rate', 3),
 		new MenuItem('Audio Buffer Fill Level', 4)
-	];
-	items[0].isSelected = true;
+	]);
 
 	onMount(() => {
 		latchedTimestamp = Date.now();
+		items[0].isSelected = true;
 	});
 
 	export function update(animationFrame: number, now: DOMHighResTimeStamp) {
@@ -100,7 +112,6 @@
 	}
 
 	function select(value: number) {
-		
 		mode = value;
 		items.forEach(function (item) {
 			item.isSelected = item.tag == mode;
@@ -120,6 +131,8 @@
 		dropdownStyle="dropdown-end"
 		listStyle="menu menu-compact rounded text-sm w-64"
 	>
-		<div class="flex w-20 text-xs text-primary-content h-full justify-center items-center">{value}</div>
+		<div class="text-primary-content flex h-full w-20 items-center justify-center text-xs">
+			{value}
+		</div>
 	</Menu>
 </div>

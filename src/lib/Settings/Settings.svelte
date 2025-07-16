@@ -70,11 +70,11 @@
                 </div>
                 <div class="flex border-0 border-red-500 justify-between">
                     <div class="float space-x-4 mb-6 border-0">
-                        <ConfigCategory name="GENERAL" {active} on:click={() => (active = 'GENERAL')}/>
-                        <ConfigCategory name="MACHINE" {active} on:click={() => (active = 'MACHINE')}/>
-                        <ConfigCategory name="COMPATIBILITY" {active} on:click={() => (active = 'COMPATIBILITY')}/>
-                        <ConfigCategory name="VIDEO" {active} on:click={() => (active = 'VIDEO')}/>
-                        <ConfigCategory name="AUDIO" {active} on:click={() => (active = 'AUDIO')}/>
+                        <ConfigCategory name="GENERAL" {active} onclick={() => (active = 'GENERAL')}/>
+                        <ConfigCategory name="MACHINE" {active} onclick={() => (active = 'MACHINE')}/>
+                        <ConfigCategory name="COMPATIBILITY" {active} onclick={() => (active = 'COMPATIBILITY')}/>
+                        <ConfigCategory name="VIDEO" {active} onclick={() => (active = 'VIDEO')}/>
+                        <ConfigCategory name="AUDIO" {active} onclick={() => (active = 'AUDIO')}/>
                     </div>
                     <div class="flex justify-between mb-6 border-0 w-[18rem]">
                         <button class="btn btn-outline text-2xl font-normal w-[8.5rem]" on:click={saveAction}>Save
