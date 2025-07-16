@@ -2,17 +2,9 @@
 	import { invert } from '$lib/stores';
 	import FaTimes from 'svelte-icons/fa/FaTimes.svelte';
 	import { audio } from '$lib/stores';
+	import Proxy from '$lib/Proxy.svelte';
 
-	let {
-		id,
-		name,
-		enabled = false,
-		selected = false,
-		icon1 = 'icons/disk.png',
-		icon2 = 'icons/disk.png',
-		opacity = 'opacity-50',
-		select = () => {},
-	}: {
+	interface Props {
 		id: number;
 		name: string;
 		enabled?: boolean;
@@ -21,7 +13,17 @@
 		icon2?: string;
 		opacity?: string;
 		select: (value: string) => void;
-	} = $props();
+	}
+	let {
+		id,
+		name,
+		enabled = false,
+		selected = false,
+		icon1 = 'icons/disk.png',
+		icon2 = 'icons/disk.png',
+		opacity = 'opacity-50',
+		select = () => {}
+	}: Props = $props();
 
 	let opac = $derived(selected ? 'opacity-100' : 'opacity-50');
 	let bopac = $derived(enabled ? 'opacity-100' : 'opacity-50');
