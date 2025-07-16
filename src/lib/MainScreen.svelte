@@ -2,11 +2,10 @@
 	import { Layer } from '$lib/types';
 	import { amiga, dragItem, dragType, initialized, layer, wasm } from '$lib/stores';
 
-	let {
-		children
-	}: {
+	interface Props {
 		children?: import('svelte').Snippet;
-	} = $props();
+	}
+	let { children }: Props = $props();
 
 	function handleDragEnter(event: DragEvent) {
 		event.preventDefault();
