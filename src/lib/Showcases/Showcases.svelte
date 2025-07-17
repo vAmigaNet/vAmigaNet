@@ -28,11 +28,12 @@
 
 </script>
 
-<div class="modal" class:modal-open={showSedcard}>
-	<div class="modal-box w-11/12 min-h-[380px] max-w-6xl bg-black">
+
+<dialog class="modal border-2" class:modal-open={showSedcard}>
+	<div class="modal-box w-11/12 max-w-6xl bg-black">
 		<Sedcard bind:show={showSedcard} {selected} />
 	</div>
-</div>
+</dialog>
 
 <div class="grow h-full flex flex-col justify-center overflow-auto" in:fade>
 	<div class="relative h-full">

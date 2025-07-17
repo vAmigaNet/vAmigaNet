@@ -120,7 +120,7 @@
 	async function installAction(e: MouseEvent, crc: number) {
 		console.log('installAction: ', crc);
 		$amiga.powerOff();
-		await $wasm.installRom(crc);
+		await $proxy.installRom(crc);
 		$amiga.hardReset();
 		$amiga.run();
 	}

@@ -29,11 +29,12 @@
 	<div class="" in:fade>
 		<!-- Background -->
 		<div class="absolute top-0 left-0 px-0 py-0 w-full h-full">
-			<img class="brightness-90 blur-[2px]" {src} alt="Bg" />
+			<img class="w-full h-full object-cover brightness-90 blur-[2px]" {src} alt="Bg" />
 		</div>
 		<div class="absolute top-0 left-0 px-0 py-0 w-full h-full">
-			<img class="" src="footage/blank-large.png" alt="Alt" />
+			<img class="w-full h-full object-cover brightness-90 blur-[2px]" src="footage/blank-large.png" alt="Alt" />
 		</div>
+		
 		<!-- Description -->
 		<div class="relative border-0">
 			<div class="absolute top-0 right-0">
