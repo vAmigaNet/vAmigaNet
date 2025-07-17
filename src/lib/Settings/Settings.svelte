@@ -63,7 +63,7 @@
             transition:fade
     >
         <div class="w-16 mr-1"></div>
-        <div class="bg-base-100 opacity-100 bg-opacity-80 mt-0 p-4 grow h-full overflow-auto">
+        <div class="bg-base-100/75 opacity-100 mt-0 p-4 grow h-full overflow-auto">
             <div class="font-sofia-extra">
                 <div class="flex border-0 border-red-500 justify-between">
                     <div class="text-5xl">SETTINGS</div>

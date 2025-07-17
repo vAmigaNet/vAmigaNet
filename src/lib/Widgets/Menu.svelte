@@ -45,7 +45,12 @@
 	</label>
 	<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 	<!-- svelte-ignore a11y_label_has_associated_control -->
-	<ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-1 w-52 p-2 shadow-sm">
+	<ul tabindex="0" class="dropdown-content menu bg-base-100 {listStyle}">
+		{#if selectedItems.length !== 0}
+			<li class="text-xs text-primary-content px-2">
+				{selectedItems.length} item{selectedItems.length > 1 ? 's' : ''} selected
+			</li>
+		{/if}
 		{#key items}
 			{#each items as item, i}
 				{#if item instanceof MenuSeparator}

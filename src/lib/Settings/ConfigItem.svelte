@@ -55,10 +55,12 @@
 		items = items;
 	}
 
+    /*
 	function selectAction(event: CustomEvent<ActionEvent>) {
 		selectedTag = event.detail.value;
 		select(selectedTag);
 	}
+    */
 </script>
 
 <div class="px-0 py-0.5">
@@ -93,7 +95,7 @@
 					{items}
 					{select}
 					{tag}
-					listStyle="w-[18rem] bg-accent text-accent-content"
+					listStyle="w-[18rem] mt-2 text-xl bg-accent text-accent-content"
 				>
 					{#if locked}
 						<button

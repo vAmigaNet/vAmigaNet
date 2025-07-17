@@ -74,7 +74,7 @@
 
 {#if $showSidebar}
 	<div transition:fade={{ duration }} class="">
-		<div class="bg-base-100 bg-opacity-80 absolute top-0 left-0 z-40 flex w-16 flex-col pl-2">
+		<div class="bg-base-100/75 absolute top-0 left-0 z-40 flex w-16 flex-col pl-2">
 			<div class="mt-1.5 mb-2 flex flex-col space-y-1.5 border-0">
 				<SidebarButton {select} item={{ id: 'power', icon: powerIcon }} />
 				{#if $poweredOn}
