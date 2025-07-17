@@ -31,36 +31,27 @@
 	}: Props = $props();
 
 	const opac = $derived(locked ? 'opacity-50' : '');
-	const displayName = $derived(displayedName(selectedTag));
+
+	const displayName = $derived.by(() => {
+        for (const item of items) {
+            if (item.tag == selectedTag) return item.title;
+        }
+        return '???';
+    }); 
+
+    let checkmarkedItems = $derived.by(() => {
+        let result = items; 
+        for (const item of result) {
+			item.isSelected = item.tag == selectedTag;
+		}
+        return result;
+    })
 
 	const infoAction = (e: Event) => {
 		console.log('infoAction', e);
 		e.preventDefault();
-		// infoDispatcher('info', { tag: tag, value: selectedTag });
 	};
 
-	function displayedName(selectedTag: number): string {
-		for (const item of items) {
-			if (item.tag == selectedTag) return item.title;
-		}
-		return '???';
-	}
-
-	$effect(() => updateSelected(selectedTag));
-
-	function updateSelected(sel: number) {
-		items.forEach(function (item) {
-			item.isSelected = item.tag == sel;
-		});
-		items = items;
-	}
-
-    /*
-	function selectAction(event: CustomEvent<ActionEvent>) {
-		selectedTag = event.detail.value;
-		select(selectedTag);
-	}
-    */
 </script>
 
 <div class="px-0 py-0.5">
@@ -92,8 +83,8 @@
 			{#if min === max}
 				<Menu
 					isEnabled={!locked}
-					{items}
-					{select}
+					items={checkmarkedItems}
+					select={(value: number) => { selectedTag = value; select(selectedTag)}}
 					{tag}
 					listStyle="w-[18rem] mt-2 text-xl bg-accent text-accent-content"
 				>

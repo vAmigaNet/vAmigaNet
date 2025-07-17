@@ -3,25 +3,38 @@
 	import { MenuItem, MenuSeparator } from '$lib/types';
 	import Checkmark from './Checkmark.svelte';
 
-	let {
-		tag = 0,
-		items = [],
-		isEnabled = true,
-		dropdownStyle = '',
-		listStyle = '',
-		select = () => {},
-		children
-	}: {
+	interface Props {
 		tag?: number;
 		items?: MenuItem[];
 		isEnabled?: boolean;
+		checkmarks?: boolean;
 		dropdownStyle?: string;
 		listStyle?: string;
 		select: (value: number) => void;
 		children?: Snippet;
-	} = $props();
+	}
+	let {
+		tag = 0,
+		items = [],
+		isEnabled = true,
+		checkmarks = true,
+		dropdownStyle = '',
+		listStyle = '',
+		select = () => {},
+		children
+	}: Props = $props();
 
-	const selectedItems = $derived(items.filter((item) => item.isSelected));
+	const selectedItems = $derived.by(() => {
+		
+		let it = items
+		console.log('selectedItems', it);
+		return it.filter((item) => item.isSelected)
+	});
+
+	function numSelected(): number {
+		console.log('numSelected', items);
+		return items.filter((item) => item.isSelected).length;
+	}
 
 	const action = (e: MouseEvent, value: number) => {
 		e.preventDefault();
@@ -46,11 +59,13 @@
 	<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 	<!-- svelte-ignore a11y_label_has_associated_control -->
 	<ul tabindex="0" class="dropdown-content menu bg-base-100 {listStyle}">
-		{#if selectedItems.length !== 0}
-			<li class="text-xs text-primary-content px-2">
+		<!--
+		{#if selectedItems.length != 0}
+			<li class="text-primary-content px-2 text-xs">
 				{selectedItems.length} item{selectedItems.length > 1 ? 's' : ''} selected
 			</li>
 		{/if}
+		-->
 		{#key items}
 			{#each items as item, i}
 				{#if item instanceof MenuSeparator}
@@ -62,7 +77,7 @@
 							class={item.isEnabled ? '' : 'hover:bg-base-100 opacity-40'}
 							onclick={(e) => action(e, item.tag)}
 						>
-							<Checkmark enabled={selectedItems.length !== 0} visible={item.isSelected} />
+							<Checkmark enabled={selectedItems.length != 0} visible={item.isSelected} />
 							{item.title}</button
 						>
 					</li>

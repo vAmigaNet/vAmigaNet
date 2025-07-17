@@ -3,10 +3,12 @@
 	import { fade } from 'svelte/transition';
 	import ConfigSection from './ConfigSection.svelte';
 	import ConfigItem from '$lib/Settings/ConfigItem.svelte';
-	import { config, poweredOn, wasm } from '$lib/stores';
+	import { config, MsgConfig, poweredOn, wasm } from '$lib/stores';
 </script>
 
 <div in:fade>
+	{#key $MsgConfig}
+	<div>Huhu {$MsgConfig}</div>
 	<ConfigSection name="CPU">
 		<ConfigItem
 			name="CPU"
@@ -98,7 +100,7 @@
 			items={[
 				new MenuItem('0 KB', 0),
 				new MenuItem('64 KB', 64),
-				new MenuItem('128 KB', 118),
+				new MenuItem('128 KB', 128),
 				new MenuItem('256 KB', 256),
 				new MenuItem('512 KB', 512),
 				new MenuItem('1 MB', 1024),
@@ -254,4 +256,5 @@
 				locked={$poweredOn}
 		/>
 	</ConfigSection>
+	{/key}
 </div>

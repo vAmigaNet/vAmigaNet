@@ -8,5 +8,10 @@
 </script>
 
 {#if enabled}
-	<div class="w-4">{@html visible ? '&#10003' : ''}</div>
+	{#if visible}
+		<!-- <div class="w-4">{@html visible ? '&#10003' : ''}</div> -->
+		<div class="w-4">&#10003</div>
+	{:else}
+		<div class="w-4"></div>
+	{/if}
 {/if}
