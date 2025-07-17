@@ -36,7 +36,7 @@
 		return items.filter((item) => item.isSelected).length;
 	}
 	*/
-	
+
 	const action = (e: MouseEvent, value: number) => {
 		e.preventDefault();
 

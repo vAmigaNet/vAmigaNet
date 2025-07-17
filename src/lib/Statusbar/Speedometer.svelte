@@ -4,6 +4,7 @@
 	import { wasm, amiga, cpu, agnus } from '$lib/stores';
 	import { darkTheme } from '$lib/stores';
 	import Menu from '$lib/Widgets/Menu.svelte';
+	import SelectMenu from '$lib/Widgets/SelectMenu.svelte';
 	import { MenuItem } from '$lib/types';
 
 	interface Props {
@@ -29,7 +30,6 @@
 
 	let mode = $state(0);
 	let value = $state('');
-	let color = $derived($darkTheme ? 'text-gray-300' : 'text-black');
 
 	let items: MenuItem[] = $state([
 		new MenuItem('Amiga Frequency', 0),
@@ -38,14 +38,6 @@
 		new MenuItem('Host GPU Refresh Rate', 3),
 		new MenuItem('Audio Buffer Fill Level', 4)
 	]);
-
-	let checkmarkedItems = $derived.by(() => {
-        let result = items; 
-        for (const item of result) {
-			item.isSelected = item.tag == mode;
-		}
-        return result;
-    })
 
 	onMount(() => {
 		latchedTimestamp = Date.now();
@@ -134,8 +126,9 @@
 <div class="flex h-8">
 	<div class="h-full w-1 bg-black"></div>
 	{#key mode}
-	<Menu
-		items={checkmarkedItems}
+	<SelectMenu
+		{items}
+		selectedTag={mode}
 		{select}
 		dropdownStyle="dropdown-end"
 		listStyle="menu menu-compact rounded text-sm w-64"
@@ -143,6 +136,6 @@
 		<div class="text-primary-content flex h-full w-20 items-center justify-center text-xs">
 			{value}
 		</div>
-	</Menu>
+	</SelectMenu>
 	{/key}
 </div>
