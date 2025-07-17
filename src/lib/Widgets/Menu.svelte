@@ -27,15 +27,16 @@
 	const selectedItems = $derived.by(() => {
 		
 		let it = items
-		console.log('selectedItems', it);
 		return it.filter((item) => item.isSelected)
 	});
 
+	/*
 	function numSelected(): number {
 		console.log('numSelected', items);
 		return items.filter((item) => item.isSelected).length;
 	}
-
+	*/
+	
 	const action = (e: MouseEvent, value: number) => {
 		e.preventDefault();
 

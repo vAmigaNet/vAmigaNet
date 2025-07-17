@@ -27,7 +27,7 @@
 		latchedGpuFrame = $bindable(0.0)
 	}: Props = $props();
 
-	let mode = 0;
+	let mode = $state(0);
 	let value = $state('');
 	let color = $derived($darkTheme ? 'text-gray-300' : 'text-black');
 
@@ -38,6 +38,14 @@
 		new MenuItem('Host GPU Refresh Rate', 3),
 		new MenuItem('Audio Buffer Fill Level', 4)
 	]);
+
+	let checkmarkedItems = $derived.by(() => {
+        let result = items; 
+        for (const item of result) {
+			item.isSelected = item.tag == mode;
+		}
+        return result;
+    })
 
 	onMount(() => {
 		latchedTimestamp = Date.now();
@@ -125,8 +133,9 @@
 
 <div class="flex h-8">
 	<div class="h-full w-1 bg-black"></div>
+	{#key mode}
 	<Menu
-		{items}
+		items={checkmarkedItems}
 		{select}
 		dropdownStyle="dropdown-end"
 		listStyle="menu menu-compact rounded text-sm w-64"
@@ -135,4 +144,5 @@
 			{value}
 		</div>
 	</Menu>
+	{/key}
 </div>
