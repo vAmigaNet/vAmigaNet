@@ -7,7 +7,7 @@
 	import FaPlus from 'svelte-icons/fa/FaPlus.svelte';
 	import FaTrash from 'svelte-icons/fa/FaTrash.svelte';
 	import IoMdClose from 'svelte-icons/io/IoMdClose.svelte';
-	import { amiga, initialized, layer, memory, wasm } from '$lib/stores';
+	import { amiga, initialized, layer, memory, proxy, wasm } from '$lib/stores';
 	import FileDialog from '$lib/Utils/FileDialog.svelte';
 
 	// Connect to Dexie DB
@@ -130,15 +130,21 @@
 
 	let fdialog: FileDialog | undefined = $state();
 
-	function addAction(e: CustomEvent<{ file: Uint8Array }>) {
-		console.log('addAction');
-
-		let filebuffer = e.detail.file;
-		$wasm.addRom(filebuffer);
+	function addRomAction() {
+		console.log('addRomAction');
+		fdialog.open().then(
+			function (value) {
+				console.log('open file dialog', value);
+				$proxy.addRom(value);
+			},
+			function (error) {
+				console.log('error', error);
+			}
+		);
 	}
 </script>
 
-<FileDialog bind:this={fdialog} on:loaded={addAction}></FileDialog>
+<FileDialog bind:this={fdialog}></FileDialog>
 
 <div class="{debug} flex h-full flex-col border-green-500">
 	<div class="mx-2 flex items-center space-x-2">
@@ -209,7 +215,7 @@
 								<div class="{debug} flex h-full items-center">
 									<button
 										class="btn btn-primary btn-outline btn-sm w-8 p-1.5"
-										onclick={fdialog.open}
+										onclick={() => addRomAction() }
 									>
 										<FaPlus />
 									</button>

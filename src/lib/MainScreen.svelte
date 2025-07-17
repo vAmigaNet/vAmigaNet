@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Layer } from '$lib/types';
-	import { amiga, dragItem, dragType, initialized, layer, wasm } from '$lib/stores';
+	import { amiga, dragItem, dragType, initialized, layer, proxy, wasm } from '$lib/stores';
 
 	interface Props {
 		children?: import('svelte').Snippet;
@@ -60,7 +60,7 @@
 	}
 
 	async function handleDraggedRom(blob: Uint8Array) {
-		$wasm.addRom(blob);
+		$proxy.addRom(blob);
 	}
 
 	function handleDraggedDisk(blob: Uint8Array) {
