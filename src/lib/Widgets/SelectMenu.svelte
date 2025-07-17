@@ -8,7 +8,6 @@
 		tag?: number;
 		items?: MenuItem[];
 		isEnabled?: boolean;
-		checkmarks?: boolean;
 		dropdownStyle?: string;
 		listStyle?: string;
 		selectedTag?: number;
@@ -19,7 +18,6 @@
 		tag = 0,
 		items = [],
 		isEnabled = true,
-		checkmarks = true,
 		dropdownStyle = '',
 		listStyle = '',
 		selectedTag = 0,
@@ -40,7 +38,9 @@
 </script>
 
 {#key items}
-<Menu {tag} items={checkmarkedItems} {isEnabled} {checkmarks} {dropdownStyle} {listStyle} {select}>
+{#key selectedTag}
+<Menu {tag} items={checkmarkedItems} {isEnabled} checkmarks={true} {dropdownStyle} {listStyle} {select}>
 	{@render children?.()}
 </Menu>
+{/key}
 {/key}

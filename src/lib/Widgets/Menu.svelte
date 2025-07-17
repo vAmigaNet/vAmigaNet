@@ -17,7 +17,7 @@
 		tag = 0,
 		items = [],
 		isEnabled = true,
-		checkmarks = true,
+		checkmarks = false,
 		dropdownStyle = '',
 		listStyle = '',
 		select = () => {},
@@ -25,9 +25,8 @@
 	}: Props = $props();
 
 	const selectedItems = $derived.by(() => {
-		
-		let it = items
-		return it.filter((item) => item.isSelected)
+		let it = items;
+		return it.filter((item) => item.isSelected);
 	});
 
 	/*
@@ -78,7 +77,9 @@
 							class={item.isEnabled ? '' : 'hover:bg-base-100 opacity-40'}
 							onclick={(e) => action(e, item.tag)}
 						>
-							<Checkmark enabled={selectedItems.length != 0} visible={item.isSelected} />
+							{#if checkmarks}
+								<Checkmark enabled={true} visible={item.isSelected} />
+							{/if}
 							{item.title}</button
 						>
 					</li>

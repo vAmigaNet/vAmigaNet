@@ -125,7 +125,6 @@
 
 <div class="flex h-8">
 	<div class="h-full w-1 bg-black"></div>
-	{#key mode}
 	<SelectMenu
 		{items}
 		selectedTag={mode}
@@ -137,5 +136,4 @@
 			{value}
 		</div>
 	</SelectMenu>
-	{/key}
 </div>
