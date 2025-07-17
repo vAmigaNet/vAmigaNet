@@ -3,7 +3,7 @@
 	import GoInfo from 'svelte-icons/go/GoInfo.svelte';
 	import GiPadlock from 'svelte-icons/gi/GiPadlock.svelte';
 	import Slider from '$lib/Widgets/Slider.svelte';
-	import Menu from '$lib/Widgets/Menu.svelte';
+	import SelectMenu from '$lib/Widgets/SelectMenu.svelte';
 	import Chevron from '$lib/Widgets/Chevron.svelte';
 
 	interface Props {
@@ -39,14 +39,6 @@
         return '???';
     }); 
 
-    let checkmarkedItems = $derived.by(() => {
-        let result = items; 
-        for (const item of result) {
-			item.isSelected = item.tag == selectedTag;
-		}
-        return result;
-    })
-
 	const infoAction = (e: Event) => {
 		console.log('infoAction', e);
 		e.preventDefault();
@@ -81,11 +73,12 @@
 		</div>
 		<div class="bg-primary h-12 border-0">
 			{#if min === max}
-				<Menu
+				<SelectMenu
 					isEnabled={!locked}
-					items={checkmarkedItems}
+					items={items}
 					select={(value: number) => { selectedTag = value; select(selectedTag)}}
 					{tag}
+                    {selectedTag}
 					listStyle="w-[18rem] mt-2 text-xl bg-accent text-accent-content"
 				>
 					{#if locked}
@@ -98,7 +91,7 @@
 							<Chevron>{displayName}</Chevron>
 						</button>
 					{/if}
-				</Menu>
+				</SelectMenu>
 			{:else}
 				<Slider {min} {max} {locked} {tag} {select}>
 					<button class="btn btn-primary {opac} w-[18rem] rounded-none border-0 text-xl font-normal"
