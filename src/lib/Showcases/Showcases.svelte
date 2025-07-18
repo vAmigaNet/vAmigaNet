@@ -29,7 +29,7 @@
 </script>
 
 
-<dialog class="modal border-2" class:modal-open={showSedcard}>
+<dialog class="modal border-0" class:modal-open={showSedcard}>
 	<div class="modal-box w-11/12 max-w-6xl bg-black">
 		<Sedcard bind:show={showSedcard} {selected} />
 	</div>
