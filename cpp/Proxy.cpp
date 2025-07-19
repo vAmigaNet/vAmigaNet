@@ -8,9 +8,10 @@
 
 //
 // Enum classes
-// 
+//
 
-EMSCRIPTEN_BINDINGS(EnumClasses) {
+EMSCRIPTEN_BINDINGS(EnumClasses)
+{
 
     enum_<Msg>("Msg")
         .value("NONE", Msg::NONE)
@@ -87,6 +88,155 @@ EMSCRIPTEN_BINDINGS(EnumClasses) {
         .value("SRV_SEND", Msg::SRV_SEND)
         .value("ALARM", Msg::ALARM);
 
+    enum_<Opt>("Opt")
+        .value("HOST_REFRESH_RATE", Opt::HOST_REFRESH_RATE)
+        .value("HOST_SAMPLE_RATE", Opt::HOST_SAMPLE_RATE)
+        .value("HOST_FRAMEBUF_WIDTH", Opt::HOST_FRAMEBUF_WIDTH)
+        .value("HOST_FRAMEBUF_HEIGHT", Opt::HOST_FRAMEBUF_HEIGHT)
+
+        .value("AMIGA_VIDEO_FORMAT", Opt::AMIGA_VIDEO_FORMAT)
+        .value("AMIGA_WARP_BOOT", Opt::AMIGA_WARP_BOOT)
+        .value("AMIGA_WARP_MODE", Opt::AMIGA_WARP_MODE)
+        .value("AMIGA_VSYNC", Opt::AMIGA_VSYNC)
+        .value("AMIGA_SPEED_BOOST", Opt::AMIGA_SPEED_BOOST)
+        .value("AMIGA_RUN_AHEAD", Opt::AMIGA_RUN_AHEAD)
+
+        .value("AMIGA_SNAP_AUTO", Opt::AMIGA_SNAP_AUTO)
+        .value("AMIGA_SNAP_DELAY", Opt::AMIGA_SNAP_DELAY)
+        .value("AMIGA_SNAP_COMPRESSOR", Opt::AMIGA_SNAP_COMPRESSOR)
+
+        .value("AMIGA_WS_COMPRESSION", Opt::AMIGA_WS_COMPRESSION)
+
+        .value("AGNUS_REVISION", Opt::AGNUS_REVISION)
+        .value("AGNUS_PTR_DROPS", Opt::AGNUS_PTR_DROPS)
+
+        .value("DENISE_REVISION", Opt::DENISE_REVISION)
+        .value("DENISE_VIEWPORT_TRACKING", Opt::DENISE_VIEWPORT_TRACKING)
+        .value("DENISE_HIDDEN_SPRITES", Opt::DENISE_HIDDEN_SPRITES)
+        .value("DENISE_HIDDEN_LAYERS", Opt::DENISE_HIDDEN_LAYERS)
+        .value("DENISE_HIDDEN_LAYER_ALPHA", Opt::DENISE_HIDDEN_LAYER_ALPHA)
+        .value("DENISE_CLX_SPR_SPR", Opt::DENISE_CLX_SPR_SPR)
+        .value("DENISE_CLX_SPR_PLF", Opt::DENISE_CLX_SPR_PLF)
+        .value("DENISE_CLX_PLF_PLF", Opt::DENISE_CLX_PLF_PLF)
+
+        .value("MON_PALETTE", Opt::MON_PALETTE)
+        .value("MON_BRIGHTNESS", Opt::MON_BRIGHTNESS)
+        .value("MON_CONTRAST", Opt::MON_CONTRAST)
+        .value("MON_SATURATION", Opt::MON_SATURATION)
+        .value("MON_CENTER", Opt::MON_CENTER)
+        .value("MON_HCENTER", Opt::MON_HCENTER)
+        .value("MON_VCENTER", Opt::MON_VCENTER)
+        .value("MON_ZOOM", Opt::MON_ZOOM)
+        .value("MON_HZOOM", Opt::MON_HZOOM)
+        .value("MON_VZOOM", Opt::MON_VZOOM)
+        .value("MON_ENHANCER", Opt::MON_ENHANCER)
+        .value("MON_UPSCALER", Opt::MON_UPSCALER)
+        .value("MON_BLUR", Opt::MON_BLUR)
+        .value("MON_BLUR_RADIUS", Opt::MON_BLUR_RADIUS)
+        .value("MON_BLOOM", Opt::MON_BLOOM)
+        .value("MON_BLOOM_RADIUS", Opt::MON_BLOOM_RADIUS)
+        .value("MON_BLOOM_BRIGHTNESS", Opt::MON_BLOOM_BRIGHTNESS)
+        .value("MON_SCANLINES", Opt::MON_SCANLINES)
+        .value("MON_SCANLINE_BRIGHTNESS", Opt::MON_SCANLINE_BRIGHTNESS)
+        .value("MON_SCANLINE_WEIGHT", Opt::MON_SCANLINE_WEIGHT)
+        .value("MON_DISALIGNMENT", Opt::MON_DISALIGNMENT)
+        .value("MON_DISALIGNMENT_H", Opt::MON_DISALIGNMENT_H)
+        .value("MON_DISALIGNMENT_V", Opt::MON_DISALIGNMENT_V)
+        .value("MON_FLICKER", Opt::MON_FLICKER)
+        .value("MON_FLICKER_WEIGHT", Opt::MON_FLICKER_WEIGHT)
+
+        .value("OPT_DMA_DEBUG_ENABLE", Opt::DMA_DEBUG_ENABLE)
+        .value("OPT_DMA_DEBUG_MODE", Opt::DMA_DEBUG_MODE)
+        .value("OPT_DMA_DEBUG_OPACITY", Opt::DMA_DEBUG_OPACITY)
+        .value("OPT_DMA_DEBUG_CHANNEL0", Opt::DMA_DEBUG_CHANNEL0)
+        .value("OPT_DMA_DEBUG_CHANNEL1", Opt::DMA_DEBUG_CHANNEL1)
+        .value("OPT_DMA_DEBUG_CHANNEL2", Opt::DMA_DEBUG_CHANNEL2)
+        .value("OPT_DMA_DEBUG_CHANNEL3", Opt::DMA_DEBUG_CHANNEL3)
+        .value("OPT_DMA_DEBUG_CHANNEL4", Opt::DMA_DEBUG_CHANNEL4)
+        .value("OPT_DMA_DEBUG_CHANNEL5", Opt::DMA_DEBUG_CHANNEL5)
+        .value("OPT_DMA_DEBUG_CHANNEL6", Opt::DMA_DEBUG_CHANNEL6)
+        .value("OPT_DMA_DEBUG_CHANNEL7", Opt::DMA_DEBUG_CHANNEL7)
+        .value("OPT_DMA_DEBUG_COLOR0", Opt::DMA_DEBUG_COLOR0)
+        .value("OPT_DMA_DEBUG_COLOR1", Opt::DMA_DEBUG_COLOR1)
+        .value("OPT_DMA_DEBUG_COLOR2", Opt::DMA_DEBUG_COLOR2)
+        .value("OPT_DMA_DEBUG_COLOR3", Opt::DMA_DEBUG_COLOR3)
+        .value("OPT_DMA_DEBUG_COLOR4", Opt::DMA_DEBUG_COLOR4)
+        .value("OPT_DMA_DEBUG_COLOR5", Opt::DMA_DEBUG_COLOR5)
+        .value("OPT_DMA_DEBUG_COLOR6", Opt::DMA_DEBUG_COLOR6)
+        .value("OPT_DMA_DEBUG_COLOR7", Opt::DMA_DEBUG_COLOR7)
+
+        .value("OPT_LA_PROBE0", Opt::LA_PROBE0)
+        .value("OPT_LA_PROBE1", Opt::LA_PROBE1)
+        .value("OPT_LA_PROBE2", Opt::LA_PROBE3)
+        .value("OPT_LA_ADDR0", (Opt::LA_ADDR0)
+        .value("OPT_LA_ADDR1", Opt::LA_ADDR1)
+        .value("OPT_LA_ADDR2", Opt::LA_ADDR2)
+        .value("OPT_LA_ADDR3", Opt::LA_ADDR3)
+
+        .value("OPT_VID_WHITE_NOISE", Opt::VID_WHITE_NOISE)
+
+        .value("OPT_CPU_REVISION", Opt::CPU_REVISION)
+        .value("OPT_CPU_DASM_REVISION", Opt::CPU_DASM_REVISION)
+        .value("OPT_CPU_DASM_SYNTAX", Opt::CPU_DASM_SYNTAX)
+        .value("OPT_CPU_DASM_NUMBERS", Opt::CPU_DASM_NUMBERS)
+        .value("OPT_CPU_OVERCLOCKING", Opt::CPU_OVERCLOCKING)
+        .value("OPT_CPU_RESET_VAL", Opt::CPU_RESET_VAL)
+
+        .value("OPT_RTC_MODEL", Opt::RTC_MODEL)
+
+        .value("OPT_MEM_CHIP_RAM", Opt::MEM_CHIP_RAM)
+        .value("OPT_MEM_SLOW_RAM", Opt::MEM_SLOW_RAM)
+        .value("OPT_MEM_FAST_RAM", Opt::MEM_FAST_RAM)
+        .value("OPT_MEM_EXT_START", Opt::MEM_EXT_START)
+        .value("OPT_MEM_SAVE_ROMS", Opt::MEM_SAVE_ROMS)
+        .value("OPT_MEM_SLOW_RAM_DELAY", Opt::MEM_SLOW_RAM_DELAY)
+        .value("OPT_MEM_SLOW_RAM_MIRROR", Opt::MEM_SLOW_RAM_MIRROR)
+        .value("OPT_MEM_BANKMAP", Opt::MEM_BANKMAP)
+        .value("OPT_MEM_UNMAPPING_TYPE", Opt::MEM_UNMAPPING_TYPE)
+        .value("OPT_MEM_RAM_INIT_PATTERN", Opt::MEM_RAM_INIT_PATTERN)
+
+        .value("OPT_DC_SPEED", Opt::DC_SPEED)
+        .value("OPT_LOCK_DSKSYNC", Opt::DC_LOCK_DSKSYNC)
+        .value("OPT_AUTO_DSKSYNC", Opt::DC_AUTO_DSKSYNC)
+
+        .value("OPT_DRIVE_CONNECT", Opt::DRIVE_CONNECT)
+        .value("OPT_DRIVE_TYPE", Opt::DRIVE_TYPE)
+        .value("OPT_DRIVE_MECHANICS", Opt::DRIVE_MECHANICS)
+        .value("OPT_DRIVE_RPM", Opt::DRIVE_RPM)
+        .value("OPT_DRIVE_SWAP_DELAY", Opt::DRIVE_SWAP_DELAY)
+        .value("OPT_DRIVE_PAN", Opt::DRIVE_PAN)
+        .value("OPT_DRIVE_STEP_VOLUME", Opt::DRIVE_STEP_VOLUME)
+        .value("OPT_DRIVE_POLL_VOLUME", Opt::DRIVE_POLL_VOLUME)
+        .value("OPT_DRIVE_INSERT_VOLUME", Opt::DRIVE_INSERT_VOLUME)
+        .value("OPT_DRIVE_EJECT_VOLUME", Opt::DRIVE_EJECT_VOLUME)
+
+        .value("OPT_HDC_CONNECT", Opt::HDC_CONNECT)
+
+        .value("OPT_HDR_TYPE", Opt::HDR_TYPE)
+        .value("OPT_HDR_PAN", Opt::HDR_PAN)
+        .value("OPT_HDR_STEP_VOLUME", Opt::HDR_STEP_VOLUME)
+
+        .value("OPT_SER_DEVICE", Opt::SER_DEVICE)
+        .value("OPT_SER_VERBOSE", Opt::SER_VERBOSE)
+
+        .value("OPT_BLITTER_ACCURACY", Opt::BLITTER_ACCURACY)
+
+        .value("OPT_CIA_REVISION", Opt::CIA_REVISION)
+        .value("OPT_CIA_TODBUG", Opt::CIA_TODBUG)
+        .value("OPT_CIA_ECLOCK_SYNCING", Opt::CIA_ECLOCK_SYNCING)
+        .value("OPT_CIA_IDLE_SLEEP", Opt::CIA_IDLE_SLEEP)
+
+        .value("OPT_KBD_ACCURACY", Opt::KBD_ACCURACY)
+
+        .value("OPT_MOUSE_PULLUP_RESISTORS", Opt::MOUSE_PULLUP_RESISTORS)
+        .value("OPT_MOUSE_HAKE_DETECTION", Opt::MOUSE_SHAKE_DETECTION)
+        .value("OPT_MOUSE_MOUSE_VELOCITY", Opt::MOUSE_VELOCITY)
+
+        .value("JOY_AUTOFIRE", Opt::JOY_AUTOFIRE)
+        .value("JOY_AUTOFIRE_BURSTS", Opt::JOY_AUTOFIRE_BURSTS)
+        .value("JOY_AUTOFIRE_BULLETS", Opt::JOY_AUTOFIRE_BULLETS)
+        .value("JOY_AUTOFIRE_DELAY", Opt::JOY_AUTOFIRE_DELAY);
+
     enum_<RomVendor>("RomVendor")
         .value("COMMODORE", RomVendor::COMMODORE)
         .value("AROS", RomVendor::AROS)
@@ -127,13 +277,13 @@ EMSCRIPTEN_BINDINGS(Structures)
         .field("patched", &RomTraits::patched)
         .field("relocated", &RomTraits::relocated);
     */
-        /*
-    value_object<TextureWrapper>("TextureWrapper")
-        .field("frameNr", &TextureWrapper::frameNr)
-        .field("data", &TextureWrapper::data)
-        .field("currLof", &TextureWrapper::currLof)
-        .field("prevLof", &TextureWrapper::prevLof);
-        */
+    /*
+value_object<TextureWrapper>("TextureWrapper")
+    .field("frameNr", &TextureWrapper::frameNr)
+    .field("data", &TextureWrapper::data)
+    .field("currLof", &TextureWrapper::currLof)
+    .field("prevLof", &TextureWrapper::prevLof);
+    */
 
     value_object<RomInfo>("RomInfo")
         .field("crc32", &RomInfo::crc32)
@@ -142,14 +292,13 @@ EMSCRIPTEN_BINDINGS(Structures)
         .field("released", &RomInfo::released)
         .field("model", &RomInfo::model)
         .field("vendor", &RomInfo::vendor);
-        /*
-        .field("isAros", &RomInfo::isAros)
-        .field("isDiag", &RomInfo::isDiag)
-        .field("isCommodore", &RomInfo::isCommodore)
-        .field("isHyperion", &RomInfo::isHyperion)
-        .field("isPatched", &RomInfo::isPatched);
-        */
-
+    /*
+    .field("isAros", &RomInfo::isAros)
+    .field("isDiag", &RomInfo::isDiag)
+    .field("isCommodore", &RomInfo::isCommodore)
+    .field("isHyperion", &RomInfo::isHyperion)
+    .field("isPatched", &RomInfo::isPatched);
+    */
 }
 
 //
@@ -165,7 +314,6 @@ EMSCRIPTEN_BINDINGS(EnumProxy)
         .function("RetroShellKey", &EnumProxy::RetroShellKey);
 }
 
-
 //
 // Agnus proxy
 //
@@ -177,7 +325,6 @@ EMSCRIPTEN_BINDINGS(AgnusProxy)
         .function("frameCount", &AgnusProxy::frameCount);
 }
 
-
 //
 // Amiga Proxy
 //
@@ -186,7 +333,7 @@ AmigaProxy::AmigaProxy()
 {
     TRY
 
-    printf("Constructing Amiga...\n");
+        printf("Constructing Amiga...\n");
     amiga = new VAmiga();
 
     // DEPRECATED (REMOVE ASAP)
@@ -210,7 +357,8 @@ Message AmigaProxy::readMessage()
 {
     Message msg;
 
-    if (!amiga->getMsg(msg)) {
+    if (!amiga->getMsg(msg))
+    {
         msg.type = Msg(0);
     }
     // printf("Message: %s [%llx]\n", MsgEnum::key(msg.type), msg.value);
@@ -240,12 +388,11 @@ u32 AmigaProxy::rightChannelBuffer()
     return (u32)rightChannel.ptr;
 }
 
-int 
-AmigaProxy::getFileType(const string &blob)
+int AmigaProxy::getFileType(const string &blob)
 {
     TRY
 
-    std::stringstream stream;
+        std::stringstream stream;
     stream.write((const char *)blob.data(), blob.size());
 
     /*
@@ -271,12 +418,11 @@ AmigaProxy::getFileType(const string &blob)
     CATCH
 }
 
-bool 
-AmigaProxy::insertDisk(const string &blob, u8 drive)
+bool AmigaProxy::insertDisk(const string &blob, u8 drive)
 {
     TRY
 
-    std::stringstream stream;
+        std::stringstream stream;
     stream.write((const char *)blob.data(), blob.length());
 
     // if (ADFFile::isCompatible(stream)) // TODO
@@ -286,7 +432,7 @@ AmigaProxy::insertDisk(const string &blob, u8 drive)
         amiga->df[drive]->swapDisk(std::make_unique<FloppyDisk>(adf));
         return true;
     }
-    
+
 printf("Checking for EADF...\n");
     if (EADFFile::isCompatible(stream))
     {
@@ -317,9 +463,9 @@ printf("IS COMPATIBLE...\n");
 
 bool AmigaProxy::attachHardDrive(const string &blob, u8 drive)
 {
-   TRY
+    TRY
 
-    std::stringstream stream;
+        std::stringstream stream;
     stream.write((const char *)blob.data(), blob.length());
 
     /* TODO
@@ -338,17 +484,17 @@ bool AmigaProxy::attachHardDrive(const string &blob, u8 drive)
 void AmigaProxy::setAlarmAbs(int frames, int payload)
 {
     TRY
-    Cycle trigger = (Cycle)frames * PAL::CLK_FREQUENCY / 50;
+        Cycle trigger = (Cycle)frames * PAL::CLK_FREQUENCY / 50;
     printf("Scheduling alarm... %lld\n", trigger);
-    amiga->put(Cmd::ALARM_ABS, AlarmCmd { trigger , payload });
+    amiga->put(Cmd::ALARM_ABS, AlarmCmd{trigger, payload});
     CATCH
 };
 
 void AmigaProxy::setAlarmRel(int frames, int payload)
 {
     TRY
-    Cycle trigger = (Cycle)frames * PAL::CLK_FREQUENCY / 50;
-    amiga->put(Cmd::ALARM_REL, AlarmCmd { trigger , payload });
+        Cycle trigger = (Cycle)frames * PAL::CLK_FREQUENCY / 50;
+    amiga->put(Cmd::ALARM_REL, AlarmCmd{trigger, payload});
     // amiga->setAlarmRel(trigger, payload);
     CATCH
 };
@@ -419,7 +565,6 @@ EMSCRIPTEN_BINDINGS(CPUProxy)
         .function("getClock", &CPUProxy::getClock);
 }
 
-
 //
 // Denise proxy
 //
@@ -428,7 +573,7 @@ TextureWrapper DeniseProxy::getEmulatorTexture()
 {
     TextureWrapper result;
 
-    isize nr; 
+    isize nr;
     bool lof;
     bool prevlof;
     const u32 *data;
@@ -527,7 +672,7 @@ MemoryProxy::analyzeRom(const string &blob, u32 len)
 {
     TRY
 
-    printf("Analyzing ROM... %u bytes\n", len);
+        printf("Analyzing ROM... %u bytes\n", len);
     u32 crc32 = util::crc32((const u8 *)blob.data(), len);
     auto traits = Memory::getRomTraits(crc32);
 
@@ -548,7 +693,7 @@ MemoryProxy::analyzeRom(const string &blob, u32 len)
     stream.write((const char *)blob.data(), len);
 
     auto mediaFile = MediaFile::make((u8 *)blob.data(), (isize)len, FileType::ROM);
-   
+
     u32 crc32 = util::crc32(rom.data.ptr, rom.data.size);
 
     info.crc32 = crc32;
@@ -561,7 +706,7 @@ MemoryProxy::analyzeRom(const string &blob, u32 len)
     info.isCommodore = RomFile::isCommodoreRom(crc32);
     info.isHyperion = RomFile::isHyperionRom(crc32);
     info.isPatched = RomFile::isPatchedRom(crc32);
-    
+
     return info;
     */
 
@@ -571,7 +716,7 @@ MemoryProxy::analyzeRom(const string &blob, u32 len)
 bool MemoryProxy::loadRom(const string &blob, u32 len)
 {
     TRY
-    amiga->mem.loadRom((u8 *)blob.c_str(), len);
+        amiga->mem.loadRom((u8 *)blob.c_str(), len);
     // return amiga->mem.hasRom();
     return amiga->mem.getInfo().hasRom;
     CATCH
@@ -580,7 +725,7 @@ bool MemoryProxy::loadRom(const string &blob, u32 len)
 bool MemoryProxy::loadExt(const string &blob, u32 len)
 {
     TRY
-    amiga->mem.loadExt((u8 *)blob.c_str(), len);
+        amiga->mem.loadExt((u8 *)blob.c_str(), len);
     // return amiga->mem.hasExt();
     return amiga->mem.getInfo().hasExt;
     CATCH
@@ -707,7 +852,7 @@ EMSCRIPTEN_BINDINGS(Keys)
     constant("MECHANICS_NONE", (int)DriveMechanics::NONE);
     constant("MECHANICS_A1010", (int)DriveMechanics::A1010);
 
-   // DriveState
+    // DriveState
     constant("DRIVE_DMA_OFF", (int)DriveDmaState::OFF);
     constant("DRIVE_DMA_WAIT", (int)DriveDmaState::WAIT);
     constant("DRIVE_DMA_READ", (int)DriveDmaState::READ);
@@ -831,6 +976,7 @@ EMSCRIPTEN_BINDINGS(Keys)
     */
 
     // Options
+    /*
     constant("OPT_HOST_REFRESH_RAT", (int)Opt::HOST_REFRESH_RATE);
     constant("OPT_HOST_SAMPLE_RATE", (int)Opt::HOST_SAMPLE_RATE);
     constant("OPT_HOST_FRAMEBUF_WIDTH", (int)Opt::HOST_FRAMEBUF_WIDTH);
@@ -926,7 +1072,7 @@ EMSCRIPTEN_BINDINGS(Keys)
     constant("OPT_CPU_RESET_VAL", (int)Opt::CPU_RESET_VAL);
 
     constant("OPT_RTC_MODEL", (int)Opt::RTC_MODEL);
-    
+
     constant("OPT_MEM_CHIP_RAM", (int)Opt::MEM_CHIP_RAM);
     constant("OPT_MEM_SLOW_RAM", (int)Opt::MEM_SLOW_RAM);
     constant("OPT_MEM_FAST_RAM", (int)Opt::MEM_FAST_RAM);
@@ -1034,4 +1180,5 @@ EMSCRIPTEN_BINDINGS(Keys)
     // VideoFormat
     constant("TV_PAL", (int)TV::PAL);
     constant("TV_NTSC", (int)TV::NTSC);
+    */
 };
