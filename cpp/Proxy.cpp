@@ -1,7 +1,4 @@
 #include "Proxy.h"
-// #include "RomFile.h"
-// #include "ExtendedRomFile.h"
-// #include "EXTFile.h"
 #include <cstdlib>
 #include <sstream>
 #include <stdio.h>
@@ -22,15 +19,17 @@ EMSCRIPTEN_BINDINGS(Structures)
     value_object<Message>("Message")
         .field("type", &Message::type)
         .field("value", &Message::value)
+        .field("value2", &Message::value2)
         .field("drive", &Message::drive);
 
+        /*
     value_object<TextureWrapper>("TextureWrapper")
         .field("frameNr", &TextureWrapper::frameNr)
         .field("data", &TextureWrapper::data)
         .field("currLof", &TextureWrapper::currLof)
         .field("prevLof", &TextureWrapper::prevLof);
 
-    value_object<RomInfo>("RomInfo")
+        value_object<RomInfo>("RomInfo")
         .field("crc32", &RomInfo::crc32)
         .field("title", &RomInfo::title)
         .field("version", &RomInfo::version)
@@ -41,6 +40,90 @@ EMSCRIPTEN_BINDINGS(Structures)
         .field("isCommodore", &RomInfo::isCommodore)
         .field("isHyperion", &RomInfo::isHyperion)
         .field("isPatched", &RomInfo::isPatched);
+        */
+
+}
+
+//
+// Enum classes
+// 
+
+EMSCRIPTEN_BINDINGS(EnumClasses) {
+
+    enum_<Msg>("Msg")
+        .value("NONE", Msg::NONE)
+        .value("CONFIG", Msg::CONFIG)
+        .value("POWER", Msg::POWER)
+        .value("RUN", Msg::RUN)
+        .value("PAUSE", Msg::PAUSE)
+        .value("STEP", Msg::STEP)
+        .value("RESET", Msg::RESET)
+        .value("SHUTDOWN", Msg::SHUTDOWN)
+        .value("ABORT", Msg::ABORT)
+        .value("WARP", Msg::WARP)
+        .value("TRACK", Msg::TRACK)
+        .value("MUTE", Msg::MUTE)
+        .value("EASTER_EGG", Msg::EASTER_EGG)
+        .value("POWER_LED_ON", Msg::POWER_LED_ON)
+        .value("POWER_LED_DIM", Msg::POWER_LED_DIM)
+        .value("POWER_LED_OFF", Msg::POWER_LED_OFF)
+        .value("RSH_CLOSE", Msg::RSH_CLOSE)
+        .value("RSH_UPDATE", Msg::RSH_UPDATE)
+        .value("RSH_SWITCH", Msg::RSH_SWITCH)
+        .value("RSH_WAIT", Msg::RSH_WAIT)
+        .value("RSH_ERROR", Msg::RSH_ERROR)
+        .value("VIDEO_FORMAT", Msg::VIDEO_FORMAT)
+        .value("OVERCLOCKING", Msg::OVERCLOCKING)
+        .value("GUARD_UPDATED", Msg::GUARD_UPDATED)
+        .value("BREAKPOINT_REACHED", Msg::BREAKPOINT_REACHED)
+        .value("WATCHPOINT_REACHED", Msg::WATCHPOINT_REACHED)
+        .value("CATCHPOINT_REACHED", Msg::CATCHPOINT_REACHED)
+        .value("SWTRAP_REACHED", Msg::SWTRAP_REACHED)
+        .value("CPU_HALT", Msg::CPU_HALT)
+        .value("EOL_REACHED", Msg::EOL_REACHED)
+        .value("EOF_REACHED", Msg::EOF_REACHED)
+        .value("BEAMTRAP_REACHED", Msg::BEAMTRAP_REACHED)
+        .value("BEAMTRAP_UPDATED", Msg::BEAMTRAP_UPDATED)
+        .value("COPPERBP_REACHED", Msg::COPPERBP_REACHED)
+        .value("COPPERBP_UPDATED", Msg::COPPERBP_UPDATED)
+        .value("COPPERWP_REACHED", Msg::COPPERWP_REACHED)
+        .value("COPPERWP_UPDATED", Msg::COPPERWP_UPDATED)
+        .value("VIEWPORT", Msg::VIEWPORT)
+        .value("MEM_LAYOUT", Msg::MEM_LAYOUT)
+        .value("DRIVE_CONNECT", Msg::DRIVE_CONNECT)
+        .value("DRIVE_SELECT", Msg::DRIVE_SELECT)
+        .value("DRIVE_READ", Msg::DRIVE_READ)
+        .value("DRIVE_WRITE", Msg::DRIVE_WRITE)
+        .value("DRIVE_LED", Msg::DRIVE_LED)
+        .value("DRIVE_MOTOR", Msg::DRIVE_MOTOR)
+        .value("DRIVE_STEP", Msg::DRIVE_STEP)
+        .value("DRIVE_POLL", Msg::DRIVE_POLL)
+        .value("DISK_INSERT", Msg::DISK_INSERT)
+        .value("DISK_EJECT", Msg::DISK_EJECT)
+        .value("DISK_PROTECTED", Msg::DISK_PROTECTED)
+        .value("HDC_CONNECT", Msg::HDC_CONNECT)
+        .value("HDC_STATE", Msg::HDC_STATE)
+        .value("HDR_STEP", Msg::HDR_STEP)
+        .value("HDR_READ", Msg::HDR_READ)
+        .value("HDR_WRITE", Msg::HDR_WRITE)
+        .value("HDR_IDLE", Msg::HDR_IDLE)
+        .value("MON_SETTING", Msg::MON_SETTING)
+        .value("CTRL_AMIGA_AMIGA", Msg::CTRL_AMIGA_AMIGA)
+        .value("SHAKING", Msg::SHAKING)
+        .value("SER_IN", Msg::SER_IN)
+        .value("SER_OUT", Msg::SER_OUT)
+        .value("SNAPSHOT_TAKEN", Msg::SNAPSHOT_TAKEN)
+        .value("SNAPSHOT_RESTORED", Msg::SNAPSHOT_RESTORED)
+        .value("WORKSPACE_LOADED", Msg::WORKSPACE_LOADED)
+        .value("WORKSPACE_SAVED", Msg::WORKSPACE_SAVED)
+        .value("RECORDING_STARTED", Msg::RECORDING_STARTED)
+        .value("RECORDING_STOPPED", Msg::RECORDING_STOPPED)
+        .value("RECORDING_ABORTED", Msg::RECORDING_ABORTED)
+        .value("DMA_DEBUG", Msg::DMA_DEBUG)
+        .value("SRV_STATE", Msg::SRV_STATE)
+        .value("SRV_RECEIVE", Msg::SRV_RECEIVE)
+        .value("SRV_SEND", Msg::SRV_SEND)
+        .value("ALARM", Msg::ALARM);
 }
 
 //
@@ -99,13 +182,12 @@ AmigaProxy::AmigaProxy()
 
 Message AmigaProxy::readMessage()
 {
-    printf("Reading message...\n");
     Message msg;
 
     if (!amiga->getMsg(msg)) {
         msg.type = Msg(0);
     }
-
+    // printf("Message: %s [%llx]\n", MsgEnum::key(msg.type), msg.value);
     return msg;
 }
 
@@ -605,7 +687,6 @@ EMSCRIPTEN_BINDINGS(Keys)
     constant("FILETYPE_EXE", (int)FileType::EXE);
     constant("FILETYPE_DIR", (int)FileType::DIR);
     constant("FILETYPE_ROM", (int)FileType::ROM);
-    // constant("FILETYPE_EXTENDED_ROM", (int)FileType::EXT);
 
     // FloppyDriveType
     constant("DRIVE_DD_35", (int)FloppyDriveType::DD_35);
@@ -634,6 +715,7 @@ EMSCRIPTEN_BINDINGS(Keys)
     constant("RELEASE_RIGHT", (int)GamePadAction::RELEASE_RIGHT);
 
     // Msg
+    /*
     constant("MSG_NONE", (int)Msg::NONE);
     constant("MSG_CONFIG", (int)Msg::CONFIG);
     constant("MSG_POWER", (int)Msg::POWER);
@@ -707,6 +789,7 @@ EMSCRIPTEN_BINDINGS(Keys)
     constant("MSG_SRV_RECEIVE", (int)Msg::SRV_RECEIVE);
     constant("MSG_SRV_SEND", (int)Msg::SRV_SEND);
     constant("MSG_ALARM", (int)Msg::ALARM);
+    */
 
     // Options
     constant("OPT_HOST_REFRESH_RAT", (int)Opt::HOST_REFRESH_RATE);

@@ -81,7 +81,7 @@
 		// Process pending messages
 		while (1) {
 			let msg = $amiga.readMessage();
-			if (msg.type == 0) break;
+			if (msg.type == $wasm.Msg.NONE) break;
 
 			$wasm.processMsg(msg);
 		}
