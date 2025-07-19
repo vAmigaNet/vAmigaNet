@@ -370,6 +370,12 @@
     // Querying a config item
     //
 
+    function assertDefined<T>(value: T | undefined | null): T {
+    if (value === undefined || value === null) {
+        throw new Error("Value is undefined or null");
+    }
+    return value;
+}
     export function get(option: Opt): string
     {
         console.log("get: ", option);
@@ -391,107 +397,107 @@
             //
 
             case Opt.CPU_REVISION:
-                return $amiga.getConfig($wasm.OPT_CPU_REVISION).toString();
+                return $amiga.getConfig(assertDefined($wasm.OPT_CPU_REVISION)).toString();
             case Opt.CPU_SPEED:
-                return $amiga.getConfig($wasm.OPT_CPU_OVERCLOCKING).toString();
+                return $amiga.getConfig(assertDefined($wasm.OPT_CPU_OVERCLOCKING)).toString();
             case Opt.WARP_MODE:
-                return $amiga.getConfig($wasm.OPT_WARP_MODE).toString();
+                return $amiga.getConfig(assertDefined($wasm.OPT_WARP_MODE)).toString();
             case Opt.AGNUS_REVISION:
-                return $amiga.getConfig($wasm.OPT_AGNUS_REVISION).toString();
+                return $amiga.getConfig(assertDefined($wasm.OPT_AGNUS_REVISION)).toString();
             case Opt.DENISE_REVISION:
-                return $amiga.getConfig($wasm.OPT_DENISE_REVISION).toString();
+                return $amiga.getConfig(assertDefined($wasm.OPT_DENISE_REVISION)).toString();
             case Opt.RTC_MODEL:
-                return $amiga.getConfig($wasm.OPT_RTC_MODEL).toString();
+                return $amiga.getConfig(assertDefined($wasm.OPT_RTC_MODEL)).toString();
             case Opt.CHIP_RAM:
-                return $amiga.getConfig($wasm.OPT_CHIP_RAM).toString();
+                return $amiga.getConfig(assertDefined($wasm.OPT_CHIP_RAM)).toString();
             case Opt.SLOW_RAM:
-                return $amiga.getConfig($wasm.OPT_SLOW_RAM).toString();
+                return $amiga.getConfig(assertDefined($wasm.OPT_SLOW_RAM)).toString();
             case Opt.FAST_RAM:
-                return $amiga.getConfig($wasm.OPT_FAST_RAM).toString();
+                return $amiga.getConfig(assertDefined($wasm.OPT_FAST_RAM)).toString();
             case Opt.BANK_MAP:
-                return $amiga.getConfig($wasm.OPT_BANKMAP).toString();
+                return $amiga.getConfig(assertDefined($wasm.OPT_BANKMAP)).toString();
             case Opt.INIT_PATTERN:
-                return $amiga.getConfig($wasm.OPT_RAM_INIT_PATTERN).toString();
+                return $amiga.getConfig(assertDefined($wasm.OPT_RAM_INIT_PATTERN)).toString();
             case Opt.UNMAPPED:
-                return $amiga.getConfig($wasm.OPT_UNMAPPING_TYPE).toString();
+                return $amiga.getConfig(assertDefined($wasm.OPT_UNMAPPING_TYPE)).toString();
             case Opt.SLOW_RAM_MIRROR:
-                return $amiga.getConfig($wasm.OPT_SLOW_RAM_MIRROR).toString();
+                return $amiga.getConfig(assertDefined($wasm.OPT_SLOW_RAM_MIRROR)).toString();
             case Opt.SLOW_RAM_DELAY:
-                return $amiga.getConfig($wasm.OPT_SLOW_RAM_DELAY).toString();
+                return $amiga.getConfig(assertDefined($wasm.OPT_SLOW_RAM_DELAY)).toString();
             case Opt.DF0:
-                return $amiga.getConfigId($wasm.OPT_DRIVE_CONNECT, 0).toString();
+                return $amiga.getConfigId(assertDefined($wasm.OPT_DRIVE_CONNECT, 0)).toString();
             case Opt.DF1:
-                return $amiga.getConfigId($wasm.OPT_DRIVE_CONNECT, 1).toString();
+                return $amiga.getConfigId(assertDefined($wasm.OPT_DRIVE_CONNECT, 1)).toString();
             case Opt.DF2:
-                return $amiga.getConfigId($wasm.OPT_DRIVE_CONNECT, 2).toString();
+                return $amiga.getConfigId(assertDefined($wasm.OPT_DRIVE_CONNECT, 2)).toString();
             case Opt.DF3:
-                return $amiga.getConfigId($wasm.OPT_DRIVE_CONNECT, 3).toString();
+                return $amiga.getConfigId(assertDefined($wasm.OPT_DRIVE_CONNECT, 3)).toString();
             case Opt.HD0:
-                return $amiga.getConfigId($wasm.OPT_HDC_CONNECT, 0).toString();
+                return $amiga.getConfigId(assertDefined($wasm.OPT_HDC_CONNECT, 0)).toString();
             case Opt.HD1:
-                return $amiga.getConfigId($wasm.OPT_HDC_CONNECT, 1).toString();
+                return $amiga.getConfigId(assertDefined($wasm.OPT_HDC_CONNECT, 1)).toString();
             case Opt.HD2:
-                return $amiga.getConfigId($wasm.OPT_HDC_CONNECT, 2).toString();
+                return $amiga.getConfigId(assertDefined($wasm.OPT_HDC_CONNECT, 2)).toString();
             case Opt.HD3:
-                return $amiga.getConfigId($wasm.OPT_HDC_CONNECT, 3).toString();
+                return $amiga.getConfigId(assertDefined($wasm.OPT_HDC_CONNECT, 3)).toString();
 
                 //
                 // Compatibility settings
                 //
 
             case Opt.BLITTER_ACCURACY:
-                return $amiga.getConfig($wasm.OPT_BLITTER_ACCURACY).toString();
+                return $amiga.getConfig(assertDefined($wasm.OPT_BLITTER_ACCURACY)).toString();
             case Opt.TODBUG:
-                return $amiga.getConfig($wasm.OPT_TODBUG).toString();
+                return $amiga.getConfig(assertDefined($wasm.OPT_TODBUG)).toString();
             case Opt.PTR_DROPS:
-                return $amiga.getConfig($wasm.OPT_PTR_DROPS).toString();
+                return $amiga.getConfig(assertDefined($wasm.OPT_PTR_DROPS)).toString();
             case Opt.ECLOCK_SYNCING:
-                return $amiga.getConfig($wasm.OPT_ECLOCK_SYNCING).toString();
+                return $amiga.getConfig(assertDefined($wasm.OPT_ECLOCK_SYNCING)).toString();
             case Opt.DRIVE_SPEED:
-                return $amiga.getConfig($wasm.OPT_DRIVE_SPEED).toString();
+                return $amiga.getConfig(assertDefined($wasm.OPT_DRIVE_SPEED)).toString();
             case Opt.DRIVE_MECHANICS:
-                return $amiga.getConfig($wasm.OPT_DRIVE_MECHANICS).toString();
+                return $amiga.getConfig(assertDefined($wasm.OPT_DRIVE_MECHANICS)).toString();
             case Opt.OPT_LOCK_DSKSYNC:
-                return $amiga.getConfig($wasm.OPT_LOCK_DSKSYNC).toString();
+                return $amiga.getConfig(assertDefined($wasm.OPT_LOCK_DSKSYNC)).toString();
             case Opt.OPT_AUTO_DSKSYNC:
-                return $amiga.getConfig($wasm.OPT_AUTO_DSKSYNC).toString();
+                return $amiga.getConfig(assertDefined($wasm.OPT_AUTO_DSKSYNC)).toString();
             case Opt.CLX_SPR_SPR:
-                return $amiga.getConfig($wasm.OPT_CLX_SPR_SPR).toString();
+                return $amiga.getConfig(assertDefined($wasm.OPT_CLX_SPR_SPR)).toString();
             case Opt.CLX_SPR_PLF:
-                return $amiga.getConfig($wasm.OPT_CLX_SPR_PLF).toString();
+                return $amiga.getConfig(assertDefined($wasm.OPT_CLX_SPR_PLF)).toString();
             case Opt.CLX_PLF_PLF:
-                return $amiga.getConfig($wasm.OPT_CLX_PLF_PLF).toString();
+                return $amiga.getConfig(assertDefined($wasm.OPT_CLX_PLF_PLF)).toString();
             case Opt.ACCURATE_KEYBOARD:
-                return $amiga.getConfig($wasm.OPT_ACCURATE_KEYBOARD).toString();
+                return $amiga.getConfig(assertDefined($wasm.OPT_ACCURATE_KEYBOARD)).toString();
 
             //
             // Audio settings
             //
 
             case Opt.SAMPLING_METHOD:
-                return $amiga.getConfig($wasm.OPT_SAMPLING_METHOD).toString();
+                return $amiga.getConfig(assertDefined($wasm.OPT_SAMPLING_METHOD)).toString();
             case Opt.FILTER_TYPE:
-                return $amiga.getConfig($wasm.OPT_FILTER_TYPE).toString();
+                return $amiga.getConfig(assertDefined($wasm.OPT_FILTER_TYPE)).toString();
             case Opt.AUDVOL0:
-                return $amiga.getConfigId($wasm.OPT_AUDVOL, 0).toString();
+                return $amiga.getConfigId(assertDefined($wasm.OPT_AUDVOL, 0)).toString();
             case Opt.AUDVOL1:
-                return $amiga.getConfigId($wasm.OPT_AUDVOL, 1).toString();
+                return $amiga.getConfigId(assertDefined($wasm.OPT_AUDVOL, 1)).toString();
             case Opt.AUDVOL2:
-                return $amiga.getConfigId($wasm.OPT_AUDVOL, 2).toString();
+                return $amiga.getConfigId(assertDefined($wasm.OPT_AUDVOL, 2)).toString();
             case Opt.AUDVOL3:
-                return $amiga.getConfigId($wasm.OPT_AUDVOL, 3).toString();
+                return $amiga.getConfigId(assertDefined($wasm.OPT_AUDVOL, 3)).toString();
             case Opt.AUDVOLL:
-                return $amiga.getConfig($wasm.OPT_AUDVOLL).toString();
+                return $amiga.getConfig(assertDefined($wasm.OPT_AUDVOLL)).toString();
             case Opt.AUDVOLR:
-                return $amiga.getConfig($wasm.OPT_AUDVOLR).toString();
+                return $amiga.getConfig(assertDefined($wasm.OPT_AUDVOLR)).toString();
             case Opt.STEP_VOLUME:
-                return $amiga.getConfigId($wasm.OPT_STEP_VOLUME, 0).toString();
+                return $amiga.getConfigId(assertDefined($wasm.OPT_STEP_VOLUME, 0)).toString();
             case Opt.POLL_VOLUME:
-                return $amiga.getConfigId($wasm.OPT_POLL_VOLUME, 0).toString();
+                return $amiga.getConfigId(assertDefined($wasm.OPT_POLL_VOLUME, 0)).toString();
             case Opt.INSERT_VOLUME:
-                return $amiga.getConfigId($wasm.OPT_INSERT_VOLUME, 0).toString();
+                return $amiga.getConfigId(assertDefined($wasm.OPT_INSERT_VOLUME, 0)).toString();
             case Opt.EJECT_VOLUME:
-                return $amiga.getConfigId($wasm.OPT_EJECT_VOLUME, 0).toString();
+                return $amiga.getConfigId(assertDefined($wasm.OPT_EJECT_VOLUME, 0)).toString();
 
             //
             // Video settings
@@ -500,13 +506,13 @@
             case Opt.RENDER_MODE:
                 return renderMode.toString();
             case Opt.PALETTE:
-                return $amiga.getConfig($wasm.OPT_PALETTE).toString();
+                return $amiga.getConfig(assertDefined($wasm.OPT_PALETTE)).toString();
             case Opt.BRIGHTNESS:
-                return $amiga.getConfig($wasm.OPT_BRIGHTNESS).toString();
+                return $amiga.getConfig(assertDefined($wasm.OPT_BRIGHTNESS)).toString();
             case Opt.CONTRAST:
-                return $amiga.getConfig($wasm.OPT_CONTRAST).toString();
+                return $amiga.getConfig(assertDefined($wasm.OPT_CONTRAST)).toString();
             case Opt.SATURATION:
-                return $amiga.getConfig($wasm.OPT_SATURATION).toString();
+                return $amiga.getConfig(assertDefined($wasm.OPT_SATURATION)).toString();
             case Opt.FLICKER_WEIGHT:
                 return flickerWeight.toString();
             default:
