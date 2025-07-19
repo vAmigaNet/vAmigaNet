@@ -24,7 +24,10 @@
 	let { show = $bindable(true) }: Props = $props();
 
 	async function addRomToDatabase(rom: Uint8Array, ext: Uint8Array | null = null, extStart = 0) {
+
+		console.log('addRomToDatabase', rom.length, ext?.length ?? 0);
 		let info = $memory.analyzeRom(rom, rom.length);
+		console.log('RomInfo:', info);
 		if (info.crc32) {
 			try {
 				const t = info.title;

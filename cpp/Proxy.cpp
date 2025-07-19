@@ -1,48 +1,10 @@
 #include "Proxy.h"
+#include "MediaFile.h"
+#include "Memory.h"
 #include <cstdlib>
 #include <sstream>
 #include <stdio.h>
 #include <exception>
-
-//
-// Structures
-//
-
-EMSCRIPTEN_BINDINGS(Structures)
-{
-    value_object<DriveMsg>("DriveMsg")
-        .field("nr", &DriveMsg::nr)
-        .field("value", &DriveMsg::value)
-        .field("volume", &DriveMsg::volume)
-        .field("pan", &DriveMsg::pan);
-
-    value_object<Message>("Message")
-        .field("type", &Message::type)
-        .field("value", &Message::value)
-        .field("value2", &Message::value2)
-        .field("drive", &Message::drive);
-
-        /*
-    value_object<TextureWrapper>("TextureWrapper")
-        .field("frameNr", &TextureWrapper::frameNr)
-        .field("data", &TextureWrapper::data)
-        .field("currLof", &TextureWrapper::currLof)
-        .field("prevLof", &TextureWrapper::prevLof);
-
-        value_object<RomInfo>("RomInfo")
-        .field("crc32", &RomInfo::crc32)
-        .field("title", &RomInfo::title)
-        .field("version", &RomInfo::version)
-        .field("released", &RomInfo::released)
-        .field("model", &RomInfo::model)
-        .field("isAros", &RomInfo::isAros)
-        .field("isDiag", &RomInfo::isDiag)
-        .field("isCommodore", &RomInfo::isCommodore)
-        .field("isHyperion", &RomInfo::isHyperion)
-        .field("isPatched", &RomInfo::isPatched);
-        */
-
-}
 
 //
 // Enum classes
@@ -124,6 +86,70 @@ EMSCRIPTEN_BINDINGS(EnumClasses) {
         .value("SRV_RECEIVE", Msg::SRV_RECEIVE)
         .value("SRV_SEND", Msg::SRV_SEND)
         .value("ALARM", Msg::ALARM);
+
+    enum_<RomVendor>("RomVendor")
+        .value("COMMODORE", RomVendor::COMMODORE)
+        .value("AROS", RomVendor::AROS)
+        .value("HYPERION", RomVendor::HYPERION)
+        .value("DEMO", RomVendor::DEMO)
+        .value("DIAG", RomVendor::DIAG)
+        .value("EMUTOS", RomVendor::EMUTOS)
+        .value("OTHER", RomVendor::OTHER);
+}
+
+//
+// Structures
+//
+
+EMSCRIPTEN_BINDINGS(Structures)
+{
+    value_object<DriveMsg>("DriveMsg")
+        .field("nr", &DriveMsg::nr)
+        .field("value", &DriveMsg::value)
+        .field("volume", &DriveMsg::volume)
+        .field("pan", &DriveMsg::pan);
+
+    value_object<Message>("Message")
+        .field("type", &Message::type)
+        .field("value", &Message::value)
+        .field("value2", &Message::value2)
+        .field("drive", &Message::drive);
+
+    /*
+    value_object<RomTraits>("RomTraits")
+        .field("crc", &RomTraits::crc)
+        .field("title", &RomTraits::title)
+        .field("revision", &RomTraits::revision)
+        .field("released", &RomTraits::released)
+        .field("model", &RomTraits::model)
+        .field("vendor", &RomTraits::vendor)
+        .field("boot", &RomTraits::boot)
+        .field("patched", &RomTraits::patched)
+        .field("relocated", &RomTraits::relocated);
+    */
+        /*
+    value_object<TextureWrapper>("TextureWrapper")
+        .field("frameNr", &TextureWrapper::frameNr)
+        .field("data", &TextureWrapper::data)
+        .field("currLof", &TextureWrapper::currLof)
+        .field("prevLof", &TextureWrapper::prevLof);
+        */
+
+    value_object<RomInfo>("RomInfo")
+        .field("crc32", &RomInfo::crc32)
+        .field("title", &RomInfo::title)
+        .field("version", &RomInfo::version)
+        .field("released", &RomInfo::released)
+        .field("model", &RomInfo::model)
+        .field("vendor", &RomInfo::vendor);
+        /*
+        .field("isAros", &RomInfo::isAros)
+        .field("isDiag", &RomInfo::isDiag)
+        .field("isCommodore", &RomInfo::isCommodore)
+        .field("isHyperion", &RomInfo::isHyperion)
+        .field("isPatched", &RomInfo::isPatched);
+        */
+
 }
 
 //
@@ -501,30 +527,43 @@ MemoryProxy::analyzeRom(const string &blob, u32 len)
 {
     TRY
 
+    printf("Analyzing ROM... %u bytes\n", len);
+    u32 crc32 = util::crc32((const u8 *)blob.data(), len);
+    auto traits = Memory::getRomTraits(crc32);
+
+    RomInfo info{};
+    info.crc32 = traits.crc;
+    info.title = traits.title;
+    info.version = traits.revision;
+    info.released = traits.released;
+    info.model = traits.model;
+    info.vendor = traits.vendor;
+    info.patched = traits.patched;
+
+    return info;
+    /*
     RomInfo info{};
 
     std::stringstream stream;
     stream.write((const char *)blob.data(), len);
 
-    /* TODO
-    if (RomFile::isCompatible(stream))
-    {
-        RomFile rom{(u8 *)blob.data(), (isize)len};
-        u32 crc32 = util::crc32(rom.data.ptr, rom.data.size);
+    auto mediaFile = MediaFile::make((u8 *)blob.data(), (isize)len, FileType::ROM);
+   
+    u32 crc32 = util::crc32(rom.data.ptr, rom.data.size);
 
-        info.crc32 = crc32;
-        info.title = RomFile::title(crc32);
-        info.version = RomFile::version(crc32);
-        info.released = RomFile::released(crc32);
-        info.model = RomFile::model(crc32);
-        info.isAros = RomFile::isArosRom(crc32);
-        info.isDiag = RomFile::isDiagRom(crc32);
-        info.isCommodore = RomFile::isCommodoreRom(crc32);
-        info.isHyperion = RomFile::isHyperionRom(crc32);
-        info.isPatched = RomFile::isPatchedRom(crc32);
-    }
-    */
+    info.crc32 = crc32;
+    info.title = RomFile::title(crc32);
+    info.version = RomFile::version(crc32);
+    info.released = RomFile::released(crc32);
+    info.model = RomFile::model(crc32);
+    info.isAros = RomFile::isArosRom(crc32);
+    info.isDiag = RomFile::isDiagRom(crc32);
+    info.isCommodore = RomFile::isCommodoreRom(crc32);
+    info.isHyperion = RomFile::isHyperionRom(crc32);
+    info.isPatched = RomFile::isPatchedRom(crc32);
+    
     return info;
+    */
 
     CATCH
 }

@@ -265,12 +265,12 @@
                     version: info.version,
                     released: info.released,
                     model: info.model,
-                    isAros: info.isAros,
-                    isDiag: info.isDiag,
-                    isCommodore: info.isCommodore,
-                    isHyperion: info.isHyperion,
+                    isAros: info.vendor == $wasm.RomVendor.AROS,
+                    isDiag: info.vendor == $wasm.RomVendor.DIAG,
+                    isCommodore: info.vendor == $wasm.RomVendor.COMMODORE,
+                    isHyperion: info.vendor == $wasm.RomVendor.HYPERION,
+                    isUnknown: info.vendor == $wasm.RomVendor.UNKNOWN,
                     isPatched: info.isPatched,
-                    isUnknown: info.isUnknown,
                     rom: blob,
                     ext: null,
                     extStart: 0
@@ -278,7 +278,7 @@
 
                 console.log(`${t} successfully added with id ${id}`);
             } catch (error) {
-                console.log(`Failed to add Kickstart`);
+                console.log(`Failed to add Kickstart`, error);
             }
             console.log("Opening Kickstart viewer");
             $layer = Layer.kickstart;

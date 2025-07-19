@@ -24,11 +24,15 @@ typedef struct
     string version;
     string released;
     string model;
+    RomVendor vendor;
+    bool patched;
+    /*
     bool isAros;
     bool isDiag;
     bool isCommodore;
     bool isHyperion;
     bool isPatched;
+    */
 } RomInfo;
 
 typedef struct
