@@ -19,8 +19,41 @@ target_compile_options(vAmiga PRIVATE -Wall -Werror -Wfatal-errors)
 target_compile_options(vAmiga PRIVATE -Wno-unused-parameter)
 target_compile_options(vAmiga PRIVATE -mnontrapping-fptoint -fwasm-exceptions)
 
+# Add include path for VAmiga.h
+target_include_directories(vAmiga PRIVATE
+    emulator
+    emulator/Components
+    emulator/Components/Agnus
+    emulator/Components/Agnus/Blitter
+    emulator/Components/Agnus/Copper
+    emulator/Components/Agnus/DmaDebugger
+    emulator/Components/Agnus/Sequencer
+    emulator/Components/CIA
+    emulator/Components/CPU
+    emulator/Components/Denise
+    emulator/Components/Memory
+    emulator/Components/Paula
+    emulator/Components/Paula/Audio
+    emulator/Components/Paula/DiskController
+    emulator/Components/Paula/UART
+    emulator/Components/RTC
+    emulator/Components/Zorro
+    emulator/FileSystems
+    emulator/Infrastructure
+    emulator/Media
+    emulator/Misc
+    emulator/Peripherals
+    emulator/Peripherals/Drive
+    emulator/Peripherals/Joystick
+    emulator/Peripherals/Keyboard
+    emulator/Peripherals/Monitor
+    emulator/Peripherals/Mouse
+    emulator/Ports
+    emulator/Utilities
+)
+
 add_subdirectory("emulator")
-target_link_libraries(vAmiga vAmigaCore)
+target_link_libraries(vAmiga VACore)
 
 # Emscripten linker settings
 set(LF_MEM "-sINITIAL_MEMORY=512MB -sTOTAL_STACK=32MB -sALLOW_MEMORY_GROWTH=0")

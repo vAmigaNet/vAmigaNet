@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #include "config.h"
@@ -25,7 +25,7 @@ Sequencer::pokeDDFSTRT(u16 value)
     value &= agnus.ddfMask();
     
     // Schedule the write cycle
-    agnus.recordRegisterChange(DMA_CYCLES(4), SET_DDFSTRT, value);
+    agnus.recordRegisterChange(DMA_CYCLES(4), Reg::DDFSTRT, value);
 }
 
 void
@@ -77,7 +77,7 @@ Sequencer::pokeDDFSTOP(u16 value)
     value &= agnus.ddfMask();
     
     // Schedule the write cycle
-    agnus.recordRegisterChange(DMA_CYCLES(4), SET_DDFSTOP, value);
+    agnus.recordRegisterChange(DMA_CYCLES(4), Reg::DDFSTOP, value);
 }
 
 void
@@ -183,9 +183,9 @@ Sequencer::setDIWHIGH(u16 value)
     denise.debugger.updateDiwV(vstrt, vstop);
 }
 
-template void Sequencer::pokeDDFSTRT<ACCESSOR_CPU>(u16 value);
-template void Sequencer::pokeDDFSTRT<ACCESSOR_AGNUS>(u16 value);
-template void Sequencer::pokeDDFSTOP<ACCESSOR_CPU>(u16 value);
-template void Sequencer::pokeDDFSTOP<ACCESSOR_AGNUS>(u16 value);
+template void Sequencer::pokeDDFSTRT<Accessor::CPU>(u16 value);
+template void Sequencer::pokeDDFSTRT<Accessor::AGNUS>(u16 value);
+template void Sequencer::pokeDDFSTOP<Accessor::CPU>(u16 value);
+template void Sequencer::pokeDDFSTOP<Accessor::AGNUS>(u16 value);
 
 }

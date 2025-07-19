@@ -19,15 +19,22 @@
 namespace vamiga {
 
 bool
-HDFFile::isCompatible(const string &path)
+HDFFile::isCompatible(const fs::path &path)
 {
-    return util::uppercased(util::extractSuffix(path)) == "HDF";
+    auto suffix = util::uppercased(path.extension().string());
+    return suffix == ".HDF";
 }
 
 bool
-HDFFile::isCompatible(std::istream &stream)
+HDFFile::isCompatible(const u8 *buf, isize len)
 {
     return true; // util::streamLength(stream) % 512 == 0;
+}
+
+bool
+HDFFile::isCompatible(const Buffer<u8> &buf)
+{
+    return isCompatible(buf.ptr, buf.size);
 }
 
 void
@@ -49,27 +56,27 @@ HDFFile::finalizeRead()
 }
 
 void
-HDFFile::init(const string &path)
+HDFFile::init(const fs::path &path)
 {
     // Check size
-    if (isOversized(util::getSizeOfFile(path))) throw VAError(ERROR_HDR_TOO_LARGE);
+    if (isOversized(util::getSizeOfFile(path))) throw AppError(Fault::HDR_TOO_LARGE);
     
-    AmigaFile::init(path);
+    AnyFile::init(path);
 }
 
 void
 HDFFile::init(const u8 *buf, isize len)
 {
     // Check size
-    if (isOversized(len)) throw VAError(ERROR_HDR_TOO_LARGE);
+    if (isOversized(len)) throw AppError(Fault::HDR_TOO_LARGE);
 
-    AmigaFile::init(buf, len);
+    AnyFile::init(buf, len);
 }
 
 void
 HDFFile::init(const HardDrive &drive)
 {
-    AmigaFile::readFromBuffer(drive.data);
+    AnyFile::readFromBuffer(drive.data);
     
     // Overwrite the predicted geometry with the precise one
     geometry = drive.getGeometry();
@@ -112,7 +119,7 @@ HDFFile::getGeometryDescriptor() const
         auto numBlocks = predictNumBlocks();
         
         // Predict the drive geometry
-        auto geometries = GeometryDescriptor::driveGeometries(numBlocks);
+        auto geometries = GeometryDescriptor::driveGeometries(numBlocks, result.bsize);
         
         // Use the first match by default
         if (geometries.size()) result = geometries.front();
@@ -149,7 +156,7 @@ HDFFile::getPartitionDescriptor(isize part) const
         
         assert(part == 0);
         
-        // Add a default partition spanning the whole disk
+        // Add a default partition spanning the entire disk
         auto geo = getGeometryDescriptor();
         result = PartitionDescriptor(geo);
         
@@ -196,10 +203,10 @@ HDFFile::getDriverDescriptor(isize driver) const
             auto lsegBlock = seekBlock(lsegRef);
             
             if (!lsegBlock || strcmp((const char *)lsegBlock, "LSEG")) {
-                throw VAError(ERROR_HDR_CORRUPTED_LSEG);
+                throw AppError(Fault::HDR_CORRUPTED_LSEG);
             }
             if (i >= 1024) {
-                throw VAError(ERROR_HDR_CORRUPTED_LSEG);
+                throw AppError(Fault::HDR_CORRUPTED_LSEG);
             }
             
             result.blocks.push_back(lsegRef);
@@ -222,10 +229,10 @@ HDFFile::getDriverDescriptors() const
     return result;
 }
 
-FileSystemDescriptor
+FSDescriptor
 HDFFile::getFileSystemDescriptor(isize nr) const
 {
-    FileSystemDescriptor result;
+    FSDescriptor result;
 
     auto &part = ptable[nr];
     
@@ -246,7 +253,7 @@ HDFFile::getFileSystemDescriptor(isize nr) const
     result.dos = dos(first);
 
     // Only proceed if the hard drive is formatted
-    if (dos(first) == FS_NODOS) return result;
+    if (dos(first) == FSFormat::NODOS) return result;
     
     // Determine the location of the root block
     i64 highKey = result.numBlocks - 1;
@@ -284,6 +291,14 @@ HDFFile::getFileSystemDescriptor(isize nr) const
     return result;
 }
 
+HDFInfo 
+HDFFile::getInfo() const
+{
+    HDFInfo info;
+
+    return info;
+}
+
 bool
 HDFFile::hasRDB() const
 {
@@ -295,6 +310,26 @@ HDFFile::hasRDB() const
     }
     return false;
 }
+
+/*
+bool
+HDFFile::hasUserDir() const
+{
+    auto bsize = getGeometry().bsize;
+    
+    // Crawl through all blocks
+    for (isize i = 0; i < data.size; i += bsize) {
+        
+        u8 *p = data.ptr + i;
+        u32 type = R32BE(p);
+        u32 subtype = R32BE(p + bsize - 4);
+
+        if (type == 2  && subtype == 2) { return true; }
+    }
+    
+    return false;
+}
+*/
 
 isize
 HDFFile::partitionSize(isize nr) const
@@ -439,43 +474,22 @@ HDFFile::rdbString(isize offset, isize len) const
     return { };
 }
 
-FSVolumeType
+FSFormat
 HDFFile::dos(isize blockNr) const
 {
     if (auto block = seekBlock(blockNr); block) {
         
         if (strncmp((const char *)block, "DOS", 3) || block[3] > 7) {
-            return FS_NODOS;
+            return FSFormat::NODOS;
         }
-        return (FSVolumeType)block[3];
+        return (FSFormat)block[3];
     }
     
-    return FS_NODOS;
+    return FSFormat::NODOS;
 }
-
-/*
-void
-HDFFile::readDriver(isize nr, Buffer<u8> &driver)
-{
-    assert(usize(nr) < drivers.size());
-    
-    auto &segList = drivers[nr].blocks;
-    auto bytesPerBlock = bsize() - 20;
-
-    driver.init(isize(segList.size()) * bytesPerBlock);
-    
-    isize offset = 0;
-    for (auto &seg : segList) {
-
-        assert(seekBlock(seg));
-        memcpy(driver.ptr + offset, seekBlock(seg) + 20, bytesPerBlock);
-        offset += bytesPerBlock;
-    }
-}
-*/
 
 isize
-HDFFile::writePartitionToFile(const string &path, isize nr)
+HDFFile::writePartitionToFile(const fs::path &path, isize nr) const
 {
     auto offset = partitionOffset(nr);
     auto size = partitionSize(nr);

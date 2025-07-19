@@ -2,7 +2,7 @@
 #include <emscripten/wasm_worker.h>
 #include <emscripten/bind.h>
 
-#include "vamiga.h"
+#include "VAmiga.h"
 
 using namespace emscripten;
 using namespace vamiga;
@@ -39,7 +39,7 @@ typedef struct
     bool prevLof;
 } TextureWrapper;
 
-Amiga *amiga = nullptr;
+VAmiga *amiga = nullptr;
 
 
 //
@@ -55,14 +55,14 @@ void prepareTry()
     what = "";
 }
 
-void save(VAError &error)
+void save(AppError &error)
 {
     errorCode = error.data;
     what = error.what();
 }
 
 #define TRY prepareTry(); try {
-#define CATCH } catch (VAError &err) { save(err); throw; }
+#define CATCH } catch (AppError &err) { save(err); throw; }
 
 
 //
@@ -73,15 +73,15 @@ struct AgnusProxy
 {
     AgnusProxy() { };
 
-    u32 frameCount() const { TRY return (u32)amiga->agnus.pos.frame; CATCH }
+    u32 frameCount() const { TRY return (u32)amiga->agnus.getInfo().frame; CATCH }
 };
 
 struct AmigaProxy
 {
     AmigaProxy();
 
-    Buffer<float> leftChannel;
-    Buffer<float> rightChannel;
+    util::Buffer<float> leftChannel;
+    util::Buffer<float> rightChannel;
 
     // Handling messages
     Message readMessage();
@@ -95,10 +95,10 @@ struct AmigaProxy
     void wakeUp() { TRY amiga->wakeUp(); CATCH }
 
     // Configuring
-    void configure(int option, int value) { TRY amiga->configure((Option)option, (i64)value); CATCH }
-    void configureId(int option, int id, int value) { TRY amiga->configure((Option)option, (i64)id, (i64)value); CATCH }
-    int getConfig(int option) { TRY return (int)amiga->getConfigItem(option); CATCH }
-    int getConfigId(int option, int id) { TRY return (int)amiga->getConfigItem(option, id); CATCH }
+    void configure(int option, int value) { TRY amiga->set((Opt)option, (i64)value); CATCH }
+    void configureId(int option, int id, int value) { TRY amiga->set((Opt)option, (i64)id, (i64)value); CATCH }
+    int getConfig(int option) { TRY return (int)amiga->get((Opt)option); CATCH }
+    int getConfigId(int option, int id) { TRY return (int)amiga->get((Opt)option, id); CATCH }
 
     // Querying state
     void hardReset() { TRY amiga->hardReset(); CATCH }
@@ -117,16 +117,16 @@ struct AmigaProxy
     void run() { TRY amiga->run(); CATCH }
     void pause() { TRY amiga->pause(); CATCH }
     void halt() { TRY amiga->halt(); CATCH }
-    void stopAndGo() { TRY amiga->stopAndGo(); CATCH }
+    void stopAndGo() { /* TODO */ } // TRY amiga->stopAndGo(); CATCH }
     void warpOn() { TRY amiga->warpOn(); CATCH }
     void warpOff() { TRY amiga->warpOff(); CATCH }
 
     // Analyzing
-    u32 cpuLoad() { TRY return u32(amiga->getCpuLoad() * 100.0); CATCH }
+    u32 cpuLoad() { TRY return u32(amiga->getStats().cpuLoad * 100.0); CATCH }
 
     // Managing audio (TODO: MOVE TO PAULA PROXY?)
-    u32 audioFillLevel() { TRY return u32(amiga->paula.muxer.getStats().fillLevel * 100.0); CATCH }
-    void setSampleRate(unsigned sample_rate) { TRY amiga->host.setSampleRate(sample_rate); CATCH }
+    u32 audioFillLevel() { TRY return u32(amiga->audioPort.getStats().fillLevel * 100.0); CATCH }
+    void setSampleRate(unsigned sample_rate) { TRY amiga->set(Opt::HOST_SAMPLE_RATE, sample_rate); CATCH }
     void updateAudio(int offset);
     u32 leftChannelBuffer();
     u32 rightChannelBuffer();
@@ -151,7 +151,7 @@ struct CPUProxy
 {
     CPUProxy() { };
 
-    u32 getClock() const { TRY return (u32)amiga->cpu.getCpuClock(); CATCH }
+    u32 getClock() const { TRY return (u32)amiga->cpu.getInfo().clock; CATCH }
 };
 
 struct DeniseProxy
@@ -160,16 +160,16 @@ struct DeniseProxy
 
     // Textures
     TextureWrapper getEmulatorTexture();
-    u32 noise() const { TRY return (u32)amiga->denise.pixelEngine.getNoise(); CATCH }
+    // u32 noise() const { TRY return (u32)amiga->denise.pixelEngine.getNoise(); CATCH }
 };
 
 struct DiskControllerProxy
 {
     DiskControllerProxy();
 
-    bool isSpinning() const { return amiga->paula.diskController.spinning(); }
-    int getSelected() const { return amiga->paula.diskController.getSelected(); }
-    int getState() const { return amiga->paula.diskController.getState(); }
+    bool isSpinning() const { return false; } /* TODO */ // amiga->paula.diskController.spinning(); }
+    int getSelected() const { return amiga->paula.diskController.getInfo().selectedDrive; }
+    int getState() const { return (int)amiga->paula.diskController.getInfo().state; }
 };
 
 struct DriveProxy
@@ -178,18 +178,18 @@ struct DriveProxy
 
     DriveProxy(int nr) : nr(nr) { assert(nr >= 0 && nr <= 3); }
 
-    bool isConnected() const { TRY return amiga->df[nr]->isConnected(); CATCH }
-    bool hasDisk() const { TRY return amiga->df[nr]->hasDisk(); CATCH }
-    bool hasModifiedDisk() const { TRY return amiga->df[nr]->hasModifiedDisk(); CATCH }
-    bool hasUnmodifiedDisk() const { TRY return amiga->df[nr]->hasUnmodifiedDisk(); CATCH }
-    bool hasProtectedDisk() const { TRY return amiga->df[nr]->hasProtectedDisk(); CATCH }
-    bool hasUnprotectedDisk() const { TRY return amiga->df[nr]->hasUnprotectedDisk(); CATCH }
-    int currentCyl() const { TRY return amiga->df[nr]->currentCyl(); CATCH }
-    bool motor() const { TRY return amiga->df[nr]->getMotor(); CATCH }
+    bool isConnected() const { TRY return amiga->df[nr]->getInfo().isConnected; CATCH }
+    bool hasDisk() const { TRY return amiga->df[nr]->getInfo().hasDisk; CATCH }
+    bool hasModifiedDisk() const { TRY return amiga->df[nr]->getInfo().hasModifiedDisk; CATCH }
+    bool hasUnmodifiedDisk() const { TRY return amiga->df[nr]->getInfo().hasUnmodifiedDisk; CATCH }
+    bool hasProtectedDisk() const { TRY return amiga->df[nr]->getInfo().hasProtectedDisk; CATCH }
+    bool hasUnprotectedDisk() const { TRY return amiga->df[nr]->getInfo().hasUnprotectedDisk; CATCH }
+    int currentCyl() const { TRY return amiga->df[nr]->getInfo().head.cylinder; CATCH }
+    bool motor() const { TRY return amiga->df[nr]->getInfo().motor; CATCH }
 
-    void markDiskAsModified() { TRY amiga->df[nr]->markDiskAsModified(); CATCH }
-    void markDiskAsUnmodified() { TRY amiga->df[nr]->markDiskAsUnmodified(); CATCH }
-    void toggleWriteProtection() { TRY amiga->df[nr]->toggleWriteProtection(); CATCH }
+    void markDiskAsModified() { TRY amiga->df[nr]->setFlag(DiskFlags::MODIFIED, true); CATCH }
+    void markDiskAsUnmodified() { TRY amiga->df[nr]->setFlag(DiskFlags::MODIFIED, false); CATCH }
+    void toggleWriteProtection() { TRY amiga->df[nr]->setFlag(DiskFlags::PROTECTED, !amiga->df[nr]->getFlag(DiskFlags::PROTECTED)); CATCH }
 };
 
 struct EnumProxy
@@ -199,10 +199,10 @@ struct EnumProxy
     string ErrorCodeKey(int value)
     {
         printf("ErrorCodeKey\n");
-        return ErrorCodeEnum::key(value);
+        return FaultEnum::key(Fault(value));
     }
-    string MsgTypeKey(int value) { return MsgTypeEnum::key(value); }
-    string RetroShellKey(int value) { return RetroShellKeyEnum::key(value); }
+    string MsgTypeKey(int value) { return MsgEnum::key(Msg(value)); }
+    string RetroShellKey(int value) { return RSKeyEnum::key(RSKey(value)); }
 };
 
 struct HardDriveProxy
@@ -211,11 +211,11 @@ struct HardDriveProxy
 
     HardDriveProxy(int nr) : nr(nr) { assert(nr >= 0 && nr <= 3); }
 
-    bool isConnected() const { TRY return amiga->hd[nr]->isConnected(); CATCH }
-    bool isReading() const { TRY return amiga->hd[nr]->getState() == HDR_STATE_READING; CATCH }
-    bool isWriting() const { TRY return amiga->hd[nr]->getState() == HDR_STATE_WRITING; CATCH }
-    int currentCyl() const { TRY return amiga->hd[nr]->currentCyl(); CATCH }
-    int state() const { TRY return (int)amiga->hd[nr]->getState(); CATCH }
+    bool isConnected() const { TRY return amiga->hd[nr]->getInfo().isConnected; CATCH }
+    bool isReading() const { TRY return amiga->hd[nr]->getInfo().state == HardDriveState::READING; CATCH }
+    bool isWriting() const { TRY return amiga->hd[nr]->getInfo().state == HardDriveState::WRITING; CATCH }
+    int currentCyl() const { TRY return amiga->hd[nr]->getInfo().head.cylinder; CATCH }
+    int state() const { TRY return (int)amiga->hd[nr]->getInfo().state; CATCH }
 };
 
 struct JoystickProxy
@@ -223,17 +223,17 @@ struct JoystickProxy
     int joystick;
 
     JoystickProxy(int joystick) : joystick(joystick) { assert(joystick == 1 || joystick == 2); }
-    ControlPort &port() { return joystick == 1 ? amiga->controlPort1 : amiga->controlPort2; }
+    ControlPortAPI &port() { return joystick == 1 ? amiga->controlPort1 : amiga->controlPort2; }
 
-    void trigger(int action) { port().joystick.trigger(action); }
+    void trigger(int action) { port().joystick.trigger(GamePadAction(action)); }
 };
 
 struct KeyboardProxy
 {
     KeyboardProxy() { };
 
-    void pressKey(u8 keycode) { TRY amiga->keyboard.pressKey(keycode); CATCH }
-    void releaseKey(u8 keycode) { TRY amiga->keyboard.releaseKey(keycode); CATCH }
+    void pressKey(u8 keycode) { TRY amiga->keyboard.press(keycode); CATCH }
+    void releaseKey(u8 keycode) { TRY amiga->keyboard.release(keycode); CATCH }
 };
 
 struct MemoryProxy
@@ -242,8 +242,8 @@ struct MemoryProxy
 
     RomInfo analyzeRom(const string &blob, u32 len);
 
-    bool hasRom() const { TRY return amiga->mem.hasRom(); CATCH }
-    bool hasExt() const { TRY return amiga->mem.hasExt(); CATCH }
+    bool hasRom() const { TRY return amiga->mem.getInfo().hasRom; CATCH }
+    bool hasExt() const { TRY return amiga->mem.getInfo().hasExt; CATCH }
 
     bool loadRom(const string &blob, u32 len);
     bool loadExt(const string &blob, u32 len);
@@ -252,7 +252,7 @@ struct MemoryProxy
     void deleteWom() { TRY amiga->mem.deleteWom(); CATCH }
     void deleteExt() { TRY amiga->mem.deleteExt(); CATCH }
 
-    u32 romFingerprint() const { TRY return amiga->mem.romFingerprint(); CATCH }
+    u32 romFingerprint() const { TRY return amiga->mem.getRomTraits().crc; CATCH }
 };
 
 struct MouseProxy
@@ -260,7 +260,7 @@ struct MouseProxy
     int mouse;
 
     MouseProxy(int mouse) : mouse(mouse) { assert(mouse == 1 || mouse == 2); }
-    ControlPort &port() { return mouse == 1 ? amiga->controlPort1 : amiga->controlPort2; }
+    ControlPortAPI &port() { return mouse == 1 ? amiga->controlPort1 : amiga->controlPort2; }
 
     bool detectShakeAbs(double x, double y) { return port().mouse.detectShakeXY(x, y); }
     bool detectShakeRel(double x, double y) { return port().mouse.detectShakeDxDy(x, y); }
@@ -273,7 +273,7 @@ struct PaulaProxy
 {
     PaulaProxy() { };
 
-    bool isMuted() const { TRY return amiga->paula.muxer.isMuted(); CATCH };
+    bool isMuted() const { TRY return amiga->audioPort.getInfo().isMuted; CATCH };
 };
 
 struct RetroShellProxy
@@ -281,19 +281,19 @@ struct RetroShellProxy
     RetroShellProxy() { };
 
     string getText() { TRY return amiga->retroShell.text(); CATCH };
-    int getCursorRel() { TRY return (int)amiga->retroShell.cursorRel(); CATCH }
-    void press(RetroShellKey key) { TRY amiga->retroShell.press(key); CATCH }
+    int getCursorRel() { TRY return (int)amiga->retroShell.getInfo().cursorRel; CATCH }
+    void press(RSKey key) { TRY amiga->retroShell.press(key); CATCH }
     void pressKey(char c) { TRY amiga->retroShell.press(c); CATCH }
-    void pressUp() { TRY amiga->retroShell.press(RSKEY_UP); CATCH }
-    void pressDown() { TRY amiga->retroShell.press(RSKEY_DOWN); CATCH }
-    void pressLeft() { TRY amiga->retroShell.press(RSKEY_LEFT); CATCH }
-    void pressRight() { TRY amiga->retroShell.press(RSKEY_RIGHT); CATCH }
-    void pressHome() { TRY amiga->retroShell.press(RSKEY_HOME); CATCH }
-    void pressEnd() { TRY amiga->retroShell.press(RSKEY_END); CATCH }
-    void pressBackspace() { TRY amiga->retroShell.press(RSKEY_BACKSPACE); CATCH }
-    void pressDelete() { TRY amiga->retroShell.press(RSKEY_DEL); CATCH }
-    void pressCut() { TRY amiga->retroShell.press(RSKEY_CUT); CATCH }
-    void pressReturn() { TRY amiga->retroShell.press(RSKEY_RETURN); CATCH }
-    void pressTab() { TRY amiga->retroShell.press(RSKEY_TAB); CATCH }
-    void pressShiftReturn() { TRY amiga->retroShell.press(RSKEY_RETURN, true); CATCH }
+    void pressUp() { TRY amiga->retroShell.press(RSKey::UP); CATCH }
+    void pressDown() { TRY amiga->retroShell.press(RSKey::DOWN); CATCH }
+    void pressLeft() { TRY amiga->retroShell.press(RSKey::LEFT); CATCH }
+    void pressRight() { TRY amiga->retroShell.press(RSKey::RIGHT); CATCH }
+    void pressHome() { TRY amiga->retroShell.press(RSKey::HOME); CATCH }
+    void pressEnd() { TRY amiga->retroShell.press(RSKey::END); CATCH }
+    void pressBackspace() { TRY amiga->retroShell.press(RSKey::BACKSPACE); CATCH }
+    void pressDelete() { TRY amiga->retroShell.press(RSKey::DEL); CATCH }
+    void pressCut() { TRY amiga->retroShell.press(RSKey::CUT); CATCH }
+    void pressReturn() { TRY amiga->retroShell.press(RSKey::RETURN); CATCH }
+    void pressTab() { TRY amiga->retroShell.press(RSKey::TAB); CATCH }
+    void pressShiftReturn() { TRY amiga->retroShell.press(RSKey::RETURN, true); CATCH }
 };

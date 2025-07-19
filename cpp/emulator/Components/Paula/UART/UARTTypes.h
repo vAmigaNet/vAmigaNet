@@ -9,7 +9,9 @@
 
 #pragma once
 
-#include "Aliases.h"
+#include "Infrastructure/Reflection.h"
+
+namespace vamiga {
 
 typedef struct
 {
@@ -21,3 +23,5 @@ typedef struct
     u16 transmitShiftReg;
 }
 UARTInfo;
+
+}

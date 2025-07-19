@@ -20,7 +20,7 @@
  *
  * Enable to improve accuracy, disable to gain speed.
  */
-#define PRECISE_TIMING true
+#define MOIRA_PRECISE_TIMING true
 
 /* Set to true to implement the CPU interface as virtual functions.
  *
@@ -33,7 +33,7 @@
  *
  * Enable to follow the standard OOP paradigm, disable to gain speed.
  */
-#define VIRTUAL_API false
+#define MOIRA_VIRTUAL_API false
 
 /* Set to true to enable address error checking.
  *
@@ -42,7 +42,7 @@
  *
  * Enable to improve accuracy, disable to gain speed.
  */
-#define EMULATE_ADDRESS_ERROR true
+#define MOIRA_EMULATE_ADDRESS_ERROR true
 
 /* Set to true to emulate function code pins FC0 - FC2.
  *
@@ -52,7 +52,7 @@
  *
  * Enable to improve accuracy, disable to gain speed.
  */
-#define EMULATE_FC true
+#define MOIRA_EMULATE_FC true
 
 /* Set to true to enable the disassembler.
  *
@@ -60,7 +60,7 @@
  *
  * Disable to save space.
  */
-#define ENABLE_DASM true
+#define MOIRA_ENABLE_DASM true
 
 /* Set to true to build the InstrInfo lookup table.
  *
@@ -72,7 +72,7 @@
  *
  * Disable to save space.
  */
-#define BUILD_INSTR_INFO_TABLE false
+#define MOIRA_BUILD_INSTR_INFO_TABLE false
 
 /* Set to true to run Moira in a special Musashi compatibility mode.
  *
@@ -81,14 +81,14 @@
  *
  * Disable to improve accuracy.
  */
-#define MIMIC_MUSASHI false
+#define MOIRA_MIMIC_MUSASHI false
 
 /* The following macro appears at the beginning of each instruction handler.
  * Moira will call 'willExecute(...)' for all listed instructions.
  */
-#define WILL_EXECUTE    I == STOP || I == TAS || I == BKPT
+#define MOIRA_WILL_EXECUTE I == Instr::STOP || I == Instr::TAS || I == Instr::BKPT
 
 /* The following macro appear at the end of each instruction handler.
  * Moira will call 'didExecute(...)' for all listed instructions.
  */
-#define DID_EXECUTE     I == RESET
+#define MOIRA_DID_EXECUTE I == Instr::RESET

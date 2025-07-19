@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #include "config.h"
@@ -14,7 +14,7 @@
 namespace vamiga {
 
 void
-Copper::_dump(Category category, std::ostream& os) const
+Copper::_dump(Category category, std::ostream &os) const
 {
     using namespace util;
 
@@ -51,22 +51,23 @@ Copper::_dump(Category category, std::ostream& os) const
 }
 
 void
-Copper::_inspect() const
+Copper::cacheInfo(CopperInfo &info) const
 {
-    SYNCHRONIZED
-    
-    info.copList = copList;
-    info.copList1Start = debugger.startOfCopperList(1);
-    info.copList1End = debugger.endOfCopperList(1);
-    info.copList2Start = debugger.startOfCopperList(2);
-    info.copList2End = debugger.endOfCopperList(2);
-    info.active = agnus.isPending<SLOT_COP>();
-    info.cdang = cdang;
-    info.coppc0 = coppc0 & agnus.ptrMask;
-    info.cop1lc = cop1lc & agnus.ptrMask;
-    info.cop2lc = cop2lc & agnus.ptrMask;
-    info.cop1ins = cop1ins;
-    info.cop2ins = cop2ins;
+    {   SYNCHRONIZED
+        
+        info.copList = copList;
+        info.copList1Start = debugger.startOfCopperList(1);
+        info.copList1End = debugger.endOfCopperList(1);
+        info.copList2Start = debugger.startOfCopperList(2);
+        info.copList2End = debugger.endOfCopperList(2);
+        info.active = agnus.isPending<SLOT_COP>();
+        info.cdang = cdang;
+        info.coppc0 = coppc0 & agnus.ptrMask;
+        info.cop1lc = cop1lc & agnus.ptrMask;
+        info.cop2lc = cop2lc & agnus.ptrMask;
+        info.cop1ins = cop1ins;
+        info.cop2ins = cop2ins;
+    }
 }
 
 }

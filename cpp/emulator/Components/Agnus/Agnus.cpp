@@ -2,14 +2,14 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #include "config.h"
 #include "Agnus.h"
-#include "Amiga.h"
+#include "Emulator.h"
 
 namespace vamiga {
 
@@ -24,13 +24,73 @@ Agnus::Agnus(Amiga& ref) : SubComponent(ref)
     };
 }
 
+Agnus&
+Agnus::operator= (const Agnus& other) {
+
+    // Clear textures if PAL / NTSC settings do not match
+    if (pos.type != other.pos.type) { denise.pixelEngine.clearAll(); }
+    
+    CLONE(sequencer)
+    CLONE(copper)
+    CLONE(blitter)
+    CLONE(dmaDebugger)
+    
+    CLONE_ARRAY(trigger)
+    CLONE_ARRAY(id)
+    CLONE_ARRAY(data)
+    CLONE(nextTrigger)
+    CLONE(changeRecorder)
+    CLONE(syncEvent)
+
+    CLONE(pos)
+    CLONE(latchedPos)
+
+    CLONE(bplcon0)
+    CLONE(bplcon0Initial)
+    CLONE(bplcon1)
+    CLONE(bplcon1Initial)
+    CLONE(dmacon)
+    CLONE(dmaconInitial)
+    CLONE(dskpt)
+    CLONE_ARRAY(audpt)
+    CLONE_ARRAY(audlc)
+    CLONE_ARRAY(bplpt)
+    CLONE(bpl1mod)
+    CLONE(bpl2mod)
+    CLONE_ARRAY(sprpt)
+    CLONE(res)
+    CLONE(scrollOdd)
+    CLONE(scrollEven)
+
+    CLONE_ARRAY(busData)
+    CLONE_ARRAY(busAddr)
+    CLONE_ARRAY(busOwner)
+    CLONE_ARRAY(lastCtlWrite)
+
+    CLONE_ARRAY(audxDR)
+    CLONE_ARRAY(audxDSR)
+    CLONE(bls)
+
+    CLONE_ARRAY(sprVStrt)
+    CLONE_ARRAY(sprVStop)
+    CLONE_ARRAY(sprDmaEnabled)
+
+    CLONE(clock)
+
+    CLONE(config)
+    CLONE(ptrMask)
+
+    return *this;
+}
+
 void
-Agnus::_reset(bool hard)
+Agnus::operator << (SerResetter &worker)
 {
+    // Remember some events
     auto insEvent = id[SLOT_INS];
 
-    RESET_SNAPSHOT_ITEMS(hard)
-    
+    serialize(worker);
+
     // Start with a long frame
     pos.lof = true;
 
@@ -47,10 +107,9 @@ Agnus::_reset(bool hard)
         id[i] = (EventID)0;
         data[i] = 0;
     }
-    
-    if (hard) assert(clock == 0);
 
     // Schedule initial events
+    if (isHardResetter(worker)) assert(clock == 0);
     scheduleAbs<SLOT_SEC>(NEVER, SEC_TRIGGER);
     scheduleAbs<SLOT_TER>(NEVER, TER_TRIGGER);
     scheduleAbs<SLOT_CIAA>(CIA_CYCLES(AS_CIA_CYCLES(clock)), CIA_EXECUTE);
@@ -60,36 +119,16 @@ Agnus::_reset(bool hard)
     scheduleFirstBplEvent();
     scheduleFirstDasEvent();
     scheduleRel<SLOT_SRV>(SEC(0.5), SRV_LAUNCH_DAEMON);
-    scheduleAbs<SLOT_WBT>(SEC(amiga.getConfig().warpBoot), WBT_DISABLE);
     if (insEvent) scheduleRel <SLOT_INS> (0, insEvent);
 }
 
-void
-Agnus::resetConfig()
-{
-    assert(isPoweredOff());
-    auto &defaults = amiga.defaults;
-
-    std::vector <Option> options = {
-
-        OPT_AGNUS_REVISION,
-        OPT_SLOW_RAM_MIRROR,
-        OPT_PTR_DROPS
-    };
-
-    for (auto &option : options) {
-        setConfigItem(option, defaults.get(option));
-    }
-}
-
 i64
-Agnus::getConfigItem(Option option) const
+Agnus::getOption(Opt option) const
 {
     switch (option) {
 
-        case OPT_AGNUS_REVISION:    return config.revision;
-        case OPT_SLOW_RAM_MIRROR:   return config.slowRamMirror;
-        case OPT_PTR_DROPS:         return config.ptrDrops;
+        case Opt::AGNUS_REVISION:        return (i64)config.revision;
+        case Opt::AGNUS_PTR_DROPS:       return config.ptrDrops;
             
         default:
             fatalError;
@@ -97,25 +136,42 @@ Agnus::getConfigItem(Option option) const
 }
 
 void
-Agnus::setConfigItem(Option option, i64 value)
+Agnus::checkOption(Opt opt, i64 value)
+{
+    switch (opt) {
+
+        case Opt::AGNUS_REVISION:
+
+            if (!isPoweredOff()) {
+                throw AppError(Fault::OPT_LOCKED);
+            }
+            if (!AgnusRevisionEnum::isValid(value)) {
+                throw AppError(Fault::OPT_INV_ARG, AgnusRevisionEnum::keyList());
+            }
+            return;
+
+        case Opt::AGNUS_PTR_DROPS:
+
+            return;
+
+        default:
+            throw(Fault::OPT_UNSUPPORTED);
+    }
+}
+
+void
+Agnus::setOption(Opt option, i64 value)
 {
     switch (option) {
 
-        case OPT_AGNUS_REVISION:
+        case Opt::AGNUS_REVISION:
 
-            if (!isPoweredOff()) {
-                throw VAError(ERROR_OPT_LOCKED);
-            }
-            if (!AgnusRevisionEnum::isValid(value)) {
-                throw VAError(ERROR_OPT_INVARG, AgnusRevisionEnum::keyList());
-            }
-
-            switch (config.revision = (AgnusRevision)value) {
+            switch (config.revision = AgnusRevision(value)) {
                     
-                case AGNUS_OCS_OLD:
-                case AGNUS_OCS:     ptrMask = 0x07FFFF; break;
-                case AGNUS_ECS_1MB: ptrMask = 0x0FFFFF; break;
-                case AGNUS_ECS_2MB: ptrMask = 0x1FFFFF; break;
+                case AgnusRevision::OCS_OLD:
+                case AgnusRevision::OCS:     ptrMask = 0x07FFFF; break;
+                case AgnusRevision::ECS_1MB: ptrMask = 0x0FFFFF; break;
+                case AgnusRevision::ECS_2MB: ptrMask = 0x1FFFFF; break;
 
                 default:
                     fatalError;
@@ -123,12 +179,7 @@ Agnus::setConfigItem(Option option, i64 value)
             mem.updateMemSrcTables();
             return;
             
-        case OPT_SLOW_RAM_MIRROR:
-            
-            config.slowRamMirror = value;
-            return;
-
-        case OPT_PTR_DROPS:
+        case Opt::AGNUS_PTR_DROPS:
 
             config.ptrDrops = value;
             return;
@@ -139,9 +190,9 @@ Agnus::setConfigItem(Option option, i64 value)
 }
 
 void
-Agnus::setVideoFormat(VideoFormat newFormat)
+Agnus::setVideoFormat(TV newFormat)
 {
-    trace(NTSC_DEBUG, "Video format = %s\n", VideoFormatEnum::key(newFormat));
+    trace(NTSC_DEBUG, "Video format = %s\n", TVEnum::key(newFormat));
 
     // Change the frame type
     agnus.pos.switchMode(newFormat);
@@ -153,19 +204,35 @@ Agnus::setVideoFormat(VideoFormat newFormat)
     denise.pixelEngine.clearAll();
 
     // Inform the GUI
-    msgQueue.put(MSG_VIDEO_FORMAT, newFormat);
+    msgQueue.put(Msg::VIDEO_FORMAT, (i64)newFormat);
+}
+
+AgnusTraits 
+Agnus::getTraits() const
+{
+    return AgnusTraits {
+
+        .isOCS = isOCS(),
+        .isECS = isECS(),
+        .isPAL = isPAL(),
+        .isNTSC = isNTSC(),
+        .idBits = idBits(),
+        .chipRamLimit = chipRamLimit(),
+        .vStrobeLine = vStrobeLine(),
+        .ddfMask = ddfMask()
+    };
 }
 
 bool
 Agnus::isOCS() const
 {
-    return config.revision == AGNUS_OCS_OLD || config.revision == AGNUS_OCS;
+    return config.revision == AgnusRevision::OCS_OLD || config.revision == AgnusRevision::OCS;
 }
 
 bool
 Agnus::isECS() const
 {
-    return config.revision == AGNUS_ECS_1MB || config.revision == AGNUS_ECS_2MB;
+    return config.revision == AgnusRevision::ECS_1MB || config.revision == AgnusRevision::ECS_2MB;
 }
 
 u16
@@ -173,8 +240,8 @@ Agnus::idBits() const
 {
     switch (config.revision) {
             
-        case AGNUS_ECS_2MB: return 0x2000; // TODO: CHECK ON REAL MACHINE
-        case AGNUS_ECS_1MB: return 0x2000;
+        case AgnusRevision::ECS_2MB: return 0x2000; // TODO: CHECK ON REAL MACHINE
+        case AgnusRevision::ECS_1MB: return 0x2000;
         default:            return 0x0000;
     }
 }
@@ -184,26 +251,9 @@ Agnus::chipRamLimit() const
 {
     switch (config.revision) {
 
-        case AGNUS_ECS_2MB: return 2048;
-        case AGNUS_ECS_1MB: return 1024;
+        case AgnusRevision::ECS_2MB: return 2048;
+        case AgnusRevision::ECS_1MB: return 1024;
         default:            return 512;
-    }
-}
-
-bool
-Agnus::slowRamIsMirroredIn() const
-{
-
-    /* The ECS revision of Agnus has a special feature that makes Slow Ram
-     * accessible for DMA. In the 512 MB Chip Ram + 512 Slow Ram configuration,
-     * Slow Ram is mapped into the second Chip Ram segment. OCS Agnus does not
-     * have this feature. It is able to access Chip Ram, only.
-     */
-    
-    if (config.slowRamMirror && isECS()) {
-        return mem.chipRamSize() == KB(512) && mem.slowRamSize() == KB(512);
-    } else {
-        return false;
     }
 }
 
@@ -211,11 +261,11 @@ Resolution
 Agnus::resolution(u16 v)
 {
     if (GET_BIT(v,6) && isECS()) {
-        return SHRES;
+        return Resolution::SHRES;
     } else if (GET_BIT(v,15)) {
-        return HIRES;
+        return Resolution::HIRES;
     } else {
-        return LORES;
+        return Resolution::LORES;
     }
 }
 
@@ -293,7 +343,7 @@ Agnus::executeUntilBusIsFree()
     cpu.slowCycles = 1;
     
     // Check if the bus is blocked
-    if (busOwner[pos.h] != BUS_NONE) {
+    if (busOwner[pos.h] != BusOwner::NONE) {
 
         // This variable counts the number of DMA cycles the CPU will be suspended
         DMACycle delay = 0;
@@ -304,7 +354,7 @@ Agnus::executeUntilBusIsFree()
             execute();
             if (++delay == 2) bls = true;
 
-        } while (busOwner[pos.h] != BUS_NONE);
+        } while (busOwner[pos.h] != BusOwner::NONE);
 
         // Clear the BLS line (Blitter slow down)
         bls = false;
@@ -314,7 +364,7 @@ Agnus::executeUntilBusIsFree()
     }
 
     // Assign bus to the CPU
-    busOwner[pos.h] = BUS_CPU;
+    busOwner[pos.h] = BusOwner::CPU;
 }
 
 void
@@ -328,10 +378,20 @@ Agnus::executeUntilBusIsFreeForCIA()
 }
 
 void
-Agnus::recordRegisterChange(Cycle delay, u32 addr, u16 value, Accessor acc)
+Agnus::recordRegisterChange(Cycle delay, RegChange regChange)
 {
     // Record the new register value
-    changeRecorder.insert(clock + delay, RegChange { addr, value, (u16)acc } );
+    changeRecorder.insert(clock + delay, regChange);
+
+    // Schedule the register change
+    scheduleNextREGEvent();
+}
+
+void
+Agnus::recordRegisterChange(Cycle delay, Reg reg, u16 value, Accessor acc)
+{
+    // Record the new register value
+    changeRecorder.insert(clock + delay, RegChange { .reg = reg, .value = value, .accessor = acc } );
 
     // Schedule the register change
     scheduleNextREGEvent();
@@ -444,11 +504,14 @@ Agnus::executeUntil(Cycle cycle) {
             if (isDue<SLOT_MSE2>(cycle)) {
                 controlPort2.mouse.serviceMouseEvent <SLOT_MSE2> ();
             }
+            if (isDue<SLOT_SNP>(cycle)) {
+                amiga.serviceSnpEvent(id[SLOT_KEY]);
+            }
+            if (isDue<SLOT_RSH>(cycle)) {
+                retroShell.serviceEvent();
+            }
             if (isDue<SLOT_KEY>(cycle)) {
                 keyboard.serviceKeyEvent();
-            }
-            if (isDue<SLOT_WBT>(cycle)) {
-                amiga.serviceWbtEvent();
             }
             if (isDue<SLOT_SRV>(cycle)) {
                 remoteManager.serviceServerEvent();
@@ -456,11 +519,14 @@ Agnus::executeUntil(Cycle cycle) {
             if (isDue<SLOT_SER>(cycle)) {
                 remoteManager.serServer.serviceSerEvent();
             }
+            if (isDue<SLOT_BTR>(cycle)) {
+                dmaDebugger.beamtraps.serviceEvent();
+            }
             if (isDue<SLOT_ALA>(cycle)) {
                 amiga.serviceAlarmEvent();
             }
             if (isDue<SLOT_INS>(cycle)) {
-                agnus.serviceINSEvent(id[SLOT_INS]);
+                agnus.serviceINSEvent();
             }
 
             // Determine the next trigger cycle for all tertiary slots
@@ -491,29 +557,29 @@ template <isize nr> void
 Agnus::executeFirstSpriteCycle()
 {
     trace(SPR_DEBUG, "executeFirstSpriteCycle<%ld>\n", nr);
-    
+
     if (pos.v == sprVStop[nr]) {
 
-        sprDmaState[nr] = SPR_DMA_IDLE;
+        sprDmaEnabled[nr] = false;
 
-        if (busOwner[pos.h] == BUS_NONE) {
+        if (!spriteCycleIsBlocked()) {
 
             // Read in the next control word (POS part)
             if (sprdma()) {
-                
+
                 auto value = doSpriteDmaRead<nr>();
-                agnus.pokeSPRxPOS<nr>(value);
+                agnus.pokeSPRxPOS<nr, Accessor::AGNUS>(value);
                 denise.pokeSPRxPOS<nr>(value);
-                
+
             } else {
 
-                busOwner[pos.h] = BUS_BLOCKED;
+                busOwner[pos.h] = BusOwner::BLOCKED;
             }
         }
 
-    } else if (sprDmaState[nr] == SPR_DMA_ACTIVE) {
+    } else if (sprDmaEnabled[nr]) {
 
-        if (busOwner[pos.h] == BUS_NONE) {
+        if (!spriteCycleIsBlocked()) {
 
             // Read in the next data word (part A)
             if (sprdma()) {
@@ -523,7 +589,7 @@ Agnus::executeFirstSpriteCycle()
                 
             } else {
 
-                busOwner[pos.h] = BUS_BLOCKED;
+                busOwner[pos.h] = BusOwner::BLOCKED;
             }
         }
     }
@@ -536,26 +602,26 @@ Agnus::executeSecondSpriteCycle()
 
     if (pos.v == sprVStop[nr]) {
 
-        sprDmaState[nr] = SPR_DMA_IDLE;
+        sprDmaEnabled[nr] = false;
 
-        if (busOwner[pos.h] == BUS_NONE) {
+        if (!spriteCycleIsBlocked()) {
 
             if (sprdma()) {
                 
                 // Read in the next control word (CTL part)
                 auto value = doSpriteDmaRead<nr>();
-                agnus.pokeSPRxCTL<nr>(value);
+                agnus.pokeSPRxCTL<nr, Accessor::AGNUS>(value);
                 denise.pokeSPRxCTL<nr>(value);
                 
             } else {
 
-                busOwner[pos.h] = BUS_BLOCKED;
+                busOwner[pos.h] = BusOwner::BLOCKED;
             }
         }
 
-    } else if (sprDmaState[nr] == SPR_DMA_ACTIVE) {
+    } else if (sprDmaEnabled[nr]) {
 
-        if (busOwner[pos.h] == BUS_NONE) {
+        if (!spriteCycleIsBlocked()) {
 
             if (sprdma()) {
                 
@@ -565,9 +631,19 @@ Agnus::executeSecondSpriteCycle()
                 
             } else {
 
-                busOwner[pos.h] = BUS_BLOCKED;
+                busOwner[pos.h] = BusOwner::BLOCKED;
             }
         }
+    }
+}
+
+bool 
+Agnus::spriteCycleIsBlocked()
+{
+    if (isOCS()) {
+        return sequencer.bprunUp <= pos.h + 1;
+    } else {
+        return sequencer.bprunUp <= pos.h;
     }
 }
 
@@ -578,29 +654,30 @@ Agnus::updateSpriteDMA()
     // vertical position counter
     isize v = pos.v + 1;
 
-    // Reset the vertical trigger coordinates in line 25
-    if (v == 25 && sprdma()) {
-        for (isize i = 0; i < 8; i++) sprVStop[i] = 25;
+    // Reset the vertical trigger coordinates in line 25 (PAL) or 20 (NTSC)
+    isize resetLine = isPAL() ? 25 : 19;
+    if (v == resetLine && sprdma()) {
+        for (isize i = 0; i < 8; i++) sprVStop[i] = resetLine;
         return;
     }
 
     // Disable DMA in the last rasterline
     if (v == pos.vMax()) {
-        for (isize i = 0; i < 8; i++) sprDmaState[i] = SPR_DMA_IDLE;
+        for (isize i = 0; i < 8; i++) sprDmaEnabled[i] = false;
         return;
     }
 
     // Update the DMA status for all sprites
     for (isize i = 0; i < 8; i++) {
-        if (v == sprVStrt[i]) sprDmaState[i] = SPR_DMA_ACTIVE;
-        if (v == sprVStop[i]) sprDmaState[i] = SPR_DMA_IDLE;
+        if (v == sprVStrt[i]) sprDmaEnabled[i] = true;
+        if (v == sprVStop[i]) sprDmaEnabled[i] = false;
     }
 }
 
 void
 Agnus::eolHandler()
 {
-    assert(pos.h == HPOS_CNT_PAL || pos.h == HPOS_CNT_NTSC);
+    assert(pos.h == PAL::HPOS_CNT || pos.h == NTSC::HPOS_CNT);
 
     // Pass control to the DMA debugger
     dmaDebugger.eolHandler();
@@ -609,10 +686,10 @@ Agnus::eolHandler()
     pos.eol();
 
     // Update pot counters
-    if (paula.chargeX0 < 1.0) U8_INC(paula.potCntX0, 1);
-    if (paula.chargeY0 < 1.0) U8_INC(paula.potCntY0, 1);
-    if (paula.chargeX1 < 1.0) U8_INC(paula.potCntX1, 1);
-    if (paula.chargeY1 < 1.0) U8_INC(paula.potCntY1, 1);
+    if (paula.chargeX0 < 1.0 || controlPort1.mouse.MMB()) U8_INC(paula.potCntX0, 1);
+    if (paula.chargeY0 < 1.0 || controlPort1.mouse.RMB()) U8_INC(paula.potCntY0, 1);
+    if (paula.chargeX1 < 1.0 || controlPort2.mouse.MMB()) U8_INC(paula.potCntX1, 1);
+    if (paula.chargeY1 < 1.0 || controlPort2.mouse.RMB()) U8_INC(paula.potCntY1, 1);
 
     // Transfer DMA requests from Paula to Agnus
     paula.channel0.requestDMA();
@@ -629,11 +706,15 @@ Agnus::eolHandler()
     bplcon1Initial = bplcon1;
 
     // Pass control to other components
+    amiga.eolHandler();
     sequencer.eolHandler();
     denise.eolHandler();
 
     // Clear the bus usage table
-    for (isize i = 0; i < HPOS_CNT; i++) busOwner[i] = BUS_NONE;
+    for (isize i = 0; i < HPOS_CNT; i++) busOwner[i] = BusOwner::NONE;
+
+    // Clear other variables
+    for (isize i = 0; i < 8; i++) lastCtlWrite[i] = 0xFF;
 
     // Schedule the first BPL and DAS events
     scheduleFirstBplEvent();
@@ -647,29 +728,24 @@ Agnus::eofHandler()
     assert(pos.v == 0);
     assert(denise.lace() == pos.lofToggle);
 
-    // Run the screen recorder
-    denise.screenRecorder.vsyncHandler(clock - 50 * DMA_CYCLES(HPOS_CNT_PAL));
-    denise.eofHandler();
-
-    // Synthesize sound samples
-    paula.executeUntil(clock - 50 * DMA_CYCLES(HPOS_CNT_PAL)); // MOVE TO Paula::eofHandler
-
     scheduleStrobe0Event();
 
-    // Let other components do their own EOF stuff
+    // Run the screen recorder
+    denise.screenRecorder.vsyncHandler(clock - 50 * DMA_CYCLES(PAL::HPOS_CNT));
+    denise.eofHandler();
+
+    // Let the other components finish the current frame
     paula.eofHandler();
     sequencer.eofHandler();
     copper.eofHandler();
+    ciaa.eofHandler();
+    ciab.eofHandler();
     controlPort1.joystick.eofHandler();
     controlPort2.joystick.eofHandler();
-    retroShell.eofHandler();
+    mem.eofHandler();
 
     // Update statistics
     updateStats();
-    mem.updateStats();
-
-    // Let the thread synchronize
-    amiga.setFlag(RL::SYNC_THREAD);
 }
 
 void
@@ -683,7 +759,7 @@ Agnus::hsyncHandler()
     dmaDebugger.hsyncHandler(vpos);
 
     // Encode a LORES marker in the first HBLANK pixel
-    REPLACE_BIT(*pixelEngine.workingPtr(vpos), 28, res != LORES);
+    REPLACE_BIT(*pixelEngine.workingPtr(vpos), 28, res != Resolution::LORES);
 
     // Call the vsyncHandler once we've finished a frame
     if (pos.v == 0) vsyncHandler();
@@ -693,6 +769,8 @@ void
 Agnus::vsyncHandler()
 {
     denise.vsyncHandler();
+    
+    amiga.setFlag(RL::SYNC_THREAD);
 }
 
 

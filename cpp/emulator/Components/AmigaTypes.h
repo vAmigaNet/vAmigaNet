@@ -2,246 +2,255 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
 
+#include "ThreadTypes.h"
 #include "Aliases.h"
-#include "Reflection.h"
+
+namespace vamiga {
 
 //
 // Enumerations
 //
 
-enum_long(VIDEO_FORMAT)
+enum class Compressor : long
+{
+    NONE,
+    GZIP,
+    LZ4,
+    RLE2,
+    RLE3
+};
+
+struct CompressorEnum : Reflection<CompressorEnum, Compressor>
+{
+    static constexpr long minVal = 0;
+    static constexpr long maxVal = long(Compressor::RLE3);
+
+    static const char *_key(Compressor value)
+    {
+        switch (value) {
+
+            case Compressor::NONE:  return "NONE";
+            case Compressor::GZIP:  return "GZIP";
+            case Compressor::RLE2:  return "RLE2";
+            case Compressor::RLE3:  return "RLE3";
+            case Compressor::LZ4:   return "LZ4";
+        }
+        return "???";
+    }
+    static const char *help(Compressor value)
+    {
+        switch (value) {
+
+            case Compressor::NONE:  return "No compression";
+            case Compressor::GZIP:  return "Gzip compression";
+            case Compressor::RLE2:  return "Run-length encoding (2)";
+            case Compressor::RLE3:  return "Run-length encoding (3)";
+            case Compressor::LZ4:   return "LZ4 compression";
+        }
+        return "???";
+    }
+};
+
+enum class TV : long
 {
     PAL,
     NTSC
 };
-typedef VIDEO_FORMAT VideoFormat;
 
-#ifdef __cplusplus
-struct VideoFormatEnum : util::Reflection<VideoFormatEnum, VideoFormat>
+struct TVEnum : Reflection<TVEnum, TV>
 {
     static constexpr long minVal = 0;
-    static constexpr long maxVal = NTSC;
-    static bool isValid(auto val) { return val >= minVal && val <= maxVal; }
+    static constexpr long maxVal = long(TV::NTSC);
 
-    static const char *prefix() { return ""; }
-    static const char *key(VideoFormat value)
+    static const char *_key(TV value)
     {
         switch (value) {
 
-            case PAL:   return "PAL";
-            case NTSC:  return "NTSC";
+            case TV::PAL:   return "PAL";
+            case TV::NTSC:  return "NTSC";
+        }
+        return "???";
+    }
+    static const char *help(TV value)
+    {
+        switch (value) {
+
+            case TV::PAL:   return "PAL Video Format";
+            case TV::NTSC:  return "NTSC Video Format";
         }
         return "???";
     }
 };
-#endif
 
-enum_long(WARP_MODE)
+enum class Resolution : long
 {
-    WARP_AUTO,
-    WARP_NEVER,
-    WARP_ALWAYS
+    LORES,      // Lores mode
+    HIRES,      // Hires mode
+    SHRES       // SuperHires mode (ECS only)
 };
-typedef WARP_MODE WarpMode;
 
-#ifdef __cplusplus
-struct WarpModeEnum : util::Reflection<WarpModeEnum, WarpMode>
+struct ResolutionEnum : Reflection<ResolutionEnum, Resolution>
 {
     static constexpr long minVal = 0;
-    static constexpr long maxVal = WARP_ALWAYS;
-    static bool isValid(auto val) { return val >= minVal && val <= maxVal; }
+    static constexpr long maxVal = long(Resolution::SHRES);
 
-    static const char *prefix() { return "WARP"; }
-    static const char *key(WarpMode value)
+    static const char *_key(Resolution value)
     {
         switch (value) {
 
-            case WARP_AUTO:     return "WARP_AUTO";
-            case WARP_NEVER:    return "WARP_NEVER";
-            case WARP_ALWAYS:   return "WARP_ALWAYS";
+            case Resolution::LORES:          return "LORES";
+            case Resolution::HIRES:          return "HIRES";
+            case Resolution::SHRES:          return "SHRES";
+        }
+        return "???";
+    }
+    static const char *help(Resolution value)
+    {
+        switch (value) {
+
+            case Resolution::LORES:          return "Lores Graphics";
+            case Resolution::HIRES:          return "Hires Graphics";
+            case Resolution::SHRES:          return "Super-Hires Graphics";
         }
         return "???";
     }
 };
-#endif
 
-enum_long(SYNC_MODE)
+enum class Warp : long
 {
-    SYNC_NATIVE_FPS,
-    SYNC_FIXED_FPS,
-    SYNC_VSYNC
+    AUTO,
+    NEVER,
+    ALWAYS
 };
-typedef SYNC_MODE SyncMode;
 
-#ifdef __cplusplus
-struct SyncModeEnum : util::Reflection<SyncModeEnum, SyncMode>
+struct WarpEnum : Reflection<WarpEnum, Warp>
 {
     static constexpr long minVal = 0;
-    static constexpr long maxVal = SYNC_VSYNC;
-    static bool isValid(auto val) { return val >= minVal && val <= maxVal; }
+    static constexpr long maxVal = long(Warp::ALWAYS);
 
-    static const char *prefix() { return "SYNC"; }
-    static const char *key(SyncMode value)
+    static const char *_key(Warp value)
     {
         switch (value) {
 
-            case SYNC_NATIVE_FPS:   return "NATIVE_FPS";
-            case SYNC_FIXED_FPS:    return "FIXED_FPS";
-            case SYNC_VSYNC:        return "VSYNC";
+            case Warp::AUTO:     return "AUTO";
+            case Warp::NEVER:    return "NEVER";
+            case Warp::ALWAYS:   return "ALWAYS";
+        }
+        return "???";
+    }
+    static const char *help(Warp value)
+    {
+        return "";
+    }
+};
+
+enum class ConfigScheme : long
+{
+    A1000_OCS_1MB,
+    A500_OCS_1MB,
+    A500_ECS_1MB,
+    A500_PLUS_1MB
+};
+
+struct ConfigSchemeEnum : Reflection<ConfigSchemeEnum, ConfigScheme>
+{
+    static constexpr long minVal = 0;
+    static constexpr long maxVal = long(ConfigScheme::A500_PLUS_1MB);
+
+    static const char *_key(ConfigScheme value)
+    {
+        switch (value) {
+
+            case ConfigScheme::A1000_OCS_1MB:  return "A1000_OCS_1MB";
+            case ConfigScheme::A500_OCS_1MB:   return "A500_OCS_1MB";
+            case ConfigScheme::A500_ECS_1MB:   return "A500_ECS_1MB";
+            case ConfigScheme::A500_PLUS_1MB:  return "A500_PLUS_1MB";
+        }
+        return "???";
+    }
+    static const char *help(ConfigScheme value)
+    {
+        switch (value) {
+
+            case ConfigScheme::A1000_OCS_1MB:  return "Amiga 1000, OCS Chipset, 1MB RAM";
+            case ConfigScheme::A500_OCS_1MB:   return "Amiga 500, OCS Chipset, 1MB RAM";
+            case ConfigScheme::A500_ECS_1MB:   return "Amiga 500, ECS Chipset, 1MB RAM";
+            case ConfigScheme::A500_PLUS_1MB:  return "Amiga 500+, ECS Chipset, 1MB RAM";
         }
         return "???";
     }
 };
-#endif
 
-enum_long(CONFIG_SCHEME)
+enum class Reg : long
 {
-    CONFIG_A1000_OCS_1MB,
-    CONFIG_A500_OCS_1MB,
-    CONFIG_A500_ECS_1MB,
-    CONFIG_A500_PLUS_1MB
+    BLTDDAT,    DMACONR,    VPOSR,      VHPOSR,     DSKDATR,
+    JOY0DAT,    JOY1DAT,    CLXDAT,     ADKCONR,    POT0DAT,
+    POT1DAT,    POTGOR,     SERDATR,    DSKBYTR,    INTENAR,
+    INTREQR,    DSKPTH,     DSKPTL,     DSKLEN,     DSKDAT,
+    REFPTR,     VPOSW,      VHPOSW,     COPCON,     SERDAT,
+    SERPER,     POTGO,      JOYTEST,    STREQU,     STRVBL,
+    STRHOR,     STRLONG,    BLTCON0,    BLTCON1,    BLTAFWM,
+    BLTALWM,    BLTCPTH,    BLTCPTL,    BLTBPTH,    BLTBPTL,
+    BLTAPTH,    BLTAPTL,    BLTDPTH,    BLTDPTL,    BLTSIZE,
+    BLTCON0L,   BLTSIZV,    BLTSIZH,    BLTCMOD,    BLTBMOD,
+    BLTAMOD,    BLTDMOD,    REG_0x68,   REG_0x6A,   REG_0x6C,
+    REG_0x6E,   BLTCDAT,    BLTBDAT,    BLTADAT,    REG_0x76,
+    SPRHDAT,    BPLHDAT,    DENISEID,   DSKSYNC,    COP1LCH,
+    COP1LCL,    COP2LCH,    COP2LCL,    COPJMP1,    COPJMP2,
+    COPINS,     DIWSTRT,    DIWSTOP,    DDFSTRT,    DDFSTOP,
+    DMACON,     CLXCON,     INTENA,     INTREQ,     ADKCON,
+    AUD0LCH,    AUD0LCL,    AUD0LEN,    AUD0PER,    AUD0VOL,
+    AUD0DAT,    REG_0xAC,   REG_0xAE,   AUD1LCH,    AUD1LCL,
+    AUD1LEN,    AUD1PER,    AUD1VOL,    AUD1DAT,    REG_0xBC,
+    REG_0xBE,   AUD2LCH,    AUD2LCL,    AUD2LEN,    AUD2PER,
+    AUD2VOL,    AUD2DAT,    REG_0xCC,   REG_0xCE,   AUD3LCH,
+    AUD3LCL,    AUD3LEN,    AUD3PER,    AUD3VOL,    AUD3DAT,
+    REG_0xDC,   REG_0xDE,   BPL1PTH,    BPL1PTL,    BPL2PTH,
+    BPL2PTL,    BPL3PTH,    BPL3PTL,    BPL4PTH,    BPL4PTL,
+    BPL5PTH,    BPL5PTL,    BPL6PTH,    BPL6PTL,    BPL7PTH,
+    BPL7PTL,    BPL8PTH,    BPL8PTL,    BPLCON0,    BPLCON1,
+    BPLCON2,    BPLCON3,    BPL1MOD,    BPL2MOD,    BPLCON4,
+    CLXCON2,    BPL1DAT,    BPL2DAT,    BPL3DAT,    BPL4DAT,
+    BPL5DAT,    BPL6DAT,    BPL7DAT,    BPL8DAT,    SPR0PTH,
+    SPR0PTL,    SPR1PTH,    SPR1PTL,    SPR2PTH,    SPR2PTL,
+    SPR3PTH,    SPR3PTL,    SPR4PTH,    SPR4PTL,    SPR5PTH,
+    SPR5PTL,    SPR6PTH,    SPR6PTL,    SPR7PTH,    SPR7PTL,
+    SPR0POS,    SPR0CTL,    SPR0DATA,   SPR0DATB,   SPR1POS,
+    SPR1CTL,    SPR1DATA,   SPR1DATB,   SPR2POS,    SPR2CTL,
+    SPR2DATA,   SPR2DATB,   SPR3POS,    SPR3CTL,    SPR3DATA,
+    SPR3DATB,   SPR4POS,    SPR4CTL,    SPR4DATA,   SPR4DATB,
+    SPR5POS,    SPR5CTL,    SPR5DATA,   SPR5DATB,   SPR6POS,
+    SPR6CTL,    SPR6DATA,   SPR6DATB,   SPR7POS,    SPR7CTL,
+    SPR7DATA,   SPR7DATB,   COLOR00,    COLOR01,    COLOR02,
+    COLOR03,    COLOR04,    COLOR05,    COLOR06,    COLOR07,
+    COLOR08,    COLOR09,    COLOR10,    COLOR11,    COLOR12,
+    COLOR13,    COLOR14,    COLOR15,    COLOR16,    COLOR17,
+    COLOR18,    COLOR19,    COLOR20,    COLOR21,    COLOR22,
+    COLOR23,    COLOR24,    COLOR25,    COLOR26,    COLOR27,
+    COLOR28,    COLOR29,    COLOR30,    COLOR31,    HTOTAL,
+    HSSTOP,     HBSTRT,     HBSTOP,     VTOTAL,     VSSTOP,
+    VBSTRT,     VBSTOP,     SPRHSTRT,   SPRHSTOP,   BPLHSTRT,
+    BPLHSTOP,   HHPOSW,     HHPOSR,     BEAMCON0,   HSSTRT,
+    VSSTRT,     HCENTER,    DIWHIGH,    BPLHMOD,    SPRHPTH,
+    SPRHPTL,    BPLHPTH,    BPLHPTL,    REG_0x1F0,  REG_0x1F2,
+    REG_0x1F4,  REG_0x1F6,  REG_0x1F8,  REG_0x1FA,  FMODE,
+    NO_OP
 };
-typedef CONFIG_SCHEME ConfigScheme;
 
-#ifdef __cplusplus
-struct ConfigSchemeEnum : util::Reflection<ConfigSchemeEnum, ConfigScheme>
+static_assert(Reg::NO_OP == Reg(0x1FE >> 1));
+struct RegEnum : Reflection<RegEnum, Reg>
 {
     static constexpr long minVal = 0;
-    static constexpr long maxVal = CONFIG_A500_PLUS_1MB;
-    static bool isValid(auto val) { return val >= minVal && val <= maxVal; }
+    static constexpr long maxVal = long(Reg::NO_OP);
 
-    static const char *prefix() { return "CONFIG"; }
-    static const char *key(ConfigScheme value)
-    {
-        switch (value) {
-                
-            case CONFIG_A1000_OCS_1MB:  return "A1000_OCS_1MB";
-            case CONFIG_A500_OCS_1MB:   return "A500_OCS_1MB";
-            case CONFIG_A500_ECS_1MB:   return "A500_ECS_1MB";
-            case CONFIG_A500_PLUS_1MB:  return "A500_PLUS_1MB";
-        }
-        return "???";
-    }
-};
-#endif
-
-enum_long(INSPECTION_TARGET)
-{
-    INSPECTION_NONE,
-    INSPECTION_AMIGA,
-    INSPECTION_CPU,
-    INSPECTION_CIA,
-    INSPECTION_MEM,
-    INSPECTION_AGNUS,
-    INSPECTION_DENISE,
-    INSPECTION_PAULA,
-    INSPECTION_PORTS,
-    INSPECTION_EVENTS,
-};
-typedef INSPECTION_TARGET InspectionTarget;
-
-#ifdef __cplusplus
-struct InspectionTargetEnum : util::Reflection<InspectionTargetEnum, InspectionTarget>
-{
-    static constexpr long minVal = 0;
-    static constexpr long maxVal = INSPECTION_EVENTS;
-    static bool isValid(auto val) { return val >= minVal && val <= maxVal; }
-    
-    static const char *prefix() { return "INSPECTION"; }
-    static const char *key(InspectionTarget value)
-    {
-        switch (value) {
-                
-            case INSPECTION_NONE:    return "NONE";
-            case INSPECTION_AMIGA:   return "AMIGA";
-            case INSPECTION_CPU:     return "CPU";
-            case INSPECTION_CIA:     return "CIA";
-            case INSPECTION_MEM:     return "MEM";
-            case INSPECTION_AGNUS:   return "AGNUS";
-            case INSPECTION_DENISE:  return "DENISE";
-            case INSPECTION_PAULA:   return "PAULA";
-            case INSPECTION_PORTS:   return "PORTS";
-            case INSPECTION_EVENTS:  return "EVENTS";
-        }
-        return "???";
-    }
-};
-#endif
-
-enum_long(REG_CHIPSET)
-{
-    REG_BLTDDAT,  REG_DMACONR,  REG_VPOSR,    REG_VHPOSR,   REG_DSKDATR,
-    REG_JOY0DAT,  REG_JOY1DAT,  REG_CLXDAT,   REG_ADKCONR,  REG_POT0DAT,
-    REG_POT1DAT,  REG_POTGOR,   REG_SERDATR,  REG_DSKBYTR,  REG_INTENAR,
-    REG_INTREQR,  REG_DSKPTH,   REG_DSKPTL,   REG_DSKLEN,   REG_DSKDAT,
-    REG_REFPTR,   REG_VPOSW,    REG_VHPOSW,   REG_COPCON,   REG_SERDAT,
-    REG_SERPER,   REG_POTGO,    REG_JOYTEST,  REG_STREQU,   REG_STRVBL,
-    REG_STRHOR,   REG_STRLONG,  REG_BLTCON0,  REG_BLTCON1,  REG_BLTAFWM,
-    REG_BLTALWM,  REG_BLTCPTH,  REG_BLTCPTL,  REG_BLTBPTH,  REG_BLTBPTL,
-    REG_BLTAPTH,  REG_BLTAPTL,  REG_BLTDPTH,  REG_BLTDPTL,  REG_BLTSIZE,
-    REG_BLTCON0L, REG_BLTSIZV,  REG_BLTSIZH,  REG_BLTCMOD,  REG_BLTBMOD,
-    REG_BLTAMOD,  REG_BLTDMOD,  REG_0x68,     REG_0x6A,     REG_0x6C,
-    REG_0x6E,     REG_BLTCDAT,  REG_BLTBDAT,  REG_BLTADAT,  REG_0x76,
-    REG_SPRHDAT,  REG_BPLHDAT,  REG_DENISEID, REG_DSKSYNC,  REG_COP1LCH,
-    REG_COP1LCL,  REG_COP2LCH,  REG_COP2LCL,  REG_COPJMP1,  REG_COPJMP2,
-    REG_COPINS,   REG_DIWSTRT,  REG_DIWSTOP,  REG_DDFSTRT,  REG_DDFSTOP,
-    REG_DMACON,   REG_CLXCON,   REG_INTENA,   REG_INTREQ,   REG_ADKCON,
-    REG_AUD0LCH,  REG_AUD0LCL,  REG_AUD0LEN,  REG_AUD0PER,  REG_AUD0VOL,
-    REG_AUD0DAT,  REG_0xAC,     REG_0xAE,     REG_AUD1LCH,  REG_AUD1LCL,
-    REG_AUD1LEN,  REG_AUD1PER,  REG_AUD1VOL,  REG_AUD1DAT,  REG_0xBC,
-    REG_0xBE,     REG_AUD2LCH,  REG_AUD2LCL,  REG_AUD2LEN,  REG_AUD2PER,
-    REG_AUD2VOL,  REG_AUD2DAT,  REG_0xCC,     REG_0xCE,     REG_AUD3LCH,
-    REG_AUD3LCL,  REG_AUD3LEN,  REG_AUD3PER,  REG_AUD3VOL,  REG_AUD3DAT,
-    REG_0xDC,     REG_0xDE,     REG_BPL1PTH,  REG_BPL1PTL,  REG_BPL2PTH,
-    REG_BPL2PTL,  REG_BPL3PTH,  REG_BPL3PTL,  REG_BPL4PTH,  REG_BPL4PTL,
-    REG_BPL5PTH,  REG_BPL5PTL,  REG_BPL6PTH,  REG_BPL6PTL,  REG_BPL7PTH,
-    REG_BPL7PTL,  REG_BPL8PTH,  REG_BPL8PTL,  REG_BPLCON0,  REG_BPLCON1,
-    REG_BPLCON2,  REG_BPLCON3,  REG_BPL1MOD,  REG_BPL2MOD,  REG_BPLCON4,
-    REG_CLXCON2,  REG_BPL1DAT,  REG_BPL2DAT,  REG_BPL3DAT,  REG_BPL4DAT,
-    REG_BPL5DAT,  REG_BPL6DAT,  REG_BPL7DAT,  REG_BPL8DAT,  REG_SPR0PTH,
-    REG_SPR0PTL,  REG_SPR1PTH,  REG_SPR1PTL,  REG_SPR2PTH,  REG_SPR2PTL,
-    REG_SPR3PTH,  REG_SPR3PTL,  REG_SPR4PTH,  REG_SPR4PTL,  REG_SPR5PTH,
-    REG_SPR5PTL,  REG_SPR6PTH,  REG_SPR6PTL,  REG_SPR7PTH,  REG_SPR7PTL,
-    REG_SPR0POS,  REG_SPR0CTL,  REG_SPR0DATA, REG_SPR0DATB, REG_SPR1POS,
-    REG_SPR1CTL,  REG_SPR1DATA, REG_SPR1DATB, REG_SPR2POS,  REG_SPR2CTL,
-    REG_SPR2DATA, REG_SPR2DATB, REG_SPR3POS,  REG_SPR3CTL,  REG_SPR3DATA,
-    REG_SPR3DATB, REG_SPR4POS,  REG_SPR4CTL,  REG_SPR4DATA, REG_SPR4DATB,
-    REG_SPR5POS,  REG_PR5CTL,   REG_SPR5DATA, REG_SPR5DATB, REG_SPR6POS,
-    REG_SPR6CTL,  REG_SPR6DATA, REG_SPR6DATB, REG_SPR7POS,  REG_SPR7CTL,
-    REG_SPR7DATA, REG_SPR7DATB, REG_COLOR00,  REG_COLOR01,  REG_COLOR02,
-    REG_COLOR03,  REG_COLOR04,  REG_COLOR05,  REG_COLOR06,  REG_COLOR07,
-    REG_COLOR08,  REG_COLOR09,  REG_COLOR10,  REG_COLOR11,  REG_COLOR12,
-    REG_COLOR13,  REG_COLOR14,  REG_COLOR15,  REG_COLOR16,  REG_COLOR17,
-    REG_COLOR18,  REG_COLOR19,  REG_COLOR20,  REG_COLOR21,  REG_COLOR22,
-    REG_COLOR23,  REG_COLOR24,  REG_COLOR25,  REG_COLOR26,  REG_COLOR27,
-    REG_COLOR28,  REG_COLOR29,  REG_COLOR30,  REG_COLOR31,  REG_HTOTAL,
-    REG_HSSTOP,   REG_HBSTRT,   REG_HBSTOP,   REG_VTOTAL,   REG_VSSTOP,
-    REG_VBSTRT,   REG_VBSTOP,   REG_SPRHSTRT, REG_SPRHSTOP, REG_BPLHSTRT,
-    REG_BPLHSTOP, REG_HHPOSW,   REG_HHPOSR,   REG_BEAMCON0, REG_HSSTRT,
-    REG_VSSTRT,   REG_HCENTER,  REG_DIWHIGH,  REG_BPLHMOD,  REG_SPRHPTH,
-    REG_SPRHPTL,  REG_BPLHPTH,  REG_BPLHPTL,  REG_0x1F0,    REG_0x1F2,
-    REG_0x1F4,    REG_0x1F6,    REG_0x1F8,    REG_0x1FA,    REG_FMODE,
-    REG_NO_OP
-};
-typedef REG_CHIPSET ChipsetReg;
-
-#ifdef __cplusplus
-static_assert(REG_NO_OP == (0x1FE >> 1));
-struct ChipsetRegEnum : util::Reflection<ChipsetRegEnum, ChipsetReg>
-{
-    static constexpr long minVal = 0;
-    static constexpr long maxVal = REG_NO_OP;
-    static bool isValid(auto val) { return val >= minVal && val <= maxVal; }
-
-    static const char *prefix() { return "REG"; }
-    static const char *key(ConfigScheme value)
+    static const char *_key(Reg value)
     {
         static const char *name[] = {
 
@@ -333,10 +342,13 @@ struct ChipsetRegEnum : util::Reflection<ChipsetRegEnum, ChipsetReg>
             "NO-OP"
         };
 
-        return isValid(value) ? name[value] : "???";
+        return isValid(value) ? name[isize(value)] : "???";
+    }
+    static const char *help(Reg value)
+    {
+        return "";
     }
 };
-#endif
 
 
 //
@@ -345,11 +357,35 @@ struct ChipsetRegEnum : util::Reflection<ChipsetRegEnum, ChipsetReg>
 
 typedef struct
 {
-    VideoFormat type;
+    //! Machine type (PAL or NTSC)
+    TV type;
+
+    //! After a reset, the emulator runs in warp mode for this amout of seconds
     isize warpBoot;
-    WarpMode warpMode;
-    SyncMode syncMode;
-    isize proposedFps;
+
+    //! Warp mode
+    Warp warpMode;
+
+    //! Emulator speed in percent (100 is native speed)
+    isize speedBoost;
+
+    //! Vertical Synchronization
+    bool vsync;
+
+    //! Number of run-ahead frames (0 = run-ahead is disabled)
+    isize runAhead;
+
+    //! Enable auto-snapshots
+    bool autoSnapshots;
+
+    //! Delay between two auto-snapshots in seconds
+    isize snapshotDelay;
+
+    //! Selects the snapshot compression method
+    Compressor snapshotCompressor;
+
+    //! Indicates whether workspace media files should be compressed
+    bool compressWorkspaces;
 }
 AmigaConfig;
 
@@ -370,23 +406,24 @@ AmigaInfo;
 // Private data types
 //
 
-#ifdef __cplusplus
-
 typedef u32 RunLoopFlags;
 
 namespace RL
 {
 constexpr u32 STOP               = (1 << 0);
 constexpr u32 SOFTSTOP_REACHED   = (1 << 1);
-constexpr u32 BREAKPOINT_REACHED = (1 << 2);
-constexpr u32 WATCHPOINT_REACHED = (1 << 3);
-constexpr u32 CATCHPOINT_REACHED = (1 << 4);
-constexpr u32 SWTRAP_REACHED     = (1 << 5);
-constexpr u32 COPPERBP_REACHED   = (1 << 6);
-constexpr u32 COPPERWP_REACHED   = (1 << 7);
-constexpr u32 AUTO_SNAPSHOT      = (1 << 8);
-constexpr u32 USER_SNAPSHOT      = (1 << 9);
-constexpr u32 SYNC_THREAD        = (1 << 10);
+constexpr u32 EOL_REACHED        = (1 << 2);
+constexpr u32 EOF_REACHED        = (1 << 3);
+constexpr u32 BREAKPOINT_REACHED = (1 << 4);
+constexpr u32 WATCHPOINT_REACHED = (1 << 5);
+constexpr u32 CATCHPOINT_REACHED = (1 << 6);
+constexpr u32 SWTRAP_REACHED     = (1 << 7);
+constexpr u32 BEAMTRAP_REACHED   = (1 << 8);
+constexpr u32 COPPERBP_REACHED   = (1 << 9);
+constexpr u32 COPPERWP_REACHED   = (1 << 10);
+constexpr u32 AUTO_SNAPSHOT      = (1 << 11);
+constexpr u32 USER_SNAPSHOT      = (1 << 12);
+constexpr u32 SYNC_THREAD        = (1 << 13);
 };
 
-#endif
+}

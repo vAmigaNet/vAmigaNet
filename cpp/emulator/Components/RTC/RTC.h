@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
@@ -14,8 +14,21 @@
 
 namespace vamiga {
 
-class RTC : public SubComponent {
+class RTC final : public SubComponent {
 
+    Descriptions descriptions = {{
+
+        .type           = Class::RTC,
+        .name           = "RTC",
+        .description    = "Real-time Clock",
+        .shell          = "rtc"
+    }};
+
+    Options options = {
+
+        Opt::RTC_MODEL
+    };
+    
     // The current configuration
     RTCConfig config = {};
 
@@ -27,90 +40,103 @@ class RTC : public SubComponent {
      * By default, this variable is 0 which means that the Amiga's real-time
      * clock is identical to the one in the host machine.
      */
-    i64 timeDiff;
+    i64 timeDiff = 0;
     
     // The RTC registers
-    u8 reg[4][16];
+    u8 reg[4][16] = {};
     
     // Time stamp of the last call to function getTime()
-    Cycle lastCall;
+    Cycle lastCall = 0;
 
     // Remembers the most recent query of the host machine's real-time clock
-    Cycle lastMeasure;
+    Cycle lastMeasure = 0;
 
     // The result of the most recent query
-    i64 lastMeasuredValue;
+    i64 lastMeasuredValue = 0;
     
     
     //
-    // Constructing
+    // Methods
     //
-    
+
 public:
     
     using SubComponent::SubComponent;
     
-    
-    //
-    // Methods from CoreObject
-    //
-    
-private:
-    
-    const char *getDescription() const override { return "RTC"; }
-    void _dump(Category category, std::ostream& os) const override;
+    RTC& operator= (const RTC& other) {
+        
+        CLONE(timeDiff)
+        CLONE_ARRAY(reg[0])
+        CLONE_ARRAY(reg[1])
+        CLONE_ARRAY(reg[2])
+        CLONE_ARRAY(reg[3])
+        CLONE(lastCall)
+        CLONE(lastMeasure)
+        CLONE(lastMeasuredValue)
 
-    
+        CLONE(config)
+
+        return *this;
+    }
+
+
     //
-    // Methods from CoreComponent
+    // Methods from Serializable
     //
-    
+
 private:
-    
-    void _reset(bool hard) override;
-    
+        
     template <class T>
-    void applyToPersistentItems(T& worker)
+    void serialize(T& worker)
     {
+        if (isSoftResetter(worker)) return;
+
+        worker
+
+        << timeDiff
+        << reg
+        << lastCall
+        << lastMeasure
+        << lastMeasuredValue;
+
+        if (isResetter(worker)) return;
+
         worker
 
         << config.model;
     }
 
-    template <class T>
-    void applyToResetItems(T& worker, bool hard = true)
-    {
-        if (hard) {
-            
-            worker
-            
-            << timeDiff
-            << reg
-            << lastCall
-            << lastMeasure
-            << lastMeasuredValue;
-        }
-    }
-    
-    isize _size() override { COMPUTE_SNAPSHOT_SIZE }
-    u64 _checksum() override { COMPUTE_SNAPSHOT_CHECKSUM }
-    isize _load(const u8 *buffer) override { LOAD_SNAPSHOT_ITEMS }
-    isize _save(u8 *buffer) override { SAVE_SNAPSHOT_ITEMS }
+    void operator << (SerResetter &worker) override;
+    void operator << (SerChecker &worker) override { serialize(worker); }
+    void operator << (SerCounter &worker) override { serialize(worker); }
+    void operator << (SerReader &worker) override { serialize(worker); }
+    void operator << (SerWriter &worker) override { serialize(worker); }
 
-    
+
     //
-    // Configuring
+    // Methods from CoreComponent
     //
-    
+
+public:
+
+    const Descriptions &getDescriptions() const override { return descriptions; }
+
+private:
+
+    void _dump(Category category, std::ostream &os) const override;
+
+
+    //
+    // Methods from Configurable
+    //
+
 public:
     
     const RTCConfig &getConfig() const { return config; }
-    void resetConfig() override;
-    
-    i64 getConfigItem(Option option) const;
-    void setConfigItem(Option option, i64 value);
-    
-    bool isPresent() const { return config.model != RTC_NONE; }
+    const Options &getOptions() const override { return options; }
+    i64 getOption(Opt option) const override;
+    void checkOption(Opt option, i64 value) override;
+    void setOption(Opt option, i64 value) override;
 
     
     //
@@ -146,8 +172,8 @@ private:
 
     // Reads one of the three control registers
     u8 peekD() const { return reg[0][0xD]; };
-    u8 peekE() const { return config.model == RTC_RICOH ? 0 : reg[0][0xE]; }
-    u8 peekF() const { return config.model == RTC_RICOH ? 0 : reg[0][0xF]; }
+    u8 peekE() const { return config.model == RTCRevision::RICOH ? 0 : reg[0][0xE]; }
+    u8 peekF() const { return config.model == RTCRevision::RICOH ? 0 : reg[0][0xF]; }
 
     // Writes one of the three control registers
     void pokeD(u8 value) { reg[0][0xD] = value; }
@@ -158,7 +184,7 @@ private:
      * four register banks. A bank is selected by by bits 0 and 1 in control
      * register D. The OKI clock has a single bank, only.
      */
-    isize bank() const { return config.model == RTC_RICOH ? (reg[0][0xD] & 0b11) : 0; }
+    isize bank() const { return config.model == RTCRevision::RICOH ? (reg[0][0xD] & 0b11) : 0; }
     
     /* Converts the register value to the internally stored time-stamp. This
      * function has to be called *before* a RTC register is *read*.

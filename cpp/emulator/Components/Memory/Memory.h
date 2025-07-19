@@ -2,22 +2,23 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
 
 #include "MemoryTypes.h"
-#include "SubComponent.h"
+#include "MemoryDebugger.h"
 #include "RomFileTypes.h"
 #include "MemUtils.h"
+#include "Buffer.h"
+
+namespace vamiga {
 
 using util::Allocator;
 using util::Buffer;
-
-namespace vamiga {
 
 #define SLOW_RAM_STRT 0xC00000
 #define FAST_RAM_STRT ramExpansion.getBaseAddr()
@@ -101,15 +102,37 @@ assert((x) >= 0xE80000 && (x) <= 0xE8FFFF);
 #define WRITE_EXT_16(x,y)   W16BE(ext + ((x) & extMask), (y))
 
 
-class Memory : public SubComponent {
+class Memory final : public SubComponent, public Inspectable<MemInfo, MemStats> {
+
+    Descriptions descriptions = {{
+
+        .type           = Class::Memory,
+        .name           = "Memory",
+        .description    = "Memory",
+        .shell          = "mem"
+    }};
+
+    Options options = {
+
+        Opt::MEM_CHIP_RAM,
+        Opt::MEM_SLOW_RAM,
+        Opt::MEM_FAST_RAM,
+        Opt::MEM_EXT_START,
+        Opt::MEM_SAVE_ROMS,
+        Opt::MEM_SLOW_RAM_DELAY,
+        Opt::MEM_SLOW_RAM_MIRROR,
+        Opt::MEM_BANKMAP,
+        Opt::MEM_UNMAPPING_TYPE,
+        Opt::MEM_RAM_INIT_PATTERN
+    };
 
     // Current configuration
-    MemoryConfig config = {};
-
-    // Current workload
-    MemoryStats stats = {};
+    MemConfig config = {};
 
 public:
+
+    // Subcomponents
+    MemoryDebugger debugger = MemoryDebugger(amiga);
 
     /* About
      *
@@ -145,7 +168,7 @@ public:
      * Each memory type is represented by three variables:
      *
      *    A pointer to the allocates memory.
-     *    A variable storing the memory size in bytes (in MemoryConfig).
+     *    A variable storing the memory size in bytes (in MemConfig).
      *    A bit mask to emulate address mirroring.
      *
      * The following invariants hold:
@@ -185,98 +208,131 @@ public:
      * Agnus, respectively.
      * See also: updateMemSrcTables()
      */
-    MemorySource cpuMemSrc[256];
-    MemorySource agnusMemSrc[256];
+    MemSrc cpuMemSrc[256];
+    MemSrc agnusMemSrc[256];
 
     // The last value on the data bus
     u16 dataBus;
-
-    // Static buffer for returning textual representations
-    char str[256];
     
 
     //
-    // Initializing
+    // Methods
     //
-    
+
 public:
     
-    using SubComponent::SubComponent;
+    Memory(Amiga& ref);
 
+    Memory& operator= (const Memory& other) {
 
-    //
-    // Methods from CoreObject
-    //
-    
-private:
-    
-    const char *getDescription() const override { return "Memory"; }
-    void _dump(Category category, std::ostream& os) const override;
-    
-    
-    //
-    // Methods from CoreComponent
-    //
-    
-private:
-    
-    void _initialize() override;
-    void _reset(bool hard) override;
-    
-    template <class T>
-    void applyToPersistentItems(T& worker)
-    {
-        worker
+        CLONE(romAllocator)
+        CLONE(womAllocator)
+        CLONE(extAllocator)
+        CLONE(chipAllocator)
+        CLONE(slowAllocator)
+        CLONE(fastAllocator)
+
+        CLONE(womIsLocked)
+        CLONE_ARRAY(cpuMemSrc)
+        CLONE_ARRAY(agnusMemSrc)
+        CLONE(dataBus)
+
+        CLONE(romMask)
+        CLONE(womMask)
+        CLONE(extMask)
+        CLONE(chipMask)
+
+        CLONE(config)
         
-        << config.slowRamDelay
-        << config.bankMap
-        << config.ramInitPattern
-        << config.unmappingType
-        << config.extStart;
+        return *this;
     }
 
+
+    //
+    // Methods from Serializable
+    //
+
+public:
+
+    void _initialize() override;
+
     template <class T>
-    void applyToResetItems(T& worker, bool hard = true)
+    void serialize(T& worker)
     {
         worker
 
-        << womIsLocked
+        // << womIsLocked
         << cpuMemSrc
         << agnusMemSrc
         << dataBus;
+
+        if (isResetter(worker)) return;
+
+        worker
+
+        << womIsLocked
+
+        << romMask
+        << womMask
+        << extMask
+        << chipMask
+
+        << config.extStart
+        << config.saveRoms
+        << config.slowRamDelay
+        << config.slowRamMirror
+        << config.bankMap
+        << config.ramInitPattern
+        << config.unmappingType;
     }
 
-    isize _size() override;
-    u64 _checksum() override;
-    isize _load(const u8 *buffer) override { LOAD_SNAPSHOT_ITEMS }
-    isize _save(u8 *buffer) override { SAVE_SNAPSHOT_ITEMS }
-    isize didLoadFromBuffer(const u8 *buffer) override;
-    isize didSaveToBuffer(u8 *buffer) override;
+    void operator << (SerResetter &worker) override;
+    void operator << (SerChecker &worker) override;
+    void operator << (SerCounter &worker) override;
+    void operator << (SerReader &worker) override;
+    void operator << (SerWriter &worker) override;
 
-    
-    //
-    // Configuring
-    //
-    
-public:
-    
-    const MemoryConfig &getConfig() const { return config; }
-    void resetConfig() override;
-    
-    i64 getConfigItem(Option option) const;
-    void setConfigItem(Option option, i64 value);
 
-    
     //
-    // Analyzing
+    // Methods from CoreComponent
     //
-    
+
 public:
+
+    const Descriptions &getDescriptions() const override { return descriptions; }
+
+private:
+
+    void _dump(Category category, std::ostream &os) const override;
+    void _powerOn() override;
+    void _didReset(bool hard) override;
+
+
+    //
+    // Methods from Inspectable
+    //
+
+public:
+
+    void cacheInfo(MemInfo &result) const override;
+    // void cacheStats(MemStats &result) const override;
+
+private:
     
-    const MemoryStats &getStats() { return stats; }
-    
-    void clearStats() { stats = { }; }
     void updateStats();
+    
+
+    //
+    // Methods from Configurable
+    //
+
+public:
+    
+    const MemConfig &getConfig() const { return config; }
+    const Options &getOptions() const override { return options; }
+    i64 getOption(Opt option) const override;
+    void checkOption(Opt opt, i64 value) override;
+    void setOption(Opt option, i64 value) override;
 
     
     //
@@ -344,25 +400,20 @@ private:
 
 public:
 
+    // Queries ROM information
+    static const RomTraits &getRomTraits(u32 crc);
+    const RomTraits &getRomTraits() const;
+    const RomTraits &getWomTraits() const;
+    const RomTraits &getExtTraits() const;
+
     // Computes a CRC-32 checksum
     u32 romFingerprint() const;
     u32 extFingerprint() const;
-
-    const char *romTitle();
-    const char *romVersion();
-    const char *romReleased();
-    const char *romModel();
-
-    const char *extTitle();
-    const char *extVersion();
-    const char *extReleased();
-    const char *extModel();
 
     // Checks if a certain Rom is present
     bool hasRom() const { return rom != nullptr; }
     bool hasBootRom() const { return hasRom() && config.romSize <= KB(16); }
     bool hasKickRom() const { return hasRom() && config.romSize >= KB(256); }
-    bool hasArosRom() const;
     bool hasWom() const { return wom != nullptr; }
     bool hasExt() const { return ext != nullptr; }
 
@@ -372,19 +423,19 @@ public:
     void eraseExt() { std::memset(ext, 0, config.extSize); }
     
     // Installs a Boot Rom or Kickstart Rom
-    void loadRom(class RomFile &rom) throws;
-    void loadRom(const string &path) throws;
+    void loadRom(class MediaFile &file) throws;
+    void loadRom(const fs::path &path) throws;
     void loadRom(const u8 *buf, isize len) throws;
     
     // Installs a Kickstart expansion Rom
-    void loadExt(class ExtendedRomFile &rom) throws;
-    void loadExt(const string &path) throws;
+    void loadExt(class MediaFile &file) throws;
+    void loadExt(const fs::path &path) throws;
     void loadExt(const u8 *buf, isize len) throws;
 
     // Saves a Rom to disk
-    void saveRom(const string &path) throws;
-    void saveWom(const string &path) throws;
-    void saveExt(const string &path) throws;
+    void saveRom(const fs::path &path) const throws;
+    void saveWom(const fs::path &path) const throws;
+    void saveExt(const fs::path &path) const throws;
 
     // Fixes two bugs in Kickstart 1.2 expansion.library
     void patchExpansionLib();
@@ -400,7 +451,7 @@ public:
 public:
 
     // Returns the memory source for a given address
-    template <Accessor A> MemorySource getMemSrc(u32 addr);
+    template <Accessor A> MemSrc getMemSrc(u32 addr);
     
     // Updates both memory source lookup tables
     void updateMemSrcTables();
@@ -411,25 +462,29 @@ public:
     bool inFastRam(u32 addr);
     bool inRam(u32 addr);
     bool inRom(u32 addr);
+    bool isUnmapped(u32 addr);
 
-    
 private:
 
+    // Called inside updateMemSrcTables()
     void updateCpuMemSrcTable();
     void updateAgnusMemSrcTable();
 
-    
+    // Checks whether Agnus is able to access Slow Ram
+    bool slowRamIsMirroredIn() const;
+
+
     //
     // Accessing memory
     //
     
 public:
 
-    template <Accessor acc, MemorySource src> u8 peek8(u32 addr);
-    template <Accessor acc, MemorySource src> u16 peek16(u32 addr);
-    template <Accessor acc, MemorySource src> u8 spypeek8(u32 addr) const;
-    template <Accessor acc, MemorySource src> u16 spypeek16(u32 addr) const;
-    template <Accessor acc, MemorySource src> u32 spypeek32(u32 addr) const;
+    template <Accessor acc, MemSrc src> u8 peek8(u32 addr);
+    template <Accessor acc, MemSrc src> u16 peek16(u32 addr);
+    template <Accessor acc, MemSrc src> u8 spypeek8(u32 addr) const;
+    template <Accessor acc, MemSrc src> u16 spypeek16(u32 addr) const;
+    template <Accessor acc, MemSrc src> u32 spypeek32(u32 addr) const;
     template <Accessor acc> u8 peek8(u32 addr);
     template <Accessor acc> u16 peek16(u32 addr);
     template <Accessor acc> u8 spypeek8(u32 addr) const;
@@ -437,8 +492,8 @@ public:
     template <Accessor acc> u32 spypeek32(u32 addr) const;
     template <Accessor acc> void spypeek(u32 addr, isize len, u8 *buf) const;
 
-    template <Accessor acc, MemorySource src> void poke8(u32 addr, u8 value);
-    template <Accessor acc, MemorySource src> void poke16(u32 addr, u16 value);
+    template <Accessor acc, MemSrc src> void poke8(u32 addr, u8 value);
+    template <Accessor acc, MemSrc src> void poke16(u32 addr, u16 value);
     template <Accessor acc> void poke8(u32 addr, u8 value);
     template <Accessor acc> void poke16(u32 addr, u16 value);
     
@@ -485,30 +540,26 @@ public:
     //
     
     // Modifies Ram or Rom without causing side effects
-    template <MemorySource src> void patch(u32 addr, u8 value);
+    template <MemSrc src> void patch(u32 addr, u8 value);
     void patch(u32 addr, u8 value);
     void patch(u32 addr, u16 value);
     void patch(u32 addr, u32 value);
     void patch(u32 addr, u8 *buf, isize len);
 
-    
+
+    //
+    // Perfoming periodic tasks
+    //
+
+    // Finishes up the current frame
+    void eofHandler();
+
+
     //
     // Debugging
     //
     
 public:
-    
-    // Returns the name of a chipset register
-    static const char *regName(u32 addr);
-    
-    // Returns 16 bytes of memory as an ASCII string
-    template <Accessor A> const char *ascii(u32 addr, isize numBytes);
-    
-    // Returns a certain amount of bytes as a string containing hex words
-    template <Accessor A> const char *hex(u32 addr, isize numBytes);
-
-    // Creates a memory dump
-    template <Accessor A> void memDump(std::ostream& os, u32 addr, isize numLines = 16);
 
     // Searches RAM and ROM for a certain byte sequence
     std::vector <u32> search(u64 pattern, isize bytes);

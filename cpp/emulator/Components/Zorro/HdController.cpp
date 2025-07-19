@@ -18,28 +18,13 @@
 
 namespace vamiga {
 
-HdController::HdController(Amiga& ref, HardDrive& hdr) : ZorroBoard(ref), drive(hdr)
+HdController::HdController(Amiga& ref, HardDrive& hdr) : ZorroBoard(ref, hdr.objid), drive(hdr)
 {
-    nr = drive.getNr();
-}
 
-const char *
-HdController::getDescription() const
-{
-    switch (nr) {
-            
-        case 0: return "Hd0Con";
-        case 1: return "Hd1Con";
-        case 2: return "Hd2Con";
-        case 3: return "Hd3Con";
-
-        default:
-            fatalError;
-    }
 }
 
 void
-HdController::_dump(Category category, std::ostream& os) const
+HdController::_dump(Category category, std::ostream &os) const
 {
     using namespace util;
 
@@ -47,39 +32,54 @@ HdController::_dump(Category category, std::ostream& os) const
     
     if (category == Category::Config) {
         
-        os << tab("Connected");
-        os << bol(config.connected) << std::endl;
+        dumpConfig(os);
     }
     
     if (category == Category::Stats) {
         
-        for (isize i = 0; IoCommandEnum::isValid(i); i++) {
+        // for (isize i = 0; IoCommandEnum::isValid(i); i++) {
+        for (const auto &i : IoCommandEnum::elements()) {
             
             os << tab(IoCommandEnum::key(i));
-            os << stats.cmdCount[i] << std::endl;
+            os << stats.cmdCount[long(i)] << std::endl;
         }
     }
 }
 
-void
-HdController::_reset(bool hard)
+void 
+HdController::cacheInfo(HdcInfo &result) const
 {
-    RESET_SNAPSHOT_ITEMS(hard)
+    {   SYNCHRONIZED
+        
+        result.nr = objid;
+        result.pluggedIn = pluggedIn();
+        result.state = getHdcState();
+    }
+}
+
+void 
+HdController::cacheStats(HdcStats &result) const
+{
     
+}
+
+void
+HdController::_didReset(bool hard)
+{    
     if (hard) {
         
         // Burn Expansion Rom
         rom.init(exprom, EXPROM_SIZE);
         
         // Make the device name unique
-        char dosName[] = "hrddrive?.device"; dosName[8] = char('0' + nr);
+        char dosName[] = "hrddrive?.device"; dosName[8] = char('0' + objid);
         rom.patch("virtualhd.device", dosName);
 
         // Patch Kickstart Rom (1.2 only)
         mem.patchExpansionLib();
 
         // Set initial state
-        state = pluggedIn() ? STATE_AUTOCONF : STATE_SHUTUP;
+        state = pluggedIn() ? BoardState::AUTOCONF : BoardState::SHUTUP;
         resetHdcState();
         
         // Wipe out previously recorded usage information
@@ -87,28 +87,12 @@ HdController::_reset(bool hard)
     }
 }
 
-void
-HdController::resetConfig()
-{
-    assert(isPoweredOff());
-    auto &defaults = amiga.defaults;
-
-    std::vector <Option> options = {
-        
-        OPT_HDC_CONNECT
-    };
-
-    for (auto &option : options) {
-        setConfigItem(option, defaults.get(option, nr));
-    }
-}
-
 i64
-HdController::getConfigItem(Option option) const
+HdController::getOption(Opt option) const
 {
     switch (option) {
             
-        case OPT_HDC_CONNECT:       return (long)config.connected;
+        case Opt::HDC_CONNECT:       return (i64)config.connected;
 
         default:
             fatalError;
@@ -116,31 +100,39 @@ HdController::getConfigItem(Option option) const
 }
 
 void
-HdController::setConfigItem(Option option, i64 value)
+HdController::checkOption(Opt opt, i64 value)
+{
+    switch (opt) {
+
+        case Opt::HDC_CONNECT:
+            return;
+
+        default:
+            throw(Fault::OPT_UNSUPPORTED);
+    }
+}
+
+void
+HdController::setOption(Opt option, i64 value)
 {
     switch (option) {
 
-        case OPT_HDC_CONNECT:
-            
-            if (!isPoweredOff()) {
-                throw VAError(ERROR_OPT_LOCKED);
-            }
-            
-            if (bool(value) == config.connected) {
-                break;
-            }
+        case Opt::HDC_CONNECT:
 
-            if (value) {
-                
-                config.connected = true;
-                drive.connect();
-                msgQueue.put(MSG_HDC_CONNECT, DriveMsg { i16(nr), true, 0, 0 } );
+            if (bool(value) != config.connected) {
 
-            } else {
-                
-                config.connected = false;
-                drive.disconnect();
-                msgQueue.put(MSG_HDC_CONNECT, DriveMsg { i16(nr), false, 0, 0 } );
+                if (value) {
+
+                    config.connected = true;
+                    drive.connect();
+                    msgQueue.put(Msg::HDC_CONNECT, DriveMsg { i16(objid), true, 0, 0 } );
+
+                } else {
+
+                    config.connected = false;
+                    drive.disconnect();
+                    msgQueue.put(Msg::HDC_CONNECT, DriveMsg { i16(objid), false, 0, 0 } );
+                }
             }
             return;
 
@@ -162,11 +154,11 @@ HdController::updateMemSrcTables()
     if (baseAddr == 0) return;
     
     // Map in this device
-    mem.cpuMemSrc[firstPage()] = MEM_ZOR;
+    mem.cpuMemSrc[firstPage()] = MemSrc::ZOR;
 }
 
 bool
-HdController::isCompatible(u32 crc32)
+HdController::isCompatible(u32 crc32) const
 {
     switch (crc32) {
             
@@ -196,7 +188,7 @@ HdController::isCompatible(u32 crc32)
 }
 
 bool
-HdController::isCompatible()
+HdController::isCompatible() const
 {
     return isCompatible(mem.romFingerprint());
 }
@@ -204,8 +196,8 @@ HdController::isCompatible()
 void
 HdController::resetHdcState()
 {
-    hdcState = HDC_UNDETECTED;
-    msgQueue.put(MSG_HDC_STATE, HdcMsg { i16(nr), hdcState });
+    hdcState = HdcState::UNDETECTED;
+    msgQueue.put(Msg::HDC_STATE, HdcMsg { i16(objid), hdcState });
 }
 
 void
@@ -216,7 +208,7 @@ HdController::changeHdcState(HdcState newState)
         debug(HDR_DEBUG, "Changing state to %s\n", HdcStateEnum::key(newState));
         
         hdcState = newState;
-        msgQueue.put(MSG_HDC_STATE, HdcMsg { i16(nr), hdcState });
+        msgQueue.put(Msg::HDC_STATE, HdcMsg { i16(objid), hdcState });
     }
 }
 
@@ -265,14 +257,14 @@ HdController::spypeek16(u32 addr) const
             return u16(drive.numDrivers());
             
         case EXPROM_SIZE + 4:
-
+            
             // Should auto boot be disabled?
-            if (df0.hasDisk() || drive.bootable == false) {
+            if (df0.hasDisk() || !drive.isBootable()) {
 
                 debug(HDR_DEBUG, "Disabling auto boot\n");
                 return u16(true);
             }
-
+            
             return u16(false);
 
         case EXPROM_SIZE + 6:
@@ -352,54 +344,54 @@ HdController::processCmd(u32 ptr)
     auto length = isize(stdReq.io_Length);
     auto addr = u32(stdReq.io_Data);
     
-    if constexpr (HDR_DEBUG) {
+    if (HDR_DEBUG) {
 
-        [[maybe_unused]] auto unit = mem.spypeek32 <ACCESSOR_CPU> (stdReq.io_Unit + 0x2A);
+        [[maybe_unused]] auto unit = mem.spypeek32 <Accessor::CPU> (stdReq.io_Unit + 0x2A);
         [[maybe_unused]] auto blck = offset / 512;
         
         debug(HDR_DEBUG, "%d.%ld: %s\n", unit, blck, IoCommandEnum::key(cmd));
     }
     
     // Update the usage profile
-    if (IoCommandEnum::isValid(cmd)) stats.cmdCount[cmd]++;
+    if (IoCommandEnum::isValid(cmd)) stats.cmdCount[long(cmd)]++;
     
     switch (cmd) {
             
-        case CMD_READ:
+        case IoCommand::READ:
 
-            if (offset) changeHdcState(HDC_READY);
+            if (offset) changeHdcState(HdcState::READY);
             
             error = drive.read(offset, length, addr);
             actual = u32(length);
             break;
 
-        case CMD_WRITE:
-        case CMD_TD_FORMAT:
+        case IoCommand::WRITE:
+        case IoCommand::TD_FORMAT:
 
             error = drive.write(offset, length, addr);
             actual = u32(length);
             break;
 
-        case CMD_RESET:
-        case CMD_UPDATE:
-        case CMD_CLEAR:
-        case CMD_STOP:
-        case CMD_START:
-        case CMD_FLUSH:
-        case CMD_TD_MOTOR:
-        case CMD_TD_SEEK:
-        case CMD_TD_REMOVE:
-        case CMD_TD_CHANGENUM:
-        case CMD_TD_CHANGESTATE:
-        case CMD_TD_PROTSTATUS:
-        case CMD_TD_ADDCHANGEINT:
-        case CMD_TD_REMCHANGEINT:
+        case IoCommand::RESET:
+        case IoCommand::UPDATE:
+        case IoCommand::CLEAR:
+        case IoCommand::STOP:
+        case IoCommand::START:
+        case IoCommand::FLUSH:
+        case IoCommand::TD_MOTOR:
+        case IoCommand::TD_SEEK:
+        case IoCommand::TD_REMOVE:
+        case IoCommand::TD_CHANGENUM:
+        case IoCommand::TD_CHANGESTATE:
+        case IoCommand::TD_PROTSTATUS:
+        case IoCommand::TD_ADDCHANGEINT:
+        case IoCommand::TD_REMCHANGEINT:
             
             break;
             
         default:
             
-            debug(HDR_DEBUG, "Unsupported cmd: %ld (%s)\n", cmd, IoCommandEnum::key(cmd));
+            debug(HDR_DEBUG, "Unsupported cmd: %ld (%s)\n", long(cmd), IoCommandEnum::key(cmd));
             error = u8(IOERR_NOCMD);
     }
     
@@ -415,24 +407,13 @@ HdController::processInit(u32 ptr)
 {
     debug(HDR_DEBUG, "processInit(%x)\n", ptr);
 
-    auto assignDosName = [&](isize partition, char *name) {
+    auto assignDosName = [&](isize partition) {
 
-        name[0] = 'D';
-        name[1] = 'H';
+        if (objid >= 1) partition += amiga.hd0.numPartitions();
+        if (objid >= 2) partition += amiga.hd1.numPartitions();
+        if (objid >= 3) partition += amiga.hd2.numPartitions();
 
-        if (nr == 0) {
-            
-            name[2] = '0' + char(partition);
-            name[3] = 0;
-            name[4] = 0;
-
-        } else {
-
-            name[2] = '0' + char(nr);
-            name[3] = '0' + char(partition);
-            name[4] = 0;
-
-        }
+        return string("DH") + std::to_string(partition) + (char)0;
     };
 
     // Keep in check with exprom.asm
@@ -457,21 +438,20 @@ HdController::processInit(u32 ptr)
     constexpr u16 devn_bootflags    = 0x54;  // boot flags (not part of DOS packet)
     constexpr u16 devn_segList      = 0x58;  // filesystem segment list (not part of DOS packet)
     
-    u32 unit = mem.spypeek32 <ACCESSOR_CPU> (ptr + devn_unit);
+    u32 unit = mem.spypeek32 <Accessor::CPU> (ptr + devn_unit);
     
     if (unit < drive.ptable.size()) {
 
         debug(HDR_DEBUG, "Initializing partition %d\n", unit);
-        changeHdcState(HDC_INITIALIZING);
+        changeHdcState(HdcState::INITIALIZING);
         
         // Collect hard drive information
         auto &geometry = drive.geometry;
         auto &part = drive.ptable[unit];
-        char dosName[5];
-        assignDosName(unit, dosName);
+        auto dosName = assignDosName(unit);
 
-        u32 name_ptr = mem.spypeek32 <ACCESSOR_CPU> (ptr + devn_dosName);
-        for (isize i = 0; i < isizeof(dosName); i++) {
+        u32 name_ptr = mem.spypeek32 <Accessor::CPU> (ptr + devn_dosName);
+        for (usize i = 0; i < dosName.length(); i++) {
             mem.patch(u32(name_ptr + i), u8(dosName[i]));
         }
 
@@ -481,6 +461,15 @@ HdController::processInit(u32 ptr)
                 segList = driver.segList;
                 debug(HDR_DEBUG, "Using seglist at BPTR %x\n", segList);
             }
+        }
+        
+        // Experimental (don't boot from empty drives such as the default drive)
+        auto bootFlag = part.flags & 1;
+        
+        if (!drive.isBootable()) {
+            
+            debug(HDR_DEBUG, "Removing boot flag\n");
+            bootFlag = 0;
         }
         
         mem.patch(ptr + devn_flags,         u32(part.flags));
@@ -499,7 +488,7 @@ HdController::processInit(u32 ptr)
         mem.patch(ptr + devn_addMask,       u32(0xFFFFFFFE));
         mem.patch(ptr + devn_bootPrio,      u32(0));
         mem.patch(ptr + devn_dName,         u32(part.dosType));
-        mem.patch(ptr + devn_bootflags,     u32(part.flags & 1));
+        mem.patch(ptr + devn_bootflags,     u32(bootFlag)); // u32(part.flags & 1));
         mem.patch(ptr + devn_segList,       u32(segList));
         
         if ((part.dosType & 0xFFFFFFF0) != 0x444f5300) {
@@ -537,7 +526,7 @@ HdController::processResource(u32 ptr)
         
         for (auto it = drivers.begin(); it != drivers.end(); ) {
 
-            if constexpr (HDR_FS_LOAD_ALL) {
+            if (HDR_FS_LOAD_ALL) {
 
                 it++;
                 continue;
@@ -576,11 +565,11 @@ HdController::processInfoReq(u32 ptr)
     try {
 
         // Read driver number
-        u16 num = mem.spypeek16 <ACCESSOR_CPU> (ptr + fsinfo_num);
+        u16 num = mem.spypeek16 <Accessor::CPU> (ptr + fsinfo_num);
         debug(HDR_DEBUG, "Requested info for driver %d\n", num);
 
         if (num >= drive.drivers.size()) {
-            throw VAError(ERROR_HDC_INIT, "Invalid driver number: " + std::to_string(num));
+            throw AppError(Fault::HDC_INIT, "Invalid driver number: " + std::to_string(num));
         }
         auto &driver = drive.drivers[num];
 
@@ -593,7 +582,7 @@ HdController::processInfoReq(u32 ptr)
         // We accept up to three hunks
         auto numHunks = descr.numHunks();
         if (numHunks == 0 || numHunks > 3) {
-            throw VAError(ERROR_HUNK_CORRUPTED);
+            throw AppError(Fault::HUNK_CORRUPTED);
         }
         
         // Pass the hunk information back to the driver
@@ -604,7 +593,7 @@ HdController::processInfoReq(u32 ptr)
             mem.patch(u32(ptr + fsinfo_hunk + 4 * i), descr.hunks[i].memRaw);
         }
 
-    } catch (VAError &e) {
+    } catch (AppError &e) {
 
         warn("processInfoReq: %s\n", e.what());
     }
@@ -621,11 +610,11 @@ HdController::processInitSeg(u32 ptr)
     try {
         
         // Read driver number
-        u32 num = mem.spypeek32 <ACCESSOR_CPU> (ptr + fsinitseg_num);
+        u32 num = mem.spypeek32 <Accessor::CPU> (ptr + fsinitseg_num);
         debug(HDR_DEBUG, "Processing driver %d\n", num);
 
         if (num >= drive.drivers.size()) {
-            throw VAError(ERROR_HDC_INIT, "Invalid driver number: " + std::to_string(num));
+            throw AppError(Fault::HDC_INIT, "Invalid driver number: " + std::to_string(num));
         }
 
         // Read driver
@@ -636,7 +625,7 @@ HdController::processInitSeg(u32 ptr)
         // We accept up to three hunks
         auto numHunks = descr.numHunks();
         if (numHunks == 0 || numHunks > 3) {
-            throw VAError(ERROR_HUNK_CORRUPTED);
+            throw AppError(Fault::HUNK_CORRUPTED);
         }
         
         // Extract pointers to the allocated memory
@@ -644,10 +633,10 @@ HdController::processInitSeg(u32 ptr)
         for (isize i = 0; i < numHunks; i++) {
             
             auto segPtrAddr = u32(ptr + fsinitseg_hunk + 4 * i);
-            auto segPtr = mem.spypeek32 <ACCESSOR_CPU> (segPtrAddr);
+            auto segPtr = mem.spypeek32 <Accessor::CPU> (segPtrAddr);
             
             if (segPtr == 0) {
-                throw VAError(ERROR_HDC_INIT, "Memory allocation failed inside AmigaOS");
+                throw AppError(Fault::HDC_INIT, "Memory allocation failed inside AmigaOS");
             }
             debug(HDR_DEBUG, "Allocated memory at %x\n", segPtr);
             segPtrs.push_back(segPtr);
@@ -680,14 +669,14 @@ HdController::processInitSeg(u32 ptr)
                 if (s.type == HUNK_RELOC32) {
                     
                     if (s.target >= numHunks) {
-                        throw VAError(ERROR_HDC_INIT, "Invalid relocation target");
+                        throw AppError(Fault::HDC_INIT, "Invalid relocation target");
                     }
                     debug(HDR_DEBUG, "Relocation target: %ld\n", s.target);
                     
                     for (auto &offset : s.relocations) {
                         
                         auto addr = segPtrs[i] + 8 + offset;
-                        auto value = mem.spypeek32 <ACCESSOR_CPU> (addr);
+                        auto value = mem.spypeek32 <Accessor::CPU> (addr);
                         debug(HDR_DEBUG, "%x: %x -> %x\n",
                               addr, value, value + segPtrs[s.target] + 8)
                         mem.patch(addr, value + segPtrs[s.target] + 8);
@@ -699,7 +688,7 @@ HdController::processInitSeg(u32 ptr)
         // Remember a BPTR to the seglist
         drive.drivers[num].segList = (segPtrs[0] + 4) >> 2;
         
-    } catch (VAError &e) {
+    } catch (AppError &e) {
 
         warn("processInitSeg: %s\n", e.what());
     }

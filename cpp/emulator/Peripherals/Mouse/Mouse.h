@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
@@ -42,7 +42,29 @@ public:
     bool isShakingRel(double dx);
 };
 
-class Mouse : public SubComponent {
+class Mouse final : public SubComponent {
+
+    Descriptions descriptions = {
+        {
+            .type           = Class::Mouse,
+            .name           = "Mouse1",
+            .description    = "Mouse in Port 1",
+            .shell          = "mouse1"
+        },
+        {
+            .type           = Class::Mouse,
+            .name           = "Mouse2",
+            .description    = "Mouse in Port 2",
+            .shell          = "mouse2"
+        }
+    };
+
+    Options options = {
+
+        Opt::MOUSE_PULLUP_RESISTORS,
+        Opt::MOUSE_SHAKE_DETECTION,
+        Opt::MOUSE_VELOCITY
+    };
 
     // Reference to the control port this device belongs to
     ControlPort &port;
@@ -95,15 +117,31 @@ public:
     
     Mouse(Amiga& ref, ControlPort& pref);
     
-    
+    Mouse& operator= (const Mouse& other) {
+
+        CLONE(leftButton)
+        CLONE(middleButton)
+        CLONE(rightButton)
+        CLONE(mouseX)
+        CLONE(mouseY)
+        CLONE(oldMouseX)
+        CLONE(oldMouseY)
+        CLONE(targetX)
+        CLONE(targetY)
+
+        CLONE(config)
+
+        return *this;
+    }
+
+
     //
     // Methods from CoreObject
     //
     
 private:
     
-    const char *getDescription() const override;
-    void _dump(Category category, std::ostream& os) const override;
+    void _dump(Category category, std::ostream &os) const override;
     
     
     //
@@ -112,37 +150,48 @@ private:
 
 private:
     
-    void _reset(bool hard) override;
-    
     template <class T>
-    void applyToPersistentItems(T& worker)
+    void serialize(T& worker)
     {
-        worker << config.pullUpResistors;
-    }
+        if (isResetter(worker)) {
 
-    template <class T>
-    void applyToResetItems(T& worker, bool hard = true)
-    {
-        
-    }
+            worker 
 
-    isize _size() override { COMPUTE_SNAPSHOT_SIZE }
-    u64 _checksum() override { COMPUTE_SNAPSHOT_CHECKSUM }
-    isize _load(const u8 *buffer) override { LOAD_SNAPSHOT_ITEMS }
-    isize _save(u8 *buffer) override { SAVE_SNAPSHOT_ITEMS }
+            << leftButton
+            << middleButton
+            << rightButton
+            << mouseX
+            << mouseY
+            << oldMouseX
+            << oldMouseY
+            << targetX
+            << targetY;
 
-    
+        } else {
+
+            worker
+
+            << config.pullUpResistors;
+        }
+
+    } SERIALIZERS(serialize);
+
+public:
+
+    const Descriptions &getDescriptions() const override { return descriptions; }
+
+
     //
-    // Configuring
+    // Methods from Configurable
     //
-    
+
 public:
     
     const MouseConfig &getConfig() const { return config; }
-    void resetConfig() override;
-
-    i64 getConfigItem(Option option) const;
-    void setConfigItem(Option option, i64 value);
+    const Options &getOptions() const override { return options; }
+    i64 getOption(Opt option) const override;
+    void checkOption(Opt opt, i64 value) override;
+    void setOption(Opt option, i64 value) override;
     
 private:
     
@@ -171,6 +220,11 @@ public:
     // Returns a horizontal or vertical position change
     i64 getDeltaX();
     i64 getDeltaY();
+
+    // Queries the button state
+    bool LMB() const { return leftButton; }
+    bool MMB() const { return middleButton; }
+    bool RMB() const { return rightButton; }
 
     // Returns the mouse coordinates as they appear in the JOYDAT register
     u16 getXY();

@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
@@ -27,7 +27,7 @@ namespace vamiga {
  * lores mode starting at 0x28, the tables look like this:
  *
  *     bplEvent[0x00] = EVENT_NONE   dasEvent[0x00] = EVENT_NONE
- *     bplEvent[0x01] = EVENT_NONE   dasEvent[0x01] = BUS_REFRESH
+ *     bplEvent[0x01] = EVENT_NONE   dasEvent[0x01] = BusOwner::REFRESH
  *         ...                           ...
  *     bplEvent[0x28] = EVENT_NONE   dasEvent[0x28] = EVENT_NONE
  *     bplEvent[0x29] = BPL_L4       dasEvent[0x29] = DAS_S5_1
@@ -38,7 +38,7 @@ namespace vamiga {
  *     bplEvent[0x2E] = BPL_L5       dasEvent[0x2E] = EVENT_NONE
  *     bplEvent[0x2F] = BPL_L1       dasEvent[0x2F] = DAS_S6_2
  *         ...                           ...
- *     bplEvent[0xE2] = EVENT_NONE   dasEvent[0xE2] = BUS_REFRESH
+ *     bplEvent[0xE2] = EVENT_NONE   dasEvent[0xE2] = BusOwner::REFRESH
  *     bplEvent[0xE3] = EVENT_NONE   dasEvent[0xE3] = EVENT_NONE
  *
  * All events in the BPL_SLOT can be superimposed by two drawing flags (bit 0
@@ -115,8 +115,20 @@ static constexpr usize UPDATE_SIG_RECORDER  = 0b001;
 static constexpr usize UPDATE_BPL_TABLE     = 0b010;
 static constexpr usize UPDATE_DAS_TABLE     = 0b100;
 
-class Sequencer : public SubComponent
+class Sequencer final : public SubComponent
 {
+    Descriptions descriptions = {{
+
+        .type           = Class::Sequencer,
+        .name           = "Sequencer",
+        .description    = "Agnus Sequencer",
+        .shell          = ""
+    }};
+
+    Options options = {
+
+    };
+
     friend class Agnus;
     
     //
@@ -159,7 +171,10 @@ public:
     DDFState ddfInitial;
     DDFState ddf;
 
-    
+    // Remembers the cycle when BPRUN goes up the first time
+    isize bprunUp;
+
+
     //
     // Display Window (DIW)
     //
@@ -204,41 +219,51 @@ public:
     
     Sequencer(Amiga& ref);
 
+    Sequencer& operator= (const Sequencer& other) {
+
+        CLONE(dmaDAS)
+        CLONE_ARRAY(fetch[0])
+        CLONE_ARRAY(fetch[1])
+        CLONE_ARRAY(bplEvent)
+        CLONE_ARRAY(dasEvent)
+        CLONE_ARRAY(nextBplEvent)
+        CLONE_ARRAY(nextDasEvent)
+
+        CLONE(ddfstrt)
+        CLONE(ddfstop)
+        CLONE(ddfInitial)
+        CLONE(ddf)
+        CLONE(bprunUp)
+
+        CLONE(diwstrt)
+        CLONE(diwstop)
+        CLONE(diwhigh)
+        CLONE(vstrt)
+        CLONE(vstop)
+
+        CLONE(sigRecorder)
+
+        CLONE(hsyncActions)
+
+        return *this;
+    }
+
 private:
     
     void initDasEventTable();
 
 
     //
-    // Methods from CoreObject
+    // Methods from Serializable
     //
 
 private:
 
-    const char *getDescription() const override { return "Sequencer"; }
-    void _dump(Category category, std::ostream& os) const override;
-
-
-    //
-    // Methods from CoreComponent
-    //
-
-private:
-
-    void _reset(bool hard) override;
-
     template <class T>
-    void applyToPersistentItems(T& worker)
+    void serialize(T& worker)
     {
-        
-    }
-
-    template <class T>
-    void applyToResetItems(T& worker, bool hard = true)
-    {
-
         worker
-        
+
         << dmaDAS
         << fetch
         << bplEvent
@@ -248,26 +273,51 @@ private:
 
         << ddfstrt
         << ddfstop
-        >> ddfInitial
-        >> ddf
-        
+        << ddfInitial
+        << ddf
+        << bprunUp
+
         << diwstrt
         << diwstop
         << diwhigh
         << vstrt
         << vstop
 
-        >> sigRecorder
+        << sigRecorder
 
         << hsyncActions;
     }
 
-    isize _size() override { COMPUTE_SNAPSHOT_SIZE }
-    u64 _checksum() override { COMPUTE_SNAPSHOT_CHECKSUM }
-    isize _load(const u8 *buffer) override { LOAD_SNAPSHOT_ITEMS }
-    isize _save(u8 *buffer) override { SAVE_SNAPSHOT_ITEMS }
+    void operator << (SerResetter &worker) override;
+    void operator << (SerChecker &worker) override { serialize(worker); }
+    void operator << (SerCounter &worker) override { serialize(worker); }
+    void operator << (SerReader &worker) override { serialize(worker); }
+    void operator << (SerWriter &worker) override { serialize(worker); }
 
-    
+
+    //
+    // Methods from CoreComponent
+    //
+
+public:
+
+    const Descriptions &getDescriptions() const override { return descriptions; }
+
+private:
+
+    void _initialize() override;
+    void _dump(Category category, std::ostream &os) const override;
+
+
+    //
+    // Methods from Configurable
+    //
+
+public:
+
+    const Options &getOptions() const override { return options; }
+
+
     //
     // Accessing registers (SequencerRegs.cpp)
     //

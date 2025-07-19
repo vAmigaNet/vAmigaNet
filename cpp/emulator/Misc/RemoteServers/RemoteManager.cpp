@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #include "config.h"
@@ -21,12 +21,13 @@ RemoteManager::RemoteManager(Amiga& ref) : SubComponent(ref)
         
         &serServer,
         &rshServer,
+        &promServer,
         &gdbServer
     };
 }
 
 void
-RemoteManager::_dump(Category category, std::ostream& os) const
+RemoteManager::_dump(Category category, std::ostream &os) const
 {
     using namespace util;
     
@@ -36,7 +37,7 @@ RemoteManager::_dump(Category category, std::ostream& os) const
 
         for (auto server : servers) {
             
-            auto name = server->getDescription();
+            auto name = server->objectName();
             auto port = server->config.port;
             
             os << tab(string(name));
@@ -51,39 +52,15 @@ RemoteManager::_dump(Category category, std::ostream& os) const
     }
 }
 
-i64
-RemoteManager::getConfigItem(Option option, long id) const
-{
-    switch ((ServerType)id) {
-            
-        case SERVER_SER: return serServer.getConfigItem(option);
-        case SERVER_RSH: return rshServer.getConfigItem(option);
-        case SERVER_GDB: return gdbServer.getConfigItem(option);
-
-        default:
-            fatalError;
-    }
-}
-
 void
-RemoteManager::setConfigItem(Option option, i64 value)
+RemoteManager::cacheInfo(RemoteManagerInfo &result) const
 {
-    for (auto &server : servers) {
-        server->setConfigItem(option, value);
-    }
-}
-
-void
-RemoteManager::setConfigItem(Option option, long id, i64 value)
-{
-    switch ((ServerType)id) {
-            
-        case SERVER_SER: serServer.setConfigItem(option, value); break;
-        case SERVER_RSH: rshServer.setConfigItem(option, value); break;
-        case SERVER_GDB: gdbServer.setConfigItem(option, value); break;
-
-        default:
-            fatalError;
+    {   SYNCHRONIZED
+        
+        info.numLaunching = numLaunching();
+        info.numListening = numListening();
+        info.numConnected = numConnected();
+        info.numErroneous = numErroneous();
     }
 }
 
@@ -126,13 +103,16 @@ RemoteManager::serviceServerEvent()
 
     // Run the launch daemon
     if (serServer.config.autoRun) {
-        serServer.shouldRun() ? serServer._start() : serServer._stop();
+        serServer.shouldRun() ? serServer.start() : serServer.stop();
     }
     if (rshServer.config.autoRun) {
-        rshServer.shouldRun() ? rshServer._start() : rshServer._stop();
+        rshServer.shouldRun() ? rshServer.start() : rshServer.stop();
+    }
+    if (promServer.config.autoRun) {
+        promServer.shouldRun() ? promServer.start() : promServer.stop();
     }
     if (gdbServer.config.autoRun) {
-        gdbServer.shouldRun() ? gdbServer._start() : gdbServer._stop();
+        gdbServer.shouldRun() ? gdbServer.start() : gdbServer.stop();
     }
 
     // Schedule next event

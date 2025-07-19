@@ -2,15 +2,14 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
 
 #include "BootBlockImageTypes.h"
-#include "Reflection.h"
 
 namespace vamiga {
 
@@ -32,12 +31,12 @@ class BootBlockImage {
 public:
     
     // Result of the data inspection
-    BootBlockType type = BB_CUSTOM;
+    BootBlockType type = BootBlockType::CUSTOM;
     const char *name = "Custom boot block";
     
     // Constructors
     BootBlockImage(const u8 *buf1, const u8 *buf2);
-    BootBlockImage(const u8 *buffer);
+    BootBlockImage(const u8 *buf);
     BootBlockImage(const string &name);
     BootBlockImage(BootBlockId id);
     

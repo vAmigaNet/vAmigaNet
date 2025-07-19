@@ -2,87 +2,106 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
 
-#include "Aliases.h"
-#include "Reflection.h"
 #include "BusTypes.h"
 
-enum_long(DMA_DISPLAY_MODE)
-{
-    DMA_DISPLAY_MODE_FG_LAYER,
-    DMA_DISPLAY_MODE_BG_LAYER,
-    DMA_DISPLAY_MODE_ODD_EVEN_LAYERS
-};
-typedef DMA_DISPLAY_MODE DmaDisplayMode;
+namespace vamiga {
 
-#ifdef __cplusplus
-struct DmaDisplayModeEnum : util::Reflection<DmaDisplayModeEnum, DmaDisplayMode>
+//
+// Enumerations
+//
+
+enum class DmaDisplayMode
+{
+    FG_LAYER,
+    BG_LAYER,
+    ODD_EVEN_LAYERS
+};
+
+struct DmaDisplayModeEnum : Reflection<DmaDisplayModeEnum, DmaDisplayMode>
 {
     static constexpr long minVal = 0;
-    static constexpr long maxVal = DMA_DISPLAY_MODE_ODD_EVEN_LAYERS;
-    static bool isValid(auto val) { return val >= minVal && val <= maxVal; }
-
-    static const char *prefix() { return "DMA_DISPLAY_MODE"; }
-    static const char *key(DmaDisplayMode value)
-    {
-        switch (value) {
-                
-            case DMA_DISPLAY_MODE_FG_LAYER:        return "FG_LAYER";
-            case DMA_DISPLAY_MODE_BG_LAYER:        return "BG_LAYER";
-            case DMA_DISPLAY_MODE_ODD_EVEN_LAYERS: return "ODD_EVEN_LAYERS";
-        }
-        return "???";
-    }
-};
-#endif
-
-enum_long(DMA_CHANNEL)
-{
-    DMA_CHANNEL_COPPER,
-    DMA_CHANNEL_BLITTER,
-    DMA_CHANNEL_DISK,
-    DMA_CHANNEL_AUDIO,
-    DMA_CHANNEL_SPRITE,
-    DMA_CHANNEL_BITPLANE,
-    DMA_CHANNEL_CPU,
-    DMA_CHANNEL_REFRESH,
+    static constexpr long maxVal = long(DmaDisplayMode::ODD_EVEN_LAYERS);
     
-    DMA_CHANNEL_COUNT,
-};
-typedef DMA_CHANNEL DmaChannel;
-
-#ifdef __cplusplus
-struct DmaChannelEnum : util::Reflection<DmaChannelEnum, DmaChannel>
-{
-    static constexpr long minVal = 0;
-    static constexpr long maxVal = DMA_CHANNEL_COUNT - 1;
-    static bool isValid(auto val) { return val >= minVal && val <= maxVal; }
-
-    static const char *prefix() { return "DMA_CHANNEL"; }
-    static const char *key(DmaDisplayMode value)
+    static const char *_key(DmaDisplayMode value)
     {
         switch (value) {
                 
-            case DMA_CHANNEL_COPPER:    return "COPPER";
-            case DMA_CHANNEL_BLITTER:   return "BLITTER";
-            case DMA_CHANNEL_DISK:      return "DISK";
-            case DMA_CHANNEL_AUDIO:     return "AUDIO";
-            case DMA_CHANNEL_SPRITE:    return "SPRITE";
-            case DMA_CHANNEL_BITPLANE:  return "BITPLANE";
-            case DMA_CHANNEL_CPU:       return "CPU";
-            case DMA_CHANNEL_REFRESH:   return "REFRESH";
-            case DMA_CHANNEL_COUNT:     return "???";
+            case DmaDisplayMode::FG_LAYER:        return "FG_LAYER";
+            case DmaDisplayMode::BG_LAYER:        return "BG_LAYER";
+            case DmaDisplayMode::ODD_EVEN_LAYERS: return "ODD_EVEN_LAYERS";
+        }
+        return "???";
+    }
+    static const char *help(DmaDisplayMode value)
+    {
+        switch (value) {
+                
+            case DmaDisplayMode::FG_LAYER:        return "Foreground layer";
+            case DmaDisplayMode::BG_LAYER:        return "Background layer";
+            case DmaDisplayMode::ODD_EVEN_LAYERS: return "Mixed layers";
         }
         return "???";
     }
 };
-#endif
+
+enum class DmaChannel
+{
+    COPPER,
+    BLITTER,
+    DISK,
+    AUDIO,
+    SPRITE,
+    BITPLANE,
+    CPU,
+    REFRESH,
+    COUNT
+};
+
+struct DmaChannelEnum : Reflection<DmaChannelEnum, DmaChannel>
+{
+    static constexpr long minVal = 0;
+    static constexpr long maxVal = long(DmaChannel::REFRESH);
+    
+    static const char *_key(DmaChannel value)
+    {
+        switch (value) {
+                
+            case DmaChannel::COPPER:    return "COPPER";
+            case DmaChannel::BLITTER:   return "BLITTER";
+            case DmaChannel::DISK:      return "DISK";
+            case DmaChannel::AUDIO:     return "AUDIO";
+            case DmaChannel::SPRITE:    return "SPRITE";
+            case DmaChannel::BITPLANE:  return "BITPLANE";
+            case DmaChannel::CPU:       return "CPU";
+            case DmaChannel::REFRESH:   return "REFRESH";
+            case DmaChannel::COUNT:     return "???";
+        }
+        return "???";
+    }
+    static const char *help(DmaChannel value)
+    {
+        switch (value) {
+                
+            case DmaChannel::COPPER:    return "Copper DMA";
+            case DmaChannel::BLITTER:   return "Blitter DMA";
+            case DmaChannel::DISK:      return "Disk DMA";
+            case DmaChannel::AUDIO:     return "Audio DMA";
+            case DmaChannel::SPRITE:    return "Sprite DMA";
+            case DmaChannel::BITPLANE:  return "Bitplane DMA";
+            case DmaChannel::CPU:       return "CPU access";
+            case DmaChannel::REFRESH:   return "Refresh cycle";
+            case DmaChannel::COUNT:     return "";
+        }
+        return "???";
+    }
+};
 
 
 //
@@ -93,16 +112,16 @@ typedef struct
 {
     // Global enable switch
     bool enabled;
-
+    
     // Individual enable switch for each DMA channel
-    bool visualize[DMA_CHANNEL_COUNT];
-
+    bool visualize[isize(DmaChannel::COUNT)];
+    
     // Color palette
-    u32 debugColor[DMA_CHANNEL_COUNT];
-
+    u32 debugColor[isize(DmaChannel::COUNT)];
+    
     // Display mode
     DmaDisplayMode displayMode;
-
+    
     // Opacity
     isize opacity;
 }
@@ -129,3 +148,5 @@ typedef struct
     double refreshColor[3];
 }
 DmaDebuggerInfo;
+
+}

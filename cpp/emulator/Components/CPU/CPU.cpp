@@ -2,24 +2,24 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #include "config.h"
+#include "CmdQueue.h"
+#include "Emulator.h"
 #include "CPU.h"
 #include "Agnus.h"
 #include "Amiga.h"
 #include "IOUtils.h"
 #include "Memory.h"
 #include "MsgQueue.h"
-#include "softfloat.h"
 
 //
 // Moira
 //
-
 
 namespace vamiga::moira {
 
@@ -68,19 +68,19 @@ Moira::sync(int cycles)
 u8
 Moira::read8(u32 addr) const
 {
-    return mem.peek8<ACCESSOR_CPU>(addr);
+    return mem.peek8<Accessor::CPU>(addr);
 }
 
 u16
 Moira::read16(u32 addr) const
 {
-    return mem.peek16<ACCESSOR_CPU>(addr);
+    return mem.peek16<Accessor::CPU>(addr);
 }
 
 u16
 Moira::read16Dasm(u32 addr) const
 {
-    auto result = mem.spypeek16<ACCESSOR_CPU>(addr);
+    auto result = mem.spypeek16<Accessor::CPU>(addr);
     
     // For LINE-A instructions, check if the opcode is a software trap
     if (Debugger::isLineAInstr(result)) result = debugger.swTraps.resolve(result);
@@ -97,19 +97,19 @@ Moira::read16OnReset(u32 addr) const
 void
 Moira::write8(u32 addr, u8 val) const
 {
-    if constexpr (XFILES) {
+    if (XFILES) {
         if (addr - reg.pc < 5) xfiles("write8 close to PC %x\n", reg.pc);
     }
-    mem.poke8 <ACCESSOR_CPU> (addr, val);
+    mem.poke8 <Accessor::CPU> (addr, val);
 }
 
 void
 Moira::write16(u32 addr, u16 val) const
 {
-    if constexpr (XFILES) {
+    if (XFILES) {
         if (addr - reg.pc < 5) xfiles("write16 close to PC %x\n", reg.pc);
     }
-    mem.poke16 <ACCESSOR_CPU> (addr, val);
+    mem.poke16 <Accessor::CPU> (addr, val);
 }
 
 u16
@@ -123,25 +123,31 @@ Moira::willExecute(const char *func, Instr I, Mode M, Size S, u16 opcode)
 {
     switch (I) {
 
-        case STOP:
+        case Instr::STOP:
 
             if (!(opcode & 0x2000)) {
-                xfiles("STOP instruction (%x)\n", opcode);
+                // xfiles("STOP instruction (%x)\n", opcode);
             }
             break;
 
-        case TAS:
+        case Instr::TAS:
 
             xfiles("TAS instruction\n");
             break;
 
-        case BKPT:
+        case Instr::BKPT:
 
             xfiles("BKPT instruction\n");
             break;
 
         default:
+        {
+            
+            char str[128];
+            disassemble(str, reg.pc0);
+            printf("%s\n", str);
             break;
+        }
     }
 }
 
@@ -150,7 +156,7 @@ Moira::didExecute(const char *func, Instr I, Mode M, Size S, u16 opcode)
 {
     switch (I) {
 
-        case RESET:
+        case Instr::RESET:
 
             xfiles("RESET instruction\n");
             amiga.softReset();
@@ -162,47 +168,49 @@ Moira::didExecute(const char *func, Instr I, Mode M, Size S, u16 opcode)
 }
 
 void
-Moira::willExecute(ExceptionType exc, u16 vector)
+Moira::willExecute(M68kException exc, u16 vector)
 {
+    /*
     switch (exc) {
 
-        case EXC_RESET:             xfiles("EXC_RESET\n");              break;
-        case EXC_BUS_ERROR:         xfiles("EXC_BUS_ERROR\n");          break;
-        case EXC_ADDRESS_ERROR:     xfiles("EXC_ADDRESS_ERROR\n");      break;
-        case EXC_ILLEGAL:           xfiles("EXC_ILLEGAL\n");            break;
-        case EXC_DIVIDE_BY_ZERO:    xfiles("EXC_DIVIDE_BY_ZERO\n");     break;
-        case EXC_CHK:               xfiles("EXC_CHK\n");                break;
-        case EXC_TRAPV:             xfiles("EXC_TRAPV\n");              break;
-        case EXC_PRIVILEGE:         xfiles("EXC_PRIVILEGE\n");          break;
-        case EXC_TRACE:             xfiles("EXC_TRACE\n");              break;
-        case EXC_LINEA:             xfiles("EXC_LINEA\n");              break;
-        case EXC_LINEF:             xfiles("EXC_LINEF\n");              break;
-        case EXC_FORMAT_ERROR:      xfiles("EXC_FORMAT_ERROR\n");       break;
-        case EXC_IRQ_UNINITIALIZED: xfiles("EXC_IRQ_UNINITIALIZED\n");  break;
-        case EXC_IRQ_SPURIOUS:      xfiles("EXC_IRQ_SPURIOUS\n");       break;
-        case EXC_TRAP:              xfiles("EXC_TRAP\n");               break;
+        case RESET:             xfiles("RESET\n");              break;
+        case EXC_BUS_ERROR:     xfiles("EXC_BUS_ERROR\n");      break;
+        case ADDRESS_ERROR:     xfiles("ADDRESS_ERROR\n");      break;
+        case ILLEGAL:           xfiles("ILLEGAL\n");            break;
+        case DIVIDE_BY_ZERO:    xfiles("DIVIDE_BY_ZERO\n");     break;
+        case CHK:               xfiles("CHK\n");                break;
+        case TRAPV:             xfiles("TRAPV\n");              break;
+        case EXC_PRIVILEGE:     xfiles("EXC_PRIVILEGE\n");      break;
+        case TRACE:             xfiles("TRACE\n");              break;
+        case LINEA:             xfiles("LINEA\n");              break;
+        case LINEF:             xfiles("LINEF\n");              break;
+        case FORMAT_ERROR:      xfiles("FORMAT_ERROR\n");       break;
+        case IRQ_UNINITIALIZED: xfiles("IRQ_UNINITIALIZED\n");  break;
+        case IRQ_SPURIOUS:      xfiles("IRQ_SPURIOUS\n");       break;
+        case TRAP:              xfiles("TRAP\n");               break;
 
         default:
             break;
     }
+    */
 }
 
 void
-Moira::didExecute(ExceptionType exc, u16 vector)
+Moira::didExecute(M68kException exc, u16 vector)
 {
 
 }
 
 void
-Moira::didReset()
+Moira::cpuDidReset()
 {
 
 }
 
 void
-Moira::didHalt()
+Moira::cpuDidHalt()
 {
-    msgQueue.put(MSG_CPU_HALT);
+    msgQueue.put(Msg::CPU_HALT);
 }
 
 void
@@ -234,31 +242,31 @@ Moira::didChangeCAAR(u32 value)
 }
 
 void
-Moira::softstopReached(u32 addr)
+Moira::didReachSoftstop(u32 addr)
 {
     amiga.setFlag(RL::SOFTSTOP_REACHED);
 }
 
 void
-Moira::breakpointReached(u32 addr)
+Moira::didReachBreakpoint(u32 addr)
 {
     amiga.setFlag(RL::BREAKPOINT_REACHED);
 }
 
 void
-Moira::watchpointReached(u32 addr)
+Moira::didReachWatchpoint(u32 addr)
 {
     amiga.setFlag(RL::WATCHPOINT_REACHED);
 }
 
 void
-Moira::catchpointReached(u8 vector)
+Moira::didReachCatchpoint(u8 vector)
 {
     amiga.setFlag(RL::CATCHPOINT_REACHED);
 }
 
 void
-Moira::softwareTrapReached(u32 addr)
+Moira::didReachSoftwareTrap(u32 addr)
 {
     amiga.setFlag(RL::SWTRAP_REACHED);
 }
@@ -278,15 +286,16 @@ CPU::CPU(Amiga& ref) : moira::Moira(ref)
 }
 
 i64
-CPU::getConfigItem(Option option) const
+CPU::getOption(Opt option) const
 {
     switch (option) {
 
-        case OPT_CPU_REVISION:      return (long)config.revision;
-        case OPT_CPU_DASM_REVISION: return (long)config.dasmRevision;
-        case OPT_CPU_DASM_SYNTAX:   return (long)config.dasmSyntax;
-        case OPT_CPU_OVERCLOCKING:  return (long)config.overclocking;
-        case OPT_CPU_RESET_VAL:     return (long)config.regResetVal;
+        case Opt::CPU_REVISION:      return (long)config.revision;
+        case Opt::CPU_DASM_REVISION: return (long)config.dasmRevision;
+        case Opt::CPU_DASM_SYNTAX:   return (long)config.dasmSyntax;
+        case Opt::CPU_DASM_NUMBERS:  return (long)config.dasmNumbers;
+        case Opt::CPU_OVERCLOCKING:  return (long)config.overclocking;
+        case Opt::CPU_RESET_VAL:     return (long)config.regResetVal;
 
         default:
             fatalError;
@@ -294,59 +303,110 @@ CPU::getConfigItem(Option option) const
 }
 
 void
-CPU::setConfigItem(Option option, i64 value)
+CPU::checkOption(Opt opt, i64 value)
 {
-    auto cpuModel = [&](CPURevision rev) { return moira::Model(rev); };
-    auto dasmModel = [&](DasmRevision rev) { return moira::Model(rev); };
-    auto syntax = [&](DasmSyntax rev) { return moira::DasmSyntax(rev); };
+    switch (opt) {
+
+        case Opt::CPU_REVISION:
+
+            if (!CPURevEnum::isValid(value)) {
+                throw AppError(Fault::OPT_INV_ARG, CPURevEnum::keyList());
+            }
+            return;
+
+        case Opt::CPU_DASM_REVISION:
+
+            if (!DasmRevEnum::isValid(value)) {
+                throw AppError(Fault::OPT_INV_ARG, DasmRevEnum::keyList());
+            }
+            return;
+
+        case Opt::CPU_DASM_SYNTAX:
+
+            if (!DasmSyntaxEnum::isValid(value)) {
+                throw AppError(Fault::OPT_INV_ARG, DasmSyntaxEnum::keyList());
+            }
+            return;
+
+        case Opt::CPU_DASM_NUMBERS:
+
+            if (!DasmNumbersEnum::isValid(value)) {
+                throw AppError(Fault::OPT_INV_ARG, DasmNumbersEnum::keyList());
+            }
+            return;
+
+        case Opt::CPU_OVERCLOCKING:
+        case Opt::CPU_RESET_VAL:
+
+            return;
+
+        default:
+            throw(Fault::OPT_UNSUPPORTED);
+    }
+}
+
+void
+CPU::setOption(Opt option, i64 value)
+{
+    auto cpuModel = [&](CPURev rev) { return moira::Model(rev); };
+    auto dasmModel = [&](DasmRev rev) { return moira::Model(rev); };
+    auto syntax = [&](DasmSyntax rev) { return moira::Syntax(rev); };
 
     switch (option) {
 
-        case OPT_CPU_REVISION:
+        case Opt::CPU_REVISION:
 
-            if (!CPURevisionEnum::isValid(value)) {
-                throw VAError(ERROR_OPT_INVARG, CPURevisionEnum::keyList());
-            }
-
-            suspend();
-            config.revision = CPURevision(value);
+            config.revision = CPURev(value);
             setModel(cpuModel(config.revision), dasmModel(config.dasmRevision));
-            resume();
             return;
 
-        case OPT_CPU_DASM_REVISION:
+        case Opt::CPU_DASM_REVISION:
 
-            if (!DasmRevisionEnum::isValid(value)) {
-                throw VAError(ERROR_OPT_INVARG, DasmRevisionEnum::keyList());
-            }
-
-            suspend();
-            config.dasmRevision = DasmRevision(value);
+            config.dasmRevision = DasmRev(value);
             setModel(cpuModel(config.revision), dasmModel(config.dasmRevision));
-            resume();
             return;
 
-        case OPT_CPU_DASM_SYNTAX:
+        case Opt::CPU_DASM_SYNTAX:
 
-            if (!DasmSyntaxEnum::isValid(value)) {
-                throw VAError(ERROR_OPT_INVARG, DasmSyntaxEnum::keyList());
-            }
-
-            suspend();
             config.dasmSyntax = DasmSyntax(value);
             setDasmSyntax(syntax(config.dasmSyntax));
-            resume();
             return;
 
-        case OPT_CPU_OVERCLOCKING:
+        case Opt::CPU_DASM_NUMBERS:
 
-            suspend();
+            config.dasmNumbers = DasmNumbers(value);
+            
+            switch (config.dasmNumbers) {
+                    
+                case DasmNumbers::HEX:
+                    
+                    setDasmNumberFormat(moira::DasmNumberFormat {
+                        .prefix = "$",
+                        .radix = 16,
+                        .upperCase = false,
+                        .plainZero = false
+                    });
+                    return;
+                    
+                case DasmNumbers::DEC:
+                    
+                    setDasmNumberFormat(moira::DasmNumberFormat {
+                        .prefix = "",
+                        .radix = 10,
+                        .upperCase = false,
+                        .plainZero = false
+                    });
+                    return;
+
+            }
+            
+        case Opt::CPU_OVERCLOCKING:
+
             config.overclocking = isize(value);
-            resume();
-            msgQueue.put(MSG_OVERCLOCKING, config.overclocking);
+            msgQueue.put(Msg::OVERCLOCKING, config.overclocking);
             return;
 
-        case OPT_CPU_RESET_VAL:
+        case Opt::CPU_RESET_VAL:
 
             config.regResetVal = u32(value);
             return;
@@ -357,47 +417,24 @@ CPU::setConfigItem(Option option, i64 value)
 }
 
 void
-CPU::resetConfig()
+CPU::_didReset(bool hard)
 {
-    assert(isPoweredOff());
-    auto &defaults = amiga.defaults;
-
-    std::vector <Option> options = {
-
-        OPT_CPU_REVISION,
-        OPT_CPU_OVERCLOCKING,
-        OPT_CPU_RESET_VAL
-    };
-
-    for (auto &option : options) {
-
-        try {
-
-            setConfigItem(option, defaults.get(option));
-
-        } catch (VAError &e) {
-
-            std::cout << "Config error: " << e.what() << std::endl;
-        }
-    }
-}
-
-void
-CPU::_reset(bool hard)
-{    
-    RESET_SNAPSHOT_ITEMS(hard)
-
     if (hard) {
 
+        // Make sure the correct memory banks are seen
+        mem.updateMemSrcTables();
+        
         // Reset the Moira core
         Moira::reset();
         
         // Initialize all data and address registers with the startup value
         for(int i = 0; i < 8; i++) reg.d[i] = reg.a[i] = config.regResetVal;
+        reg.a[7] = reg.isp;
         
-        // Remove all previously recorded instructions
+        // Remove all recorded instructions and set the log flag if needed
         debugger.clearLog();
-        
+        if (emulator.isTracking()) flags |= moira::State::LOGGING;
+
     } else {
         
         /* "The RESET instruction causes the processor to assert RESET for 124
@@ -412,10 +449,12 @@ CPU::_reset(bool hard)
 }
 
 void
-CPU::_inspect() const
+CPU::cacheInfo(CPUInfo &info) const
 {
     {   SYNCHRONIZED
         
+        info.clock = clock;
+
         info.pc0 = getPC0() & 0xFFFFFF;
         info.ird = getIRD();
         info.irc = getIRC();
@@ -435,41 +474,32 @@ CPU::_inspect() const
         info.caar = (u8)getCAAR();
         info.ipl = (u8)getIPL();
         info.fc = (u8)readFC(); // TODO
+        
         info.halt = isHalted();
     }
 }
 
 void
-CPU::_dump(Category category, std::ostream& os) const
+CPU::_dump(Category category, std::ostream &os) const
 {
-    auto print = [&](const string &name, const moira::Guards &guards) {
+    auto print = [&](const string &name, const GuardList &guards) {
 
         for (int i = 0; i < guards.elements(); i++) {
 
-            auto bp =  guards.guardNr(i);
-            auto nr = name + std::to_string(i);
+            auto bp = *guards.guardNr(i);
 
-            os << util::tab(nr);
-            os << util::hex(bp->addr);
+            os << util::tab(name + " " + std::to_string(i));
+            os << util::hex(bp.addr);
 
-            if (!bp->enabled) os << " (Disabled)";
-            else if (bp->ignore) os << " (Disabled for " << util::dec(bp->ignore) << " hits)";
+            if (!bp.enabled) os << " (Disabled)";
+            else if (bp.ignore) os << " (Disabled for " << util::dec(bp.ignore) << " hits)";
             os << std::endl;
         }
     };
 
     if (category == Category::Config) {
 
-        os << util::tab("CPU revision");
-        os << CPURevisionEnum::key(config.revision) << std::endl;
-        os << util::tab("DASM revision");
-        os << DasmRevisionEnum::key(config.dasmRevision) << std::endl;
-        os << util::tab("DASM syntax");
-        os << DasmSyntaxEnum::key(config.dasmSyntax) << std::endl;
-        os << util::tab("Overclocking");
-        os << util::dec(config.overclocking) << std::endl;
-        os << util::tab("Register reset value");
-        os << util::hex(config.regResetVal) << std::endl;
+        dumpConfig(os);
     }
 
     if (category == Category::Registers) {
@@ -524,17 +554,19 @@ CPU::_dump(Category category, std::ostream& os) const
 
         if (flags) {
 
+            using namespace moira::State;
+            
             os << std::endl;
-            if (flags & moira::CPU_IS_HALTED) os << util::tab("") << "CPU_IS_HALTED" << std::endl;
-            if (flags & moira::CPU_IS_STOPPED) os << util::tab("") << "CPU_IS_STOPPED" << std::endl;
-            if (flags & moira::CPU_IS_LOOPING) os << util::tab("") << "CPU_IS_LOOPING" << std::endl;
-            if (flags & moira::CPU_LOG_INSTRUCTION) os << util::tab("") << "CPU_LOG_INSTRUCTION" << std::endl;
-            if (flags & moira::CPU_CHECK_IRQ) os << util::tab("") << "CPU_CHECK_IRQ" << std::endl;
-            if (flags & moira::CPU_TRACE_EXCEPTION) os << util::tab("") << "CPU_TRACE_EXCEPTION" << std::endl;
-            if (flags & moira::CPU_TRACE_FLAG) os << util::tab("") << "CPU_TRACE_FLAG" << std::endl;
-            if (flags & moira::CPU_CHECK_BP) os << util::tab("") << "CPU_CHECK_BP" << std::endl;
-            if (flags & moira::CPU_CHECK_WP) os << util::tab("") << "CPU_CHECK_WP" << std::endl;
-            if (flags & moira::CPU_CHECK_CP) os << util::tab("") << "CPU_CHECK_CP" << std::endl;
+            if (flags & HALTED)    os << util::tab("") << "HALTED" << std::endl;
+            if (flags & STOPPED)   os << util::tab("") << "STOPPED" << std::endl;
+            if (flags & LOOPING)   os << util::tab("") << "LOOPING" << std::endl;
+            if (flags & LOGGING)   os << util::tab("") << "LOGGING" << std::endl;
+            if (flags & CHECK_IRQ) os << util::tab("") << "CHECK_IRQ" << std::endl;
+            if (flags & TRACE_EXC) os << util::tab("") << "TRACE_EXC" << std::endl;
+            if (flags & TRACING)   os << util::tab("") << "TRACING" << std::endl;
+            if (flags & CHECK_BP)  os << util::tab("") << "CHECK_BP" << std::endl;
+            if (flags & CHECK_WP)  os << util::tab("") << "CHECK_WP" << std::endl;
+            if (flags & CHECK_CP)  os << util::tab("") << "CHECK_CP" << std::endl;
             os << std::endl;
         }
 
@@ -545,30 +577,11 @@ CPU::_dump(Category category, std::ostream& os) const
         os << util::tab("Last exception");
         os << util::dec(exception);
     }
-
-    if (category == Category::Fpu) {
-        
-        os << util::tab("FPIAR");
-        os << util::hex(fpu.fpiar) << std::endl;
-        os << util::tab("FPSR");
-        os << util::hex(fpu.fpsr) << std::endl;
-        os << util::tab("FPCR");
-        os << util::hex(fpu.fpcr) << std::endl;
-
-        /*
-         for (isize i = 0; i < 8; i++) {
-
-         auto value = softfloat::floatx80_to_float32(fpu.fpr[i].raw);
-         os << util::tab("FP" + std::to_string(i));
-         os << util::hex(u32(value)) << std::endl;
-         }
-         */
-    }
     
     if (category == Category::Breakpoints) {
 
         if (debugger.breakpoints.elements()) {
-            print("Breakpoint", debugger.breakpoints);
+            print("Breakpoint", breakpoints);
         } else {
             os << "No breakpoints set" << std::endl;
         }
@@ -577,7 +590,7 @@ CPU::_dump(Category category, std::ostream& os) const
     if (category == Category::Watchpoints) {
 
         if (debugger.watchpoints.elements()) {
-            print("Watchpoint", debugger.watchpoints);
+            print("Watchpoint", watchpoints);
         } else {
             os << "No watchpoints set" << std::endl;
         }
@@ -638,25 +651,15 @@ CPU::_trackOff()
     debugger.disableLogging();
 }
 
-isize
-CPU::_load(const u8 *buffer)
+void
+CPU::_didLoad()
 {
-    auto oldModel = config.revision;
+    auto cpuModel = (moira::Model)config.revision;
+    auto dasmModel = (moira::Model)config.dasmRevision;
 
-    util::SerReader reader(buffer);
-    applyToPersistentItems(reader);
-    applyToResetItems(reader);
+    // Rectify the CPU type
+    setModel(cpuModel, dasmModel);
 
-    if (oldModel != config.revision) {
-        createJumpTable(cpuModel, dasmModel);
-    }
-
-    return isize(reader.ptr - buffer);
-}
-
-isize
-CPU::didLoadFromBuffer(const u8 *buffer)
-{
     /* Because we don't save breakpoints and watchpoints in a snapshot, the
      * CPU flags for checking breakpoints and watchpoints can be in a corrupt
      * state after loading. These flags need to be updated according to the
@@ -664,7 +667,6 @@ CPU::didLoadFromBuffer(const u8 *buffer)
      */
     debugger.breakpoints.setNeedsCheck(debugger.breakpoints.elements() != 0);
     debugger.watchpoints.setNeedsCheck(debugger.watchpoints.elements() != 0);
-    return 0;
 }
 
 void
@@ -679,18 +681,18 @@ CPU::resyncOverclockedCpu()
 }
 
 const char *
-CPU::disassembleRecordedInstr(isize i, isize *len)
+CPU::disassembleRecordedInstr(isize i, isize *len) const
 {
     return disassembleInstr(debugger.logEntryAbs((int)i).pc0, len);
 }
 const char *
-CPU::disassembleRecordedWords(isize i, isize len)
+CPU::disassembleRecordedWords(isize i, isize len) const
 {
     return disassembleWords(debugger.logEntryAbs((int)i).pc0, len);
 }
 
 const char *
-CPU::disassembleRecordedFlags(isize i)
+CPU::disassembleRecordedFlags(isize i) const
 {
     static char result[18];
     
@@ -699,7 +701,7 @@ CPU::disassembleRecordedFlags(isize i)
 }
 
 const char *
-CPU::disassembleRecordedPC(isize i)
+CPU::disassembleRecordedPC(isize i) const
 {
     static char result[16];
 
@@ -708,7 +710,7 @@ CPU::disassembleRecordedPC(isize i)
 }
 
 const char *
-CPU::disassembleAddr(u32 addr)
+CPU::disassembleAddr(u32 addr) const
 {
     static char result[16];
 
@@ -717,7 +719,7 @@ CPU::disassembleAddr(u32 addr)
 }
 
 const char *
-CPU::disassembleWord(u16 value)
+CPU::disassembleWord(u16 value) const
 {
     static char result[16];
 
@@ -726,7 +728,7 @@ CPU::disassembleWord(u16 value)
 }
 
 const char *
-CPU::disassembleInstr(u32 addr, isize *len)
+CPU::disassembleInstr(u32 addr, isize *len) const
 {
     static char result[128];
 
@@ -737,34 +739,34 @@ CPU::disassembleInstr(u32 addr, isize *len)
 }
 
 const char *
-CPU::disassembleWords(u32 addr, isize len)
+CPU::disassembleWords(u32 addr, isize len) const
 {
     static char result[64];
 
-    dump16(result, addr, len);
+    dump16(result, addr, (int)len);
     return result;
 }
 
 const char *
-CPU::disassembleInstr(isize *len)
+CPU::disassembleInstr(isize *len) const
 {
     return disassembleInstr(reg.pc0, len);
 }
 
 const char *
-CPU::disassembleWords(isize len)
+CPU::disassembleWords(isize len) const
 {
     return disassembleWords(reg.pc0, len);
 }
 
 const char *
-CPU::disassemblePC()
+CPU::disassemblePC() const
 {
     return disassembleAddr(reg.pc0);
 }
 
 void
-CPU::dumpLogBuffer(std::ostream& os, isize count)
+CPU::dumpLogBuffer(std::ostream &os, isize count) const
 {
     isize numBytes = 0;
     isize num = debugger.loggedInstructions();
@@ -790,19 +792,19 @@ CPU::dumpLogBuffer(std::ostream& os, isize count)
 }
 
 void
-CPU::dumpLogBuffer(std::ostream& os)
+CPU::dumpLogBuffer(std::ostream &os) const
 {
     dumpLogBuffer(os, debugger.loggedInstructions());
 }
 
 void
-CPU::disassembleRange(std::ostream& os, u32 addr, isize count)
+CPU::disassembleRange(std::ostream &os, u32 addr, isize count) const
 {
     disassembleRange(os, std::pair<u32, u32>(addr, UINT32_MAX), count);
 }
 
 void
-CPU::disassembleRange(std::ostream& os, std::pair<u32, u32> range, isize max)
+CPU::disassembleRange(std::ostream &os, std::pair<u32, u32> range, isize max) const
 {
     u32 addr = range.first;
     isize numBytes = 0;
@@ -838,145 +840,34 @@ CPU::disassembleRange(std::ostream& os, std::pair<u32, u32> range, isize max)
 void
 CPU::jump(u32 addr)
 {
-    {   SUSPENDED
-        
-        debugger.jump(addr);
+    debugger.jump(addr);
+}
+
+void
+CPU::processCommand(const Command &cmd)
+{
+    isize nr = isize(cmd.value);
+    u32 addr = u32(cmd.value);
+    auto guards = (GuardList *)cmd.sender;
+
+    switch (cmd.type) {
+
+        case Cmd::GUARD_SET_AT:      guards->setAt(addr); break;
+        case Cmd::GUARD_REMOVE_NR:   guards->remove(nr); break;
+        case Cmd::GUARD_MOVE_NR:     guards->moveTo(nr, u32(cmd.value2)); break;
+        case Cmd::GUARD_IGNORE_NR:   guards->ignore(nr, long(cmd.value2)); break;
+        case Cmd::GUARD_REMOVE_AT:   guards->removeAt(addr); break;
+        case Cmd::GUARD_REMOVE_ALL:  guards->removeAll(); break;
+        case Cmd::GUARD_ENABLE_NR:   guards->enable(nr); break;
+        case Cmd::GUARD_ENABLE_AT:   guards->enableAt(addr); break;
+        case Cmd::GUARD_ENABLE_ALL:  guards->enableAll(); break;
+        case Cmd::GUARD_DISABLE_NR:  guards->disable(nr); break;
+        case Cmd::GUARD_DISABLE_AT:  guards->disableAt(addr); break;
+        case Cmd::GUARD_DISABLE_ALL: guards->disableAll(); break;
+            
+        default:
+            fatalError;
     }
-}
-
-void
-CPU::setBreakpoint(u32 addr)
-{
-    if (debugger.breakpoints.isSetAt(addr)) throw VAError(ERROR_BP_ALREADY_SET, addr);
-
-    debugger.breakpoints.setAt(addr);
-    msgQueue.put(MSG_BREAKPOINT_UPDATED);
-}
-
-void
-CPU::deleteBreakpoint(isize nr)
-{
-    if (!debugger.breakpoints.isSet(nr)) throw VAError(ERROR_BP_NOT_FOUND, nr);
-
-    debugger.breakpoints.remove(nr);
-    msgQueue.put(MSG_BREAKPOINT_UPDATED);
-}
-
-void
-CPU::enableBreakpoint(isize nr)
-{
-    if (!debugger.breakpoints.isSet(nr)) throw VAError(ERROR_BP_NOT_FOUND, nr);
-
-    debugger.breakpoints.enable(nr);
-    msgQueue.put(MSG_BREAKPOINT_UPDATED);
-}
-
-void
-CPU::disableBreakpoint(isize nr)
-{
-    if (!debugger.breakpoints.isSet(nr)) throw VAError(ERROR_BP_NOT_FOUND, nr);
-
-    debugger.breakpoints.disable(nr);
-    msgQueue.put(MSG_BREAKPOINT_UPDATED);
-}
-
-void
-CPU::ignoreBreakpoint(isize nr, isize count)
-{
-    if (!debugger.breakpoints.isSet(nr)) throw VAError(ERROR_BP_NOT_FOUND, nr);
-
-    debugger.breakpoints.ignore(nr, count);
-    msgQueue.put(MSG_BREAKPOINT_UPDATED);
-}
-
-void
-CPU::setWatchpoint(u32 addr)
-{
-    if (debugger.watchpoints.isSetAt(addr)) throw VAError(ERROR_WP_ALREADY_SET, addr);
-
-    debugger.watchpoints.setAt(addr);
-    msgQueue.put(MSG_WATCHPOINT_UPDATED);
-}
-
-void
-CPU::deleteWatchpoint(isize nr)
-{
-    if (!debugger.watchpoints.isSet(nr)) throw VAError(ERROR_WP_NOT_FOUND, nr);
-
-    debugger.watchpoints.remove(nr);
-    msgQueue.put(MSG_WATCHPOINT_UPDATED);
-}
-
-void
-CPU::enableWatchpoint(isize nr)
-{
-    if (!debugger.watchpoints.isSet(nr)) throw VAError(ERROR_WP_NOT_FOUND, nr);
-
-    debugger.watchpoints.enable(nr);
-    msgQueue.put(MSG_WATCHPOINT_UPDATED);
-}
-
-void
-CPU::disableWatchpoint(isize nr)
-{
-    if (!debugger.watchpoints.isSet(nr)) throw VAError(ERROR_WP_NOT_FOUND, nr);
-
-    debugger.watchpoints.disable(nr);
-    msgQueue.put(MSG_WATCHPOINT_UPDATED);
-}
-
-void
-CPU::ignoreWatchpoint(isize nr, isize count)
-{
-    if (!debugger.watchpoints.isSet(nr)) throw VAError(ERROR_WP_NOT_FOUND, nr);
-
-    debugger.watchpoints.ignore(nr, count);
-    msgQueue.put(MSG_WATCHPOINT_UPDATED);
-}
-
-void
-CPU::setCatchpoint(u8 vector)
-{
-    if (debugger.catchpoints.isSetAt(vector)) throw VAError(ERROR_CP_ALREADY_SET, vector);
-
-    debugger.catchpoints.setAt(vector);
-    msgQueue.put(MSG_CATCHPOINT_UPDATED);
-}
-
-void
-CPU::deleteCatchpoint(isize nr)
-{
-    if (!debugger.catchpoints.isSet(nr)) throw VAError(ERROR_CP_NOT_FOUND, nr);
-
-    debugger.catchpoints.remove(nr);
-    msgQueue.put(MSG_CATCHPOINT_UPDATED);
-}
-
-void
-CPU::enableCatchpoint(isize nr)
-{
-    if (!debugger.catchpoints.isSet(nr)) throw VAError(ERROR_CP_NOT_FOUND, nr);
-
-    debugger.catchpoints.enable(nr);
-    msgQueue.put(MSG_CATCHPOINT_UPDATED);
-}
-
-void
-CPU::disableCatchpoint(isize nr)
-{
-    if (!debugger.catchpoints.isSet(nr)) throw VAError(ERROR_CP_NOT_FOUND, nr);
-
-    debugger.catchpoints.disable(nr);
-    msgQueue.put(MSG_CATCHPOINT_UPDATED);
-}
-
-void
-CPU::ignoreCatchpoint(isize nr, isize count)
-{
-    if (!debugger.catchpoints.isSet(nr)) throw VAError(ERROR_CP_NOT_FOUND, nr);
-
-    debugger.catchpoints.ignore(nr, count);
-    msgQueue.put(MSG_CATCHPOINT_UPDATED);
 }
 
 }

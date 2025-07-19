@@ -43,7 +43,7 @@ DiskController::setDSKLEN(u16 oldValue, u16 newValue)
     dsklen = newValue;
 
     // Initialize checksum (for debugging only)
-    if constexpr (DSK_CHECKSUM) {
+    if (DSK_CHECKSUM) {
         
         checkcnt = 0;
         check1 = util::fnvInit32();
@@ -53,27 +53,27 @@ DiskController::setDSKLEN(u16 oldValue, u16 newValue)
     // Disable DMA if bit 15 (DMAEN) is zero
     if (!(newValue & 0x8000)) {
 
-        setState(DRIVE_DMA_OFF);
+        setState(DriveDmaState::OFF);
         clearFifo();
     }
     
     // Enable DMA if bit 15 (DMAEN) has been written twice
     if (oldValue & newValue & 0x8000) {
 
-        if (state != DRIVE_DMA_OFF) {
-            xfiles("DSKLEN: Written in DMA state %ld\n", state);
+        if (state != DriveDmaState::OFF) {
+            xfiles("DSKLEN: Written in DMA state %ld\n", isize(state));
         }
 
         // Only proceed if there are bytes to process
-        if ((dsklen & 0x3FFF) == 0) { paula.raiseIrq(INT_DSKBLK); return; }
+        if ((dsklen & 0x3FFF) == 0) { paula.raiseIrq(IrqSource::DSKBLK); return; }
 
         // In debug mode, reset head position to generate reproducable results
-        if constexpr (ALIGN_HEAD) if (drive) drive->head.offset = 0;
+        if (ALIGN_HEAD) if (drive) drive->head.offset = 0;
 
         // Check if the WRITE bit (bit 14) also has been written twice
         if (oldValue & newValue & 0x4000) {
             
-            setState(DRIVE_DMA_WRITE);
+            setState(DriveDmaState::WRITE);
             clearFifo();
             
         } else {
@@ -82,13 +82,13 @@ DiskController::setDSKLEN(u16 oldValue, u16 newValue)
             if (GET_BIT(paula.adkcon, 10)) {
                 
                 // Wait with reading until a sync mark has been found
-                setState(DRIVE_DMA_WAIT);
+                setState(DriveDmaState::WAIT);
                 clearFifo();
                 
             } else {
                 
                 // Start reading immediately
-                setState(DRIVE_DMA_READ);
+                setState(DriveDmaState::READ);
                 clearFifo();
             }
         }
@@ -131,7 +131,7 @@ DiskController::computeDSKBYTR() const
     u16 result = incoming;
 
     // DMAON
-    if (agnus.dskdma() && state != DRIVE_DMA_OFF) SET_BIT(result, 14);
+    if (agnus.dskdma() && state != DriveDmaState::OFF) SET_BIT(result, 14);
 
     // DSKWRITE
     if (dsklen & 0x4000) SET_BIT(result, 13);
@@ -166,10 +166,10 @@ DiskController::driveStatusFlags() const
 {
     u8 result = 0xFF;
     
-    if (config.connected[0]) result &= df[0]->driveStatusFlags();
-    if (config.connected[1]) result &= df[1]->driveStatusFlags();
-    if (config.connected[2]) result &= df[2]->driveStatusFlags();
-    if (config.connected[3]) result &= df[3]->driveStatusFlags();
+    result &= df[0]->driveStatusFlags();
+    result &= df[1]->driveStatusFlags();
+    result &= df[2]->driveStatusFlags();
+    result &= df[3]->driveStatusFlags();
     
     return result;
 }
@@ -185,12 +185,12 @@ DiskController::PRBdidChange(u8 oldValue, u8 newValue)
     
     // Iterate over all connected drives
     for (isize i = 0; i < 4; i++) {
-        if (!config.connected[i]) continue;
-        
-        // Inform the drive and determine the selected one
-        df[i]->PRBdidChange(oldValue, newValue);
-        if (df[i]->isSelected()) {
-            selected = i;
+
+        if (df[i]->isConnected()) {
+            
+            // Inform the drive and determine the selected one
+            df[i]->PRBdidChange(oldValue, newValue);
+            if (df[i]->isSelected()) selected = i;
         }
     }
 
@@ -203,7 +203,7 @@ DiskController::PRBdidChange(u8 oldValue, u8 newValue)
         }
 
         // Inform the GUI
-        msgQueue.put(MSG_DRIVE_SELECT, selected);
+        msgQueue.put(Msg::DRIVE_SELECT, selected);
     }
 }
 

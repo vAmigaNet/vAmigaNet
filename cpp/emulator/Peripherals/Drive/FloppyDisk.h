@@ -2,14 +2,15 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
 
 #include "FloppyDiskTypes.h"
+#include "DriveTypes.h"
 #include "CoreComponent.h"
 
 namespace vamiga {
@@ -57,7 +58,8 @@ class FloppyDisk : public CoreObject {
     friend class ADFFile;
     friend class EADFFile;
     friend class IMGFile;
-    
+    friend class STFile;
+
 public:
     
     // The form factor of this disk
@@ -80,16 +82,9 @@ private:
         i32 cylinder[84][2];
         i32 track[168];
     } length;
-    
-    
-    // Indicates if this disk is write protected
-    bool writeProtected = false;
-    
-    // Indicates if the disk has been written to
-    bool modified = false;
-    
-    // Checksum of this disk if it was created from an ADF file, 0 otherwise
-    u64 fnv = 0;
+
+    // Disk state
+    long flags = 0;
     
     
     //
@@ -99,27 +94,41 @@ private:
 public:
     
     FloppyDisk() = default;
-    FloppyDisk(Diameter dia, Density den) throws { init(dia, den); }
-    FloppyDisk(const FloppyFile &file) throws { init(file); }
-    FloppyDisk(util::SerReader &reader, Diameter dia, Density den) throws {
-        init(reader, dia, den); }
+    FloppyDisk(Diameter dia, Density den, bool wp = false) throws { init(dia, den, wp); }
+    FloppyDisk(const FloppyFile &file, bool wp = false) throws { init(file, wp); }
+    FloppyDisk(SerReader &reader, Diameter dia, Density den, bool wp = false) throws {
+        init(reader, dia, den, wp); }
     ~FloppyDisk();
     
 private:
     
-    void init(Diameter dia, Density den) throws;
-    void init(const class FloppyFile &file) throws;
-    void init(util::SerReader &reader, Diameter dia, Density den) throws;
+    void init(Diameter dia, Density den, bool wp) throws;
+    void init(const class FloppyFile &file, bool wp) throws;
+    void init(SerReader &reader, Diameter dia, Density den, bool wp) throws;
+
     
-    
+public:
+
+    FloppyDisk& operator= (const FloppyDisk& other) {
+
+        CLONE(diameter)
+        CLONE(density)
+        CLONE_ARRAY(data.raw)
+        CLONE_ARRAY(length.track)
+        CLONE(flags)
+
+        return *this;
+    }
+
+
     //
     // Methods from CoreObject
     //
     
 private:
     
-    const char *getDescription() const override { return "Disk"; }
-    void _dump(Category category, std::ostream& os) const override;
+    const char *objectName() const override { return "Disk"; }
+    void _dump(Category category, std::ostream &os) const override;
     
     
     //
@@ -129,17 +138,18 @@ private:
 private:
     
     template <class T>
-    void applyToPersistentItems(T& worker)
+    void serialize(T& worker)
     {
+        if (isResetter(worker)) return;
+
         worker
-        
+
         << diameter
         << density
         << data.raw
-        << writeProtected
-        << modified;
-    }
-    
+        << length.track
+        << flags;
+    };
 
     //
     // Performing sanity checks
@@ -166,16 +176,21 @@ public:
     Diameter getDiameter() const { return diameter; }
     Density getDensity() const { return density; }
     
-    isize numCyls() const { return diameter == INCH_525 ? 42 : 84; }
+    isize numCyls() const { return diameter == Diameter::INCH_525 ? 42 : 84; }
     isize numHeads() const { return 2; }
-    isize numTracks() const { return diameter == INCH_525 ? 84 : 168; }
+    isize numTracks() const { return diameter == Diameter::INCH_525 ? 84 : 168; }
     
-    bool isWriteProtected() const { return writeProtected; }
-    void setWriteProtection(bool value) { writeProtected = value; }
-    
-    bool isModified() const { return modified; }
-    void setModified(bool value) { modified = value; }
-        
+    bool isWriteProtected() const { return flags & long(DiskFlags::PROTECTED); }
+    void setWriteProtection(bool value) { value ? flags |= long(DiskFlags::PROTECTED) : flags &= ~long(DiskFlags::PROTECTED); }
+
+    bool isModified() const { return flags & long(DiskFlags::MODIFIED); }
+    void setModified(bool value) { value ? flags |= long(DiskFlags::MODIFIED) : flags &= ~long(DiskFlags::MODIFIED); }
+
+    bool getFlag(DiskFlags mask) { return (flags & long(mask)) == long(mask); }
+    void setFlag(DiskFlags mask, bool value) { value ? flags |= long(mask) : flags &= ~long(mask); }
+    void setFlag(DiskFlags flag) { setFlag(flag, true); }
+    void clearFlag(DiskFlags flag) { setFlag(flag, false); }
+
     
     //
     // Reading and writing
@@ -235,12 +250,12 @@ public:
     
 public:
     
-    static void encodeMFM(u8 *dst, u8 *src, isize count);
-    static void decodeMFM(u8 *dst, u8 *src, isize count);
+    static void encodeMFM(u8 *dst, const u8 *src, isize count);
+    static void decodeMFM(u8 *dst, const u8 *src, isize count);
     
-    static void encodeOddEven(u8 *dst, u8 *src, isize count);
-    static void decodeOddEven(u8 *dst, u8 *src, isize count);
-    
+    static void encodeOddEven(u8 *dst, const u8 *src, isize count);
+    static void decodeOddEven(u8 *dst, const u8 *src, isize count);
+
     static void addClockBits(u8 *dst, isize count);
     static u8 addClockBits(u8 value, u8 previous);
     

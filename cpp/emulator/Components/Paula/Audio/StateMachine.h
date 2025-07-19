@@ -17,10 +17,38 @@
 namespace vamiga {
 
 template <isize nr>
-class StateMachine : public SubComponent {
+class StateMachine final : public SubComponent, public Inspectable<StateMachineInfo> {
 
-    // Result of the latest inspection
-    mutable StateMachineInfo info = {};
+    Descriptions descriptions = {
+        {
+            .type           = Class::StateMachine,
+            .name           = "StateMachine1",
+            .description    = "Audio State Machine 1",
+            .shell          = ""
+        },
+        {
+            .type           = Class::StateMachine,
+            .name           = "StateMachine2",
+            .description    = "Audio State Machine 2",
+            .shell          = ""
+        },
+        {
+            .type           = Class::StateMachine,
+            .name           = "StateMachine3",
+            .description    = "Audio State Machine 3",
+            .shell          = ""
+        },
+        {
+            .type           = Class::StateMachine,
+            .name           = "StateMachine4",
+            .description    = "Audio State Machine 4",
+            .shell          = ""
+        }
+    };
+
+    Options options = {
+
+    };
 
 public:
 
@@ -83,44 +111,39 @@ public:
 
     StateMachine(Amiga& ref);
 
-    
-    //
-    // Methods from CoreObject
-    //
-    
-private:
-    
-    const char *getDescription() const override;
-    void _dump(Category category, std::ostream& os) const override;
+    StateMachine& operator= (const StateMachine& other) {
 
-    
-    //
-    // Methods from CoreComponent
-    //
-    
-private:
-    
-    void _reset(bool hard) override;
-    void _inspect() const override;
-    
-    template <class T>
-    void applyToPersistentItems(T& worker)
-    {
-        
+        CLONE(state)
+        CLONE(buffer)
+        CLONE(audlenLatch)
+        CLONE(audlen)
+        CLONE(audperLatch)
+        CLONE(audper)
+        CLONE(audvolLatch)
+        CLONE(audvol)
+        CLONE(auddat)
+        CLONE(audlcLatch)
+        CLONE(audDR)
+        CLONE(intreq2)
+        CLONE(enablePenlo)
+        CLONE(enablePenhi)
+        CLONE(clock)
+
+        return *this;
     }
 
-    template <class T>
-    void applyToResetItems(T& worker, bool hard = true)
-    {
-        if (hard) {
-            
-            worker
-            
-            << clock;
-        }
 
-        worker
+    //
+    // Methods from Serializable
+    //
+    
+private:
         
+    template <class T>
+    void serialize(T& worker)
+    {
+        worker
+
         << state
         << buffer
         << audlenLatch
@@ -135,23 +158,47 @@ private:
         << intreq2
         << enablePenlo
         << enablePenhi;
-    }
 
-    isize _size() override { COMPUTE_SNAPSHOT_SIZE }
-    u64 _checksum() override { COMPUTE_SNAPSHOT_CHECKSUM }
-    isize _load(const u8 *buffer) override { LOAD_SNAPSHOT_ITEMS }
-    isize _save(u8 *buffer) override { SAVE_SNAPSHOT_ITEMS }
+        if (isSoftResetter(worker)) return;
 
-    
+        worker
+
+        << clock;
+
+    } SERIALIZERS(serialize);
+
+
     //
-    // Analyzing
+    // Methods from CoreComponent
     //
-    
+
 public:
-    
-    StateMachineInfo getInfo() const { return CoreComponent::getInfo(info); }
 
-    
+    const Descriptions &getDescriptions() const override { return descriptions; }
+
+private:
+
+    void _dump(Category category, std::ostream &os) const override;
+
+
+    //
+    // Methods from Inspectable
+    //
+
+public:
+
+    void cacheInfo(StateMachineInfo &result) const override;
+
+
+    //
+    // Methods from Configurable
+    //
+
+public:
+
+    const Options &getOptions() const override { return options; }
+
+
     //
     // Performing state machine actions
     //
@@ -231,6 +278,7 @@ private:
     void move_101_010();
     void move_010_011();
     void move_011_000();
+    void move_010_000();
     void move_011_010();
 
     

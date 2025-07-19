@@ -9,53 +9,60 @@
 
 #pragma once
 
-#include "Aliases.h"
-#include "Reflection.h"
+#include "Infrastructure/Reflection.h"
+
+namespace vamiga {
 
 //
 // Enumerations
 //
 
-enum_long(DRIVE_DMA_STATE)
+enum class DriveDmaState
 {
-    DRIVE_DMA_OFF,     // Drive is idle
-
-    DRIVE_DMA_WAIT,    // Drive is waiting for the sync word
-    DRIVE_DMA_READ,    // Drive is reading
-
-    DRIVE_DMA_WRITE,   // Drive is writing
-    DRIVE_DMA_FLUSH,   // Drive is finishing up the write process
+    OFF,     // Drive is idle
+    
+    WAIT,    // Drive is waiting for the sync word
+    READ,    // Drive is reading
+    
+    WRITE,   // Drive is writing
+    FLUSH,   // Drive is finishing up the write process
 };
-typedef DRIVE_DMA_STATE DriveState;
 
-#ifdef __cplusplus
-struct DriveStateEnum : util::Reflection<DriveStateEnum, DriveState>
+struct DriveStateEnum : Reflection<DriveStateEnum, DriveDmaState>
 {
     static constexpr long minVal = 0;
-    static constexpr long maxVal = DRIVE_DMA_FLUSH;
-    static bool isValid(auto val) { return val >= minVal && val <= maxVal; }
-    
-    static const char *prefix()
-    {
-        return "DRIVE_DMA";
-    }
-    
-    static const char *key(DriveState value)
+    static constexpr long maxVal = long(DriveDmaState::FLUSH);
+        
+    static const char *_key(DriveDmaState value)
     {
         switch (value) {
                 
-            case DRIVE_DMA_OFF:    return "OFF";
-
-            case DRIVE_DMA_WAIT:   return "WAIT";
-            case DRIVE_DMA_READ:   return "READ";
-
-            case DRIVE_DMA_WRITE:  return "WRITE";
-            case DRIVE_DMA_FLUSH:  return "FLUSH";
+            case DriveDmaState::OFF:    return "OFF";
+                
+            case DriveDmaState::WAIT:   return "WAIT";
+            case DriveDmaState::READ:   return "READ";
+                
+            case DriveDmaState::WRITE:  return "WRITE";
+            case DriveDmaState::FLUSH:  return "FLUSH";
+        }
+        return "???";
+    }
+    static const char *help(DriveDmaState value)
+    {
+        switch (value) {
+                
+            case DriveDmaState::OFF:    return "Inactive";
+                
+            case DriveDmaState::WAIT:   return "Waiting";
+            case DriveDmaState::READ:   return "Reading";
+                
+            case DriveDmaState::WRITE:  return "Writing";
+            case DriveDmaState::FLUSH:  return "Flushing";
         }
         return "???";
     }
 };
-#endif
+
 
 //
 // Structures
@@ -63,8 +70,6 @@ struct DriveStateEnum : util::Reflection<DriveStateEnum, DriveState>
 
 typedef struct
 {
-    bool connected[4];
-
     /* Acceleration factor. This value equals the number of words that get
      * transfered into memory during a single disk DMA cycle. This value must
      * be 1 to emulate a real Amiga. If it set to, e.g., 2, the drive loads
@@ -72,7 +77,7 @@ typedef struct
      * the exact value of the acceleration factor has no meaning.
      */
     i32 speed;
-
+    
     bool lockDskSync;
     bool autoDskSync;
 }
@@ -90,13 +95,15 @@ inline bool isValidDriveSpeed(isize speed)
 typedef struct
 {
     isize selectedDrive;
-    DriveState state;
+    DriveDmaState state;
     i32 fifo[6];
     u8 fifoCount;
-
+    
     u16 dsklen;
     u16 dskbytr;
     u16 dsksync;
     u8 prb;
 }
 DiskControllerInfo;
+
+}

@@ -10,32 +10,43 @@
 #include "config.h"
 #include "FloppyFile.h"
 #include "ADFFile.h"
+#include "ADZFile.h"
 #include "IMGFile.h"
 #include "DMSFile.h"
 #include "EXEFile.h"
-#include "Folder.h"
 #include "StringUtils.h"
 
 namespace vamiga {
 
 FloppyFile *
-FloppyFile::make(const string &path)
+FloppyFile::make(const fs::path &path)
 {
-    std::ifstream stream(path, std::ifstream::binary);
-    if (!stream.is_open()) throw VAError(ERROR_FILE_NOT_FOUND, path);
+    FloppyFile *result = nullptr;
+
+    if (!fs::exists(path)) {
+        throw AppError(Fault::FILE_NOT_FOUND, path);
+    }
+
+    Buffer<u8> buffer(path);
     
+    if (buffer.empty()) {
+        throw AppError(Fault::FILE_CANT_READ, path);
+    }
+
     switch (type(path)) {
-            
-        case FILETYPE_ADF:  return new ADFFile(path, stream);
-        case FILETYPE_IMG:  return new IMGFile(path, stream);
-        case FILETYPE_DMS:  return new DMSFile(path, stream);
-        case FILETYPE_EXE:  return new EXEFile(path, stream);
-        case FILETYPE_DIR:  return new Folder(path);
+
+        case FileType::ADF:  result = new ADFFile(buffer.ptr, buffer.size); break;
+        case FileType::ADZ:  result = new ADZFile(buffer.ptr, buffer.size); break;
+        case FileType::IMG:  result = new IMGFile(buffer.ptr, buffer.size); break;
+        case FileType::DMS:  result = new DMSFile(buffer.ptr, buffer.size); break;
+        case FileType::EXE:  result = new EXEFile(buffer.ptr, buffer.size); break;
 
         default:
-            break;
+            throw AppError(Fault::FILE_TYPE_UNSUPPORTED);
     }
-    throw VAError(ERROR_FILE_TYPE_MISMATCH);
+
+    result->path = path;
+    return result;
 }
 
 FloppyDiskDescriptor

@@ -1,8 +1,7 @@
-target_include_directories(vAmigaCore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(VACore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-target_sources(vAmigaCore PRIVATE
+target_sources(VACore PRIVATE
 
 RomFile.cpp
-ExtendedRomFile.cpp
 
 )

@@ -2,14 +2,14 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #include "config.h"
 #include "RegressionTester.h"
-#include "Amiga.h"
+#include "Emulator.h"
 #include "IOUtils.h"
 
 #include <fstream>
@@ -17,40 +17,43 @@
 namespace vamiga {
 
 void
-RegressionTester::prepare(ConfigScheme scheme, string rom, string ext)
+RegressionTester::prepare(ConfigScheme scheme, const fs::path &rom, const fs::path &ext)
 {
     // Only proceed if the /tmp folder exisits
-    if (!util::fileExists("/tmp")) throw VAError(ERROR_DIR_NOT_FOUND, "/tmp");
+    if (!util::fileExists("/tmp")) throw AppError(Fault::DIR_NOT_FOUND, "/tmp");
 
     // Check if we've got write permissions
-    if (amiga.tmp() != "/tmp") throw VAError(ERROR_DIR_ACCESS_DENIED, "/tmp");
+    if (host.tmp() != "/tmp") throw AppError(Fault::DIR_ACCESS_DENIED, "/tmp");
     
     // Initialize the emulator according to the specified scheme
-    amiga.revertToFactorySettings();
-    amiga.configure(scheme);
+    emulator.powerOff();
+    emulator.set(scheme);
 
     // Load Kickstart Rom
-    if (rom != "") amiga.mem.loadRom(rom.c_str());
+    if (rom != "") amiga.mem.loadRom(rom);
     
     // Load Extension Rom (if provided)
-    if (ext != "") amiga.mem.loadExt(ext.c_str());
+    if (ext != "") amiga.mem.loadExt(ext);
+    
+    // Choose a color palette that stays stable across releases
+    emulator.set(Opt::MON_PALETTE, (i64)Palette::RGB);
     
     // Choose a warp source that prevents the GUI from disabling warp mode
     constexpr isize warpSource = 1;
     
     // Run as fast as possible
-    amiga.warpOn(warpSource);
+    emulator.warpOn(warpSource);
 }
 
 void
-RegressionTester::run(string adf)
+RegressionTester::run(const fs::path &adf)
 {
     // Insert the test disk
     df0.swapDisk(adf);
 
     // Run the emulator
-    amiga.powerOn();
-    amiga.run();
+    emulator.powerOn();
+    emulator.run();
 }
 
 void
@@ -60,7 +63,7 @@ RegressionTester::dumpTexture(Amiga &amiga)
 }
 
 void
-RegressionTester::dumpTexture(Amiga &amiga, const string &filename)
+RegressionTester::dumpTexture(Amiga &amiga, const fs::path &path)
 {
     /* This function is used for automatic regression testing. It dumps the
      * visible portion of the texture into the /tmp directory and exits the
@@ -70,45 +73,42 @@ RegressionTester::dumpTexture(Amiga &amiga, const string &filename)
     std::ofstream file;
 
     // Open an output stream
-    file.open(("/tmp/" + filename + ".raw").c_str());
-    
+    file.open((fs::path("/tmp") / path).replace_extension(".raw"));
+        
     // Dump texture
     dumpTexture(amiga, file);
     file.close();
 
     // Ask the GUI to quit
-    msgQueue.put(MSG_ABORT, retValue);
+    msgQueue.put(Msg::ABORT, retValue);
 }
 
 void
-RegressionTester::dumpTexture(Amiga &amiga, std::ostream& os)
+RegressionTester::dumpTexture(Amiga &amiga, std::ostream &os)
 {
-    Texel grey2 = FrameBuffer::grey2;
-    Texel grey4 = FrameBuffer::grey4;
+    Texel grey2 = Texture::grey2;
+    Texel grey4 = Texture::grey4;
 
     auto checkerboard = [&](isize y, isize x) {
         return ((y >> 3) & 1) == ((x >> 3) & 1) ? (char *)&grey2 : (char *)&grey4;
     };
-
-    {   SUSPENDED
+    
+    Texel *ptr = amiga.denise.pixelEngine.stablePtr() - 4 * HBLANK_MIN;
+    char *cptr;
+    
+    for (isize y = Y1; y < Y2; y++) {
         
-        Texel *ptr = amiga.denise.pixelEngine.stablePtr() - 4 * HBLANK_MIN;
-        char *cptr;
-
-        for (isize y = Y1; y < Y2; y++) {
+        for (isize x = X1; x < X2; x++) {
             
-            for (isize x = X1; x < X2; x++) {
-
-                if (y >= y1 && y < y2 && x >= x1 && x < x2) {
-                    cptr = (char *)(ptr + y * HPIXELS + x);
-                } else {
-                    cptr = checkerboard(y, x);
-                }
-
-                os.write(cptr + 0, 1);
-                os.write(cptr + 1, 1);
-                os.write(cptr + 2, 1);
+            if (y >= y1 && y < y2 && x >= x1 && x < x2) {
+                cptr = (char *)(ptr + y * HPIXELS + x);
+            } else {
+                cptr = checkerboard(y, x);
             }
+            
+            os.write(cptr + 0, 1);
+            os.write(cptr + 1, 1);
+            os.write(cptr + 2, 1);
         }
     }
 }

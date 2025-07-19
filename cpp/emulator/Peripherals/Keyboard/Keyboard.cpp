@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #include "config.h"
@@ -15,37 +15,29 @@
 namespace vamiga {
 
 void
-Keyboard::_reset(bool hard)
+Keyboard::cacheInfo(KeyboardInfo &result) const
 {
-    RESET_SNAPSHOT_ITEMS(hard)
-    
-    std::memset(keyDown, 0, sizeof(keyDown));
-    state = KB_SELFTEST;
-    execute();
-}
-
-void
-Keyboard::resetConfig()
-{
-    assert(isPoweredOff());
-    auto &defaults = amiga.defaults;
-
-    std::vector <Option> options = {
+    {   SYNCHRONIZED
         
-        OPT_ACCURATE_KEYBOARD
-    };
-
-    for (auto &option : options) {
-        setConfigItem(option, defaults.get(option));
+        result.state = state;
+        result.shiftReg = shiftReg;
     }
 }
 
+void
+Keyboard::_didReset(bool hard)
+{    
+    std::memset(keyDown, 0, sizeof(keyDown));
+    state = KbState::SELFTEST;
+    execute();
+}
+
 i64
-Keyboard::getConfigItem(Option option) const
+Keyboard::getOption(Opt option) const
 {
     switch (option) {
             
-        case OPT_ACCURATE_KEYBOARD:  return config.accurate;
+        case Opt::KBD_ACCURACY:  return config.accurate;
 
         default:
             fatalError;
@@ -53,11 +45,25 @@ Keyboard::getConfigItem(Option option) const
 }
 
 void
-Keyboard::setConfigItem(Option option, i64 value)
+Keyboard::checkOption(Opt opt, i64 value)
+{
+    switch (opt) {
+
+        case Opt::KBD_ACCURACY:
+
+            return;
+
+        default:
+            throw(Fault::OPT_UNSUPPORTED);
+    }
+}
+
+void
+Keyboard::setOption(Opt option, i64 value)
 {
     switch (option) {
             
-        case OPT_ACCURATE_KEYBOARD:
+        case Opt::KBD_ACCURACY:
             
             config.accurate = value;
             return;
@@ -68,20 +74,19 @@ Keyboard::setConfigItem(Option option, i64 value)
 }
 
 void
-Keyboard::_dump(Category category, std::ostream& os) const
+Keyboard::_dump(Category category, std::ostream &os) const
 {
     using namespace util;
     
     if (category == Category::Config) {
         
-        os << tab("Accurate emulation");
-        os << bol(config.accurate) << std::endl;
+        dumpConfig(os);
     }
     
     if (category == Category::State) {
         
         os << tab("State");
-        os << KeyboardStateEnum::key(state) << std::endl;
+        os << KbStateEnum::key(state) << std::endl;
         os << tab("Shift register");
         os << hex(shiftReg) << std::endl;
         os << tab("SP LO cycle");
@@ -104,14 +109,14 @@ Keyboard::_dump(Category category, std::ostream& os) const
 }
 
 bool
-Keyboard::keyIsPressed(KeyCode keycode) const
+Keyboard::isPressed(KeyCode keycode) const
 {
     assert(keycode < 0x80);
     return keyDown[keycode];
 }
 
 void
-Keyboard::pressKey(KeyCode keycode)
+Keyboard::press(KeyCode keycode)
 {
     assert(keycode < 0x80);
     
@@ -127,13 +132,13 @@ Keyboard::pressKey(KeyCode keycode)
         
         // Check for reset key combination (CTRL + Amiga Left + Amiga Right)
         if (keyDown[0x63] && keyDown[0x66] && keyDown[0x67]) {
-            msgQueue.put(MSG_CTRL_AMIGA_AMIGA);
+            msgQueue.put(Msg::CTRL_AMIGA_AMIGA);
         }
     }
 }
 
 void
-Keyboard::releaseKey(KeyCode keycode)
+Keyboard::release(KeyCode keycode)
 {
     assert(keycode < 0x80);
     
@@ -150,23 +155,17 @@ Keyboard::releaseKey(KeyCode keycode)
 }
 
 void
-Keyboard::toggleKey(KeyCode keycode)
+Keyboard::toggle(KeyCode keycode)
 {
-    keyIsPressed(keycode) ? releaseKey(keycode) : pressKey(keycode);
+    isPressed(keycode) ? release(keycode) : press(keycode);
 }
 
 void
-Keyboard::releaseAllKeys()
+Keyboard::releaseAll()
 {
     for (KeyCode i = 0; i < 0x80; i++) {
-        releaseKey(i);
+        release(i);
     }
-}
-
-void
-Keyboard::autoType(KeyCode keycode, Cycle duration, Cycle delay)
-{
-    agnus.scheduleRel<SLOT_KEY>(delay, KEY_PRESS, duration << 8 | keycode);
 }
 
 void
@@ -175,8 +174,23 @@ Keyboard::wakeUp()
     if (!agnus.hasEvent<SLOT_KBD>()) {
         
         trace(KBD_DEBUG, "Wake up\n");
-        state = KB_SEND;
+        state = KbState::SEND;
         execute();
+    }
+}
+
+void
+Keyboard::abortTyping()
+{
+    debug(KEY_DEBUG, "abortTyping()\n");
+
+    {   SYNCHRONIZED
+
+        if (!pending.isEmpty()) {
+
+            pending.clear();
+            releaseAll();
+        }
     }
 }
 
@@ -223,11 +237,11 @@ Keyboard::processHandshake()
     // Switch to the next state
     switch(state) {
             
-        case KB_SELFTEST:  state = KB_STRM_ON;  break;
-        case KB_SYNC:      state = KB_STRM_ON;  break;
-        case KB_STRM_ON:   state = KB_STRM_OFF; break;
-        case KB_STRM_OFF:  state = KB_SEND;     break;
-        case KB_SEND:                           break;
+        case KbState::SELFTEST:  state = KbState::STRM_ON;  break;
+        case KbState::SYNC:      state = KbState::STRM_ON;  break;
+        case KbState::STRM_ON:   state = KbState::STRM_OFF; break;
+        case KbState::STRM_OFF:  state = KbState::SEND;     break;
+        case KbState::SEND:                                       break;
 
         default:
             fatalError;
@@ -244,7 +258,7 @@ Keyboard::execute()
     
     switch(state) {
             
-        case KB_SELFTEST:
+        case KbState::SELFTEST:
             
             trace(KBD_DEBUG, "KB_SELFTEST\n");
             
@@ -252,13 +266,13 @@ Keyboard::execute()
             agnus.scheduleRel<SLOT_KBD>(SEC(1), KBD_TIMEOUT);
             break;
             
-        case KB_SYNC:
+        case KbState::SYNC:
             
             trace(KBD_DEBUG, "KB_SYNC\n");
             sendSyncPulse();
             break;
             
-        case KB_STRM_ON:
+        case KbState::STRM_ON:
             
             trace(KBD_DEBUG, "KB_STRM_ON\n");
             
@@ -266,7 +280,7 @@ Keyboard::execute()
             sendKeyCode(0xFD);
             break;
             
-        case KB_STRM_OFF:
+        case KbState::STRM_OFF:
             
             trace(KBD_DEBUG, "KB_STRM_OFF\n");
             
@@ -274,7 +288,7 @@ Keyboard::execute()
             sendKeyCode(0xFE);
             break;
             
-        case KB_SEND:
+        case KbState::SEND:
 
             trace(KBD_DEBUG, "KB_SEND\n");
 
@@ -343,6 +357,34 @@ Keyboard::sendSyncPulse()
         
         // In simple keyboard mode, send a whole byte
         sendKeyCode(0xFF);
+    }
+}
+
+void
+Keyboard::processCommand(const Command &cmd)
+{
+    if (cmd.key.delay > 0) {
+
+        trace(KEY_DEBUG, "%s: Delayed for %f sec\n", CmdEnum::key(cmd.type), cmd.key.delay);
+
+        pending.insert(agnus.clock + SEC(cmd.key.delay),
+                       Command(cmd.type, KeyCmd { .keycode = cmd.key.keycode }));
+        agnus.scheduleImm<SLOT_KEY>(KEY_AUTO_TYPE);
+
+    } else {
+
+        trace(KEY_DEBUG, "%s\n", CmdEnum::key(cmd.type));
+
+        switch (cmd.type) {
+
+            case Cmd::KEY_PRESS:         press(cmd.key.keycode); break;
+            case Cmd::KEY_RELEASE:       release(cmd.key.keycode); break;
+            case Cmd::KEY_RELEASE_ALL:   releaseAll(); break;
+            case Cmd::KEY_TOGGLE:        toggle(cmd.key.keycode); break;
+
+            default:
+                fatalError;
+        }
     }
 }
 

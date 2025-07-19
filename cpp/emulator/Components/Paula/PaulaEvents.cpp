@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #include "config.h"
@@ -81,7 +81,7 @@ Paula::servicePotEvent(EventID id)
                 if (!outrx) chargeX1 = 0.0;
 
                 // Schedule the next discharge event
-                agnus.scheduleRel<SLOT_POT>(DMA_CYCLES(HPOS_CNT_PAL), POT_DISCHARGE);
+                agnus.scheduleRel<SLOT_POT>(DMA_CYCLES(PAL::HPOS_CNT), POT_DISCHARGE);
 
             } else {
 
@@ -93,7 +93,7 @@ Paula::servicePotEvent(EventID id)
                 potCntX1 = outrx ? 0 : (u8)-1;
 
                 // Schedule the first charge event
-                agnus.scheduleRel<SLOT_POT>(DMA_CYCLES(HPOS_CNT_PAL), POT_CHARGE);
+                agnus.scheduleRel<SLOT_POT>(DMA_CYCLES(PAL::HPOS_CNT), POT_CHARGE);
             }
             break;
         }
@@ -115,7 +115,7 @@ Paula::servicePotEvent(EventID id)
 
             // Schedule next event
             if (cont) {
-                agnus.scheduleRel<SLOT_POT>(DMA_CYCLES(HPOS_CNT_PAL), POT_CHARGE);
+                agnus.scheduleRel<SLOT_POT>(DMA_CYCLES(PAL::HPOS_CNT), POT_CHARGE);
             } else {
                 agnus.cancel<SLOT_POT>();
             }

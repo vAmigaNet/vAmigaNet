@@ -2,76 +2,85 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #include "config.h"
 #include "FSObjects.h"
 #include "FSBlock.h"
 #include "Chrono.h"
+#include "Macros.h"
+#include "Host.h"
+
 #include <algorithm>
 #include <cstring>
+#include <unordered_set>
 
 namespace vamiga {
 
-FSString::FSString(const string &cppString, isize limit) : FSString(cppString.c_str(), limit)
+FSString::FSString(const string &cpp, isize limit) : str(cpp), limit(limit)
 {
-}
-
-FSString::FSString(const char *cStr, isize l) : limit(l)
-{
-    assert(cStr != nullptr);
-    assert(limit <= 91);
     
-    isize i;
-    for (i = 0; i < limit && cStr[i] != 0; i++) {
-        str[i] = cStr[i];
-    }
-    str[i] = 0;
 }
 
-FSString::FSString(const u8 *bcplStr, isize l) : limit(l)
+FSString::FSString(const char *c, isize limit) : limit(limit)
 {
-    assert(bcplStr != nullptr);
-    assert(limit <= 91);
+    assert(c != nullptr);
+    
+    str.assign(c, strnlen(c, limit));
+}
 
-    isize i;
-    for (i = 0; i < limit && i < bcplStr[0]; i++) {
-        str[i] = bcplStr[i+1];
-    }
-    str[i] = 0;
+FSString::FSString(const u8 *bcpl, isize limit) : limit(limit)
+{
+    assert(bcpl != nullptr);
+    
+    auto length = (isize)bcpl[0];
+    auto firstChar = (const char *)(bcpl + 1);
+    
+    str.assign(firstChar, std::min(length, limit));
 }
 
 char
-FSString::capital(char c)
+FSString::capital(char c, FSFormat dos)
 {
-    return (c >= 'a' && c <= 'z') ? c - ('a' - 'A') : c;
+    if (isINTLVolumeType(dos)) {
+        return (c >= 'a' && c <= 'z') || ((u8)c >= 224 && (u8)c <= 254 && (u8)c != 247) ? c - ('a' - 'A') : c ;
+    } else {
+        return (c >= 'a' && c <= 'z') ? c - ('a' - 'A') : c;
+    }
 }
 
 bool
-FSString::operator== (FSString &rhs) const
+FSString::operator== (const FSString &rhs) const
 {
-    isize n = 0;
-    
-    while (str[n] != 0 || rhs.str[n] != 0) {
-        if (capital(str[n]) != capital(rhs.str[n])) return false;
-        n++;
-    }
-    return true;
+    return util::uppercased(str) == util::uppercased(rhs.str);
 }
 
+/*
 u32
 FSString::hashValue() const
 {
-    isize length = (isize)strlen(str);
-    u32 result = (u32)length;
-    
-    for (isize i = 0; i < length; i++) {
-        char c = capital(str[i]);
-        result = (result * 13 + (u32)c) & 0x7FF;
+    u32 result = (u32)length();
+    for (auto c : str) {
+        
+        result = (result * 13 + (u32)capital(c)) & 0x7FF;
     }
+
+    return result;
+}
+*/
+
+u32
+FSString::hashValue(FSFormat dos) const
+{
+    u32 result = (u32)length();
+    for (auto c : str) {
+
+        result = (result * 13 + (u32)capital(c, dos)) & 0x7FF;
+    }
+
     return result;
 }
 
@@ -79,21 +88,90 @@ void
 FSString::write(u8 *p)
 {
     assert(p != nullptr);
-    assert(strlen(str) < sizeof(str));
-    
+        
     // Write name as a BCPL string (first byte is string length)
-    *p++ = (u8)strlen(str);
-    for (isize i = 0; str[i] != 0; i++) { *p++ = str[i]; }
-    *p = 0;
+    *p++ = (u8)length();
+    for (auto c : str) { *p++ = c; }
 }
 
-void
-FSName::rectify()
+bool
+FSString::operator<(const FSString& other) const
 {
-    // Replace all symbols that are not permitted in Amiga filenames
-    for (isize i = 0; i < isizeof(str); i++) {
-        if (str[i] == ':' || str[i] == '/') str[i] = '_';
+    return util::uppercased(cpp_str()) < util::uppercased(other.cpp_str());
+}
+
+std::ostream &operator<<(std::ostream &os, const FSString &str) {
+
+    os << str.cpp_str();
+    return os;
+}
+
+FSName::FSName(const string &cpp) : FSString(cpp, 30) { }
+FSName::FSName(const char *c) : FSString(c, 30) { }
+FSName::FSName(const u8 *bcpl) : FSString(bcpl, 30) { }
+FSName::FSName(const fs::path &path) : FSString(Host::unsanitize(path), 30) { }
+
+fs::path
+FSName::path() const
+{
+    return Host::sanitize(str);
+}
+
+FSPattern::FSPattern(const string glob) : glob(glob)
+{
+    // Create regex string
+    std::string re = "^";
+
+    for (char c : glob) {
+
+        switch (c) {
+
+            case '*': re += ".*"; break;
+            case '?': re += "."; break;
+            case '.': re += "\\."; break;
+            case '\\': re += "\\\\"; break;
+
+            default:
+                if (std::isalnum(u8(c))) {
+                    re += c;
+                } else {
+                    re += '\\';
+                    re += c;
+                }
+        }
     }
+    re += "$";
+
+    try {
+        regex = std::regex(re, std::regex::ECMAScript | std::regex::icase);
+    } catch (const std::regex_error &) {
+        throw AppError(Fault::FS_INVALID_REGEX, glob);
+    }
+}
+
+std::vector<FSPattern>
+FSPattern::splitted() const
+{
+    std::vector<FSPattern> result;
+    std::vector<string> parts;
+
+    /*
+    if (isAbsolute()) {
+        parts = util::split(glob.substr(1), '/');
+    } else {
+        parts = util::split(glob, '/');
+    }
+    */
+    for (auto &it : util::split(util::trim(glob, "/"), '/')) {
+        result.push_back(FSPattern(it));
+    }
+    return result;
+}
+
+bool
+FSPattern::match(const FSString &name) const
+{
+    return std::regex_match(name.cpp_str(), regex);
 }
 
 FSTime::FSTime(time_t t)
@@ -101,8 +179,8 @@ FSTime::FSTime(time_t t)
     const u32 secPerDay = 24 * 60 * 60;
     
     // Shift reference point from Jan 1, 1970 (Unix) to Jan 1, 1978 (Amiga)
-    t -= (8 * 365 + 2) * secPerDay - 60 * 60;
-    
+    t -= (8 * 365 + 2) * secPerDay;
+
     days = (u32)(t / secPerDay);
     mins = (u32)((t % secPerDay) / 60);
     ticks = (u32)((t % secPerDay % 60) * 50);
@@ -123,9 +201,9 @@ FSTime::time() const
     const u32 secPerDay = 24 * 60 * 60;
     time_t t = days * secPerDay + mins * 60 + ticks / 50;
     
-    // Shift reference point from  Jan 1, 1978 (Amiga) to Jan 1, 1970 (Unix)
-    t += (8 * 365 + 2) * secPerDay - 60 * 60;
-    
+    // Shift reference point from Jan 1, 1978 (Amiga) to Jan 1, 1970 (Unix)
+    t += (8 * 365 + 2) * secPerDay;
+
     return t;
 }
 
@@ -142,14 +220,13 @@ FSTime::write(u8 *p)
 string
 FSTime::dateStr() const
 {
+    const char *month[12] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
     char tmp[32];
     
     time_t t = time();
-    tm local = util::Time::local(t);
+    tm gm = util::Time::gmtime(t);
+    snprintf(tmp, sizeof(tmp), "%02d-%s-%02d", gm.tm_mday, month[gm.tm_mon % 12], gm.tm_year);
 
-    snprintf(tmp, sizeof(tmp), "%04d-%02d-%02d",
-             1900 + local.tm_year, 1 + local.tm_mon, local.tm_mday);
-    
     return string(tmp);
 }
 
@@ -159,7 +236,7 @@ FSTime::timeStr() const
     char tmp[32];
     
     time_t t = time();
-    tm local = util::Time::local(t);
+    tm local = util::Time::gmtime(t);
 
     snprintf(tmp, sizeof(tmp), "%02d:%02d:%02d",
              local.tm_hour, local.tm_min, local.tm_sec);
@@ -170,7 +247,7 @@ FSTime::timeStr() const
 string
 FSTime::str() const
 {
-    string result = dateStr() + "  " + timeStr();
+    string result = dateStr() + " " + timeStr();
     return result;
 }
 

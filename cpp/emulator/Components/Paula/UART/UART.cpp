@@ -20,27 +20,27 @@
 namespace vamiga {
 
 void
-UART::_reset(bool hard)
+UART::_didReset(bool hard)
 {
-    RESET_SNAPSHOT_ITEMS(hard)
     outBit = 1;
 }
 
 void
-UART::_inspect() const
+UART::cacheInfo(UARTInfo &info) const
 {
-    SYNCHRONIZED
-    
-    info.serper = serper;
-    info.baudRate = baudRate();
-    info.receiveBuffer = receiveBuffer;
-    info.receiveShiftReg = receiveShiftReg;
-    info.transmitBuffer = transmitBuffer;
-    info.transmitShiftReg = transmitShiftReg;
+    {   SYNCHRONIZED
+        
+        info.serper = serper;
+        info.baudRate = baudRate();
+        info.receiveBuffer = receiveBuffer;
+        info.receiveShiftReg = receiveShiftReg;
+        info.transmitBuffer = transmitBuffer;
+        info.transmitShiftReg = transmitShiftReg;
+    }
 }
 
 void
-UART::_dump(Category category, std::ostream& os) const
+UART::_dump(Category category, std::ostream &os) const
 {
     using namespace util;
     
@@ -113,7 +113,7 @@ UART::pokeSERDAT(u16 value)
     // DMA_CYCLES(1) + (bitcount(value) + 1) * pulseWidth() cycles
 
     // Schedule the write cycle
-    agnus.recordRegisterChange(DMA_CYCLES(1), SET_SERDAT, value);
+    agnus.recordRegisterChange(DMA_CYCLES(1), Reg::SERDAT, value);
 }
 
 void
@@ -154,12 +154,11 @@ UART::copyToTransmitShiftRegister()
     assert(transmitShiftReg == 0);
     assert(transmitBuffer != 0);
 
-    // Record the outgoing byte
-    auto byte = u8(transmitBuffer & 0xFF);
-    recordOutgoingByte(byte);
+    // Record outgoing data
+    recordOutgoingByte(transmitBuffer);
 
     // Send the byte to the null modem cable
-    remoteManager.serServer << char(byte);
+    remoteManager.serServer << char(transmitBuffer);
 
     // Move the contents of the transmit buffer into the shift register
     transmitShiftReg = transmitBuffer;
@@ -170,7 +169,7 @@ UART::copyToTransmitShiftRegister()
 
     // Trigger a TBE interrupt
     trace(SER_DEBUG, "Triggering TBE interrupt\n");
-    paula.scheduleIrqRel(INT_TBE, DMA_CYCLES(2));
+    paula.scheduleIrqRel(IrqSource::TBE, DMA_CYCLES(2));
 }
 
 void
@@ -181,17 +180,16 @@ UART::copyFromReceiveShiftRegister()
     receiveBuffer = receiveShiftReg;
     receiveShiftReg = 0;
 
-    // Record the incoming byte
-    auto byte = u8(receiveBuffer & 0xFF);
-    recordIncomingByte(byte);
+    // Record incoming data
+    recordIncomingByte(receiveBuffer);
 
     // Update the overrun bit
     ovrun = GET_BIT(paula.intreq, 11);
-    if (ovrun) { trace(SER_DEBUG, "OVERRUN BIT IS 1\n"); }
+    if (ovrun) trace(SER_DEBUG, "OVERRUN BIT IS 1\n");
 
     // Trigger the RBF interrupt (Read Buffer Full)
     trace(SER_DEBUG, "Triggering RBF interrupt\n");
-    paula.raiseIrq(INT_RBF);
+    paula.raiseIrq(IrqSource::RBF);
 }
 
 void
@@ -221,14 +219,37 @@ UART::rxdHasChanged(bool value)
     }
 }
 
+void 
+UART::operator<<(char c)
+{
+    *this << string{c};
+}
+
 void
-UART::recordIncomingByte(u8 byte)
+UART::operator<<(const string &s)
+{
+    {   SYNCHRONIZED
+
+        // Add the text
+        for (auto &c : s) {
+
+            payload += c;
+            if (c == '\n') payload += '\r';
+        }
+
+        // Start the reception process if needed
+        if (!agnus.hasEvent<SLOT_RXD>()) agnus.scheduleImm<SLOT_RXD>(RXD_BIT);
+    }
+}
+
+void
+UART::recordIncomingByte(int byte)
 {
     serialPort.recordIncomingByte(byte);
 }
 
 void
-UART::recordOutgoingByte(u8 byte)
+UART::recordOutgoingByte(int byte)
 {
     serialPort.recordOutgoingByte(byte);
 }

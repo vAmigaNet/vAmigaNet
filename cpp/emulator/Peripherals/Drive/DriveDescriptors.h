@@ -1,22 +1,21 @@
-
 // -----------------------------------------------------------------------------
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
 
 #include "Constants.h"
+#include "Serializable.h"
 #include "FloppyDiskTypes.h"
-#include <vector>
 
 namespace vamiga {
 
-struct GeometryDescriptor {
+struct GeometryDescriptor : SerializableStruct {
 
     // Constants
     static constexpr isize cMin = HDR_C_MIN;
@@ -33,20 +32,23 @@ struct GeometryDescriptor {
 
     // Size of a sector in bytes
     isize bsize = 512;
-    
-    template <class W>
-    void operator<<(W& worker)
+
+    template <class T>
+    void serialize(T& worker)
     {
         worker
-        
+
         << cylinders
         << heads
         << sectors
         << bsize;
-    }
-    
+
+    } STRUCT_SERIALIZERS(serialize);
+
+
     // Returns a vector with compatible geometries for a given block count
-    static std::vector<GeometryDescriptor> driveGeometries(isize numBlocks, isize bsize = 512);
+    static std::vector<std::tuple<isize,isize,isize>> driveGeometries(isize numBlocks);
+    static std::vector<GeometryDescriptor> driveGeometries(isize numBlocks, isize bsize);
 
     // Checks whether the geometry is unique
     bool unique() const;
@@ -72,14 +74,14 @@ struct GeometryDescriptor {
 
     // Prints debug information
     void dump() const;
-    void dump(std::ostream& os) const;
+    void dump(std::ostream &os) const;
 
     // Throws an exception if inconsistent or unsupported values are present
     void checkCompatibility() const;
 };
 
-struct PartitionDescriptor {
-
+struct PartitionDescriptor : SerializableStruct
+{
     string name;
     u32 flags = 0;
     u32 sizeBlock = 128;
@@ -95,12 +97,12 @@ struct PartitionDescriptor {
     u32 mask = 0xFFFFFFFE;
     u32 bootPri = 0;
     u32 dosType = 0x444f5300;
-    
-    template <class W>
-    void operator<<(W& worker)
+
+    template <class T>
+    void serialize(T& worker)
     {
         worker
-        
+
         << name
         << flags
         << sizeBlock
@@ -116,46 +118,54 @@ struct PartitionDescriptor {
         << mask
         << bootPri
         << dosType;
-    }
-    
+
+    } STRUCT_SERIALIZERS(serialize);
+
+
     // Initializers
     PartitionDescriptor() { };
     PartitionDescriptor(const GeometryDescriptor &geo);
 
+    // Computed values
+    isize numCylinders() const { return highCyl - lowCyl + 1; }
+    isize numBlocks() const { return numCylinders() * heads * sectors; }
+    
     // Prints debug information
     void dump() const;
-    void dump(std::ostream& os) const;
+    void dump(std::ostream &os) const;
 
     // Throws an exception if inconsistent or unsupported values are present
     void checkCompatibility(const GeometryDescriptor &geo) const;
 };
 
-struct DriverDescriptor {
-
+struct DriverDescriptor : SerializableStruct
+{
     u32 dosType = 0;
     u32 dosVersion = 0;
     u32 patchFlags = 0;
     std::vector<u32> blocks;
     u32 segList = 0;
-    
-    template <class W>
-    void operator<<(W& worker)
+
+    template <class T>
+    void serialize(T& worker)
     {
         worker
-        
+
         << dosType
         << dosVersion
         << patchFlags
         << blocks
         << segList;
-    }
-    
+
+    } STRUCT_SERIALIZERS(serialize);
+
+
     // Initializers
     DriverDescriptor() { };
 
     // Prints debug information
     void dump() const;
-    void dump(std::ostream& os) const;
+    void dump(std::ostream &os) const;
     
     // Throws an exception if inconsistent or unsupported values are present
     void checkCompatibility() const;

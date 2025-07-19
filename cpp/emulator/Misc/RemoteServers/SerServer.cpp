@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #include "config.h"
@@ -18,12 +18,8 @@
 
 namespace vamiga {
 
-SerServer::SerServer(Amiga& ref) : RemoteServer(ref)
-{
-}
-
 void
-SerServer::_dump(Category category, std::ostream& os) const
+SerServer::_dump(Category category, std::ostream &os) const
 {
     using namespace util;
 
@@ -44,29 +40,10 @@ SerServer::_dump(Category category, std::ostream& os) const
     }
 }
 
-void
-SerServer::resetConfig()
-{
-    assert(isPoweredOff());
-    auto &defaults = amiga.defaults;
-
-    std::vector <Option> options = {
-        
-        OPT_SRV_PORT,
-        OPT_SRV_PROTOCOL,
-        OPT_SRV_AUTORUN,
-        OPT_SRV_VERBOSE
-    };
-
-    for (auto &option : options) {
-        setConfigItem(option, defaults.get(option, SERVER_SER));
-    }
-}
-
 bool
 SerServer::shouldRun()
 {
-    return serialPort.getConfigItem(OPT_SER_DEVICE) == SPD_NULLMODEM;
+    return SerialPortDevice(serialPort.getOption(Opt::SER_DEVICE)) == SerialPortDevice::NULLMODEM;
 }
 
 string
@@ -119,8 +96,6 @@ SerServer::processIncomingByte(u8 byte)
 void
 SerServer::didConnect()
 {
-    SUSPENDED
-
     // Start a new sessing
     skippedTransmissions = 0;
     receivedBytes = 0;
@@ -136,8 +111,6 @@ SerServer::didConnect()
 void
 SerServer::didDisconnect()
 {
-    SUSPENDED
-
     // Stop scheduling messages
     agnus.cancel <SLOT_SER> ();
 }

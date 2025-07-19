@@ -1,12 +1,13 @@
-target_include_directories(vAmigaCore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(VACore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-target_sources(vAmigaCore PRIVATE
+target_sources(VACore PRIVATE
 
-Command.cpp
-Interpreter.cpp
-InterpreterCmds.cpp
-InterpreterDebugCmds.cpp
+Console.cpp
+CommanderConsole.cpp
+DebuggerConsole.cpp
+NavigatorConsole.cpp
 RetroShell.cpp
+RSCommand.cpp
 TextStorage.cpp
 
 )

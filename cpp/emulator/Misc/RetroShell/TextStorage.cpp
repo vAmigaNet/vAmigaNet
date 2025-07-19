@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #include "config.h"
@@ -12,6 +12,18 @@
 #include "Amiga.h"
 
 namespace vamiga {
+
+isize
+TextStorage::trailingEmptyLines() const
+{
+    isize result = 0;
+
+    for (auto it = storage.rbegin(); it != storage.rend() && it->empty(); it++) {
+        result++;
+    }
+
+    return result;
+}
 
 string
 TextStorage::operator [] (isize i) const
@@ -47,6 +59,18 @@ TextStorage::clear()
     storage.push_back("");
 }
 
+bool
+TextStorage::isCleared()
+{
+    return storage.size() == 1 && storage[0].size() == 0;
+}
+
+bool 
+TextStorage::lastLineIsEmpty()
+{
+    return storage.back().empty();
+}
+
 void
 TextStorage::append(const string &line)
 {
@@ -66,6 +90,7 @@ TextStorage::operator<<(char c)
         case '\n':
             
             if (ostream) *ostream << storage.back() << std::endl;
+
             append("");
             break;
             

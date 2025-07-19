@@ -2,77 +2,73 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
 
 #include "DriveTypes.h"
-
-#ifdef __cplusplus
 #include "DriveDescriptors.h"
-#include <vector>
-#endif
+
+namespace vamiga {
 
 //
 // Enumerations
 //
 
-enum_long(HDR_TYPE)
+enum class HardDriveType : long
 {
-    HDR_GENERIC
+    GENERIC
 };
-typedef HDR_TYPE HardDriveType;
 
-#ifdef __cplusplus
-struct HardDriveTypeEnum : util::Reflection<HardDriveTypeEnum, HardDriveType>
+struct HardDriveTypeEnum : Reflection<HardDriveTypeEnum, HardDriveType>
 {
     static constexpr long minVal = 0;
-    static constexpr long maxVal = HDR_GENERIC;
-    static bool isValid(auto val) { return val >= minVal && val <= maxVal; }
+    static constexpr long maxVal = long(HardDriveType::GENERIC);
     
-    static const char *prefix() { return "HDR"; }
-    static const char *key(HardDriveType value)
+    static const char *_key(HardDriveType value)
     {
         switch (value) {
                 
-            case HDR_GENERIC:   return "GENERIC";
+            case HardDriveType::GENERIC:   return "GENERIC";
         }
         return "???";
     }
+    static const char *help(HardDriveType value)
+    {
+        return "";
+    }
 };
-#endif
 
-enum_long(HDR_STATE)
+enum class HardDriveState : long
 {
-    HDR_STATE_IDLE,
-    HDR_STATE_READING,
-    HDR_STATE_WRITING
+    IDLE,
+    READING,
+    WRITING
 };
-typedef HDR_STATE HardDriveState;
 
-#ifdef __cplusplus
-struct HardDriveStateEnum : util::Reflection<HardDriveStateEnum, HardDriveState>
+struct HardDriveStateEnum : Reflection<HardDriveStateEnum, HardDriveState>
 {
     static constexpr long minVal = 0;
-    static constexpr long maxVal = HDR_STATE_WRITING;
-    static bool isValid(auto val) { return val >= minVal && val <= maxVal; }
+    static constexpr long maxVal = long(HardDriveState::WRITING);
     
-    static const char *prefix() { return "HDR_STATE"; }
-    static const char *key(HardDriveType value)
+    static const char *_key(HardDriveState value)
     {
         switch (value) {
                 
-            case HDR_STATE_IDLE:      return "IDLE";
-            case HDR_STATE_READING:   return "READING";
-            case HDR_STATE_WRITING:   return "WRITING";
+            case HardDriveState::IDLE:      return "IDLE";
+            case HardDriveState::READING:   return "READING";
+            case HardDriveState::WRITING:   return "WRITING";
         }
         return "???";
     }
+    static const char *help(HardDriveState value)
+    {
+        return "";
+    }
 };
-#endif
 
 
 //
@@ -89,7 +85,69 @@ HardDriveConfig;
 
 typedef struct
 {
-    DriveHead head;
+    // Object information
+    isize nr;
+    
+    // Product information
+    const char *diskVendor;
+    const char *diskProduct;
+    const char *diskRevision;
+    const char *controllerVendor;
+    const char *controllerProduct;
+    const char *controllerRevision;
+    
+    // Physical layout
+    isize cylinders;
+    isize heads;
+    isize sectors;
+    isize bsize;
+    
+    // Derived values
+    isize tracks;
+    isize blocks;
+    isize bytes;
+    isize upperCyl;
+    isize upperHead;
+    isize upperTrack;
+}
+HardDriveTraits;
+
+typedef struct
+{
+    isize nr;
+    string name;
+    isize lowerCyl;
+    isize upperCyl;
+    FSFormat fsType;
+}
+PartitionTraits;
+
+typedef struct
+{
+    isize nr;
+    
+    // Drive properties
+    bool isConnected;
+    bool isCompatible;
+    
+    // Disk properties
+    bool hasDisk;
+    bool hasModifiedDisk;
+    bool hasUnmodifiedDisk;
+    bool hasProtectedDisk;
+    bool hasUnprotectedDisk;
+    
+    // Logical layout (partitions)
+    isize partitions;
+    
+    // Flags
+    bool writeProtected;
     bool modified;
+    
+    // State
+    HardDriveState state;
+    DriveHead head;
 }
 HardDriveInfo;
+
+}

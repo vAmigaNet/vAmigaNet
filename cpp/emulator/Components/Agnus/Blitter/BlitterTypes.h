@@ -2,20 +2,20 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
 
-#include "Aliases.h"
+#include "Infrastructure/Reflection.h"
+
+namespace vamiga {
 
 //
 // Bit masks
 //
-
-#ifdef __cplusplus
 
 // BLTCON0 (area mode)
 constexpr u16 BLTCON0_ASH     = 0xF000;
@@ -45,7 +45,6 @@ constexpr u16 BLTCON1_SUL     = 0x0008;
 constexpr u16 BLTCON1_AUL     = 0x0004;
 constexpr u16 BLTCON1_SING    = 0x0002;
 
-#endif
 
 //
 // Structures
@@ -99,3 +98,5 @@ typedef struct
     bool storeToDest;
 }
 BlitterInfo;
+
+}

@@ -2,14 +2,14 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #include "config.h"
 #include "GdbServer.h"
-#include "Amiga.h"
+#include "Emulator.h"
 #include "CPU.h"
 #include "IOUtils.h"
 #include "Memory.h"
@@ -20,13 +20,8 @@
 
 namespace vamiga {
 
-GdbServer::GdbServer(Amiga& ref) : RemoteServer(ref)
-{
-
-}
-
 void
-GdbServer::_dump(Category category, std::ostream& os) const
+GdbServer::_dump(Category category, std::ostream &os) const
 {
     using namespace util;
 
@@ -37,25 +32,6 @@ GdbServer::_dump(Category category, std::ostream& os) const
         os << tab("Code segment") << hex(codeSeg()) << std::endl;
         os << tab("Data segment") << hex(dataSeg()) << std::endl;
         os << tab("BSS segment") << hex(bssSeg()) << std::endl;
-    }
-}
-
-void
-GdbServer::resetConfig()
-{
-    assert(isPoweredOff());
-    auto &defaults = amiga.defaults;
-
-    std::vector <Option> options = {
-        
-        OPT_SRV_PORT,
-        OPT_SRV_PROTOCOL,
-        OPT_SRV_AUTORUN,
-        OPT_SRV_VERBOSE
-    };
-
-    for (auto &option : options) {
-        setConfigItem(option, defaults.get(option, SERVER_GDB));
     }
 }
 
@@ -104,7 +80,7 @@ GdbServer::doProcess(const string &payload)
         
         process(latestCmd);
         
-    } catch (VAError &err) {
+    } catch (AppError &err) {
         
         auto msg = "GDB server error: " + string(err.what());
         debug(SRV_DEBUG, "%s\n", msg.c_str());
@@ -120,7 +96,7 @@ GdbServer::doProcess(const string &payload)
 void
 GdbServer::didStart()
 {
-    amiga.pause();
+    emulator.pause();
 }
 
 void
@@ -150,13 +126,17 @@ GdbServer::reply(const string &payload)
 bool
 GdbServer::attach(const string &name)
 {
-    SUSPENDED
-    
     this->processName = name;
     this->segList = { };
     
-    readSegList();
-    
+    if (readSegList()) {
+
+        retroShell << "Successfully attached to process '" << processName << "'\n\n";
+        retroShell << "    Data segment: " << util::hexstr <8> (dataSeg()) << "\n";
+        retroShell << "    Code segment: " << util::hexstr <8> (codeSeg()) << "\n";
+        retroShell << "     BSS segment: " << util::hexstr <8> (bssSeg()) << "\n\n";
+    }
+
     if (segList.empty()) {
 
         retroShell << "Waiting for process '" << processName << "' to launch.\n";
@@ -184,11 +164,13 @@ GdbServer::readSegList()
     // Try to find the segment list in memory
     osDebugger.read(processName, segList);
     if (segList.empty()) return false;
-    
+
+    /*
     retroShell << "Successfully attached to process '" << processName << "'\n\n";
     retroShell << "    Data segment: " << util::hexstr <8> (dataSeg()) << "\n";
     retroShell << "    Code segment: " << util::hexstr <8> (codeSeg()) << "\n";
     retroShell << "     BSS segment: " << util::hexstr <8> (bssSeg()) << "\n\n";
+    */
     return true;
 }
 
@@ -213,8 +195,8 @@ GdbServer::bssSeg() const
 string
 GdbServer::computeChecksum(const string &s)
 {
-    uint8_t chk = 0;
-    for(auto &c : s) U8_INC(chk, c); // chk += (uint8_t)c;
+    u8 chk = 0;
+    for(auto &c : s) U8_INC(chk, c);
 
     return util::hexstr <2> (chk);
 }
@@ -247,7 +229,7 @@ GdbServer::readRegister(isize nr)
 string
 GdbServer::readMemory(isize addr)
 {
-    auto byte = mem.spypeek8 <ACCESSOR_CPU> ((u32)addr);
+    auto byte = mem.spypeek8 <Accessor::CPU> ((u32)addr);
     return util::hexstr <2> (byte);
 }
 

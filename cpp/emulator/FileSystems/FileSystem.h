@@ -2,21 +2,24 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
 
 #include "FSTypes.h"
 #include "FSBlock.h"
-#include "FSDescriptors.h"
+#include "FSDescriptor.h"
 #include "FSObjects.h"
+#include "FSTree.h"
+#include "FSStorage.h"
+#include "FSDoctor.h"
 #include "ADFFile.h"
 #include "HDFFile.h"
 #include <stack>
-#include <set>
+#include <unordered_set>
 
 namespace vamiga {
 
@@ -27,285 +30,314 @@ class HardDrive;
 
 /* An object of type FileSystem represents an Amiga file system (OFS or FFS).
  * It is a logical volume that can be created from an ADF or HDF. In the latter
- * case, each partition can be converted to a file system individually. The
- * class provides functions for analyzing the integrity of the volume as well
- * as functions for reading files and directories.
+ * case, each partition can be converted into a file system individually. The
+ * class provides functions for analyzing the volume's integrity, as well as
+ * for reading files and directories.
  *
- * See also: MutableFileSystem
+ * The MutableFileSystem class extends FileSystem by adding functions for
+ * modifying the contents of the file system. It allows the creation of empty
+ * file systems of a specified type and provides functions for manipulating
+ * files and directories, such as creating, deleting, or moving items.
  */
-class FileSystem : public CoreObject {
-    
+class FileSystem : public CoreObject, public Inspectable<FSInfo, FSStats> {
+
     friend struct FSBlock;
+    friend class  FSDoctor;
     friend struct FSHashTable;
     friend struct FSPartition;
-    
+
+public:
+
+    // Disk doctor
+    FSDoctor doctor = FSDoctor(*this);
+
 protected:
 
-    // File system version
-    FSVolumeType dos = FS_NODOS;
-    
+    // Static file system properties
+    FSTraits traits;
+
     // Block storage
-    std::vector<BlockPtr> blocks;
-
-    // Size of a single block in bytes
-    isize bsize = 512;
-
-    // Number of reserved blocks
-    isize numReserved = 0;
+    FSStorage storage = FSStorage(this);
 
     // Location of the root block
     Block rootBlock = 0;
-    
-    // Location of the bitmap blocks and extended bitmap blocks
+
+    // Location of the current directory
+    Block current = 0;
+
+    // Location of bitmap blocks and extended bitmap blocks
     std::vector<Block> bmBlocks;
     std::vector<Block> bmExtBlocks;
 
-    // The currently selected directory (reference to FSDirBlock)
-    Block cd = 0;
-    
-    
+
     //
     // Initializing
     //
     
 public:
     
-    FileSystem() { };
-    FileSystem(const ADFFile &adf) throws { init(adf); }
-    FileSystem(const HDFFile &hdn, isize part) throws { init(hdn, part); }
-    FileSystem(FloppyDrive &dfn) throws { init(dfn); }
-    FileSystem(const HardDrive &hdn, isize part) throws { init(hdn, part); }
+    FileSystem() { stats = {}; };
+    FileSystem(const MediaFile &file, isize part = 0) : FileSystem() { init(file, part); }
+    FileSystem(const ADFFile &adf) : FileSystem() { init(adf); }
+    FileSystem(const HDFFile &hdf, isize part = 0) : FileSystem() { init(hdf, part); }
+    FileSystem(const FloppyDrive &dfn) : FileSystem() { init(dfn); }
+    FileSystem(const HardDrive &hdn, isize part = 0) : FileSystem() { init(hdn, part); }
 
     virtual ~FileSystem();
-    
-protected:
-    
-    void init(const ADFFile &adf) throws;
-    void init(const HDFFile &hdn, isize part) throws;
-    void init(FloppyDrive &dfn) throws;
-    void init(const HardDrive &hdn, isize part) throws;
 
-    void init(FileSystemDescriptor layout, u8 *buf, isize len) throws;
+    void init(const FSDescriptor &layout, u8 *buf, isize len);
+    void init(const MediaFile &file, isize part);
+    void init(const ADFFile &adf);
+    void init(const HDFFile &hdf, isize part);
+    void init(const FloppyDrive &dfn);
+    void init(const HardDrive &hdn, isize part);
 
-    
+    bool isInitialized() const noexcept;
+    bool isFormatted() const noexcept;
+
+
     //
     // Methods from CoreObject
     //
     
 protected:
     
-    const char *getDescription() const override { return "FileSystem"; }
-    void _dump(Category category, std::ostream& os) const override;
+    const char *objectName() const noexcept override { return "FileSystem"; }
+    void _dump(Category category, std::ostream &os) const noexcept override;
 
-    
+
+    //
+    // Methods from Inspectable
+    //
+
+public:
+
+    void cacheInfo(FSInfo &result) const noexcept override;
+    void cacheStats(FSStats &result) const noexcept override;
+
+
     //
     // Querying file system properties
     //
 
 public:
 
+    // Returns static file system properties
+    const FSTraits &getTraits() const noexcept { return traits; }
+
     // Returns capacity information
-    isize numBlocks() const { return isize(blocks.size()); }
-    isize numBytes() const { return numBlocks() * bsize; }
-    isize blockSize() const { return bsize; }
+    isize numBlocks() const noexcept { return storage.numBlocks(); }
+    isize numBytes() const noexcept { return storage.numBytes(); }
+    isize blockSize() const noexcept { return storage.blockSize(); }
 
-    // Reports usage information
-    isize freeBlocks() const;
-    isize usedBlocks() const;
-    isize freeBytes() const { return freeBlocks() * bsize; }
-    isize usedBytes() const { return usedBlocks() * bsize; }
-    double fillLevel() const { return double(100) * usedBlocks() / numBlocks(); }
-    
-    // Returns the DOS version
-    FSVolumeType getDos() const { return dos; }
-    bool isOFS() const { return isOFSVolumeType(dos); }
-    bool isFFS() const { return isFFSVolumeType(dos); }
+    // Analyzes the root block
+    FSName getName() const noexcept;
+    string getCreationDate() const noexcept;
+    string getModificationDate() const noexcept;
 
-    // Reads information from the root block
-    FSName getName() const;
-    string getCreationDate() const;
-    string getModificationDate() const;
-    
     // Analyzes the boot block
-    string getBootBlockName() const;
-    BootBlockType bootBlockType() const;
-    bool hasVirus() const { return bootBlockType() == BB_VIRUS; }
+    string getBootBlockName() const noexcept;
+    BootBlockType bootBlockType() const noexcept;
+    bool hasVirus() const noexcept { return bootBlockType() == BootBlockType::VIRUS; }
 
-    
+
     //
-    // Accessing blocks
-    //
-    
-public:
-    
-    // Returns the type of a certain block
-    FSBlockType blockType(Block nr) const;
-
-    // Returns the usage type of a certain byte in a certain block
-    FSItemType itemType(Block nr, isize pos) const;
-    
-    // Queries a pointer from the block storage (may return nullptr)
-    FSBlock *blockPtr(Block nr) const;
-
-    // Queries a pointer to a block of a certain type (may return nullptr)
-    FSBlock *bootBlockPtr(Block nr) const;
-    FSBlock *rootBlockPtr(Block nr) const;
-    FSBlock *bitmapBlockPtr(Block nr) const;
-    FSBlock *bitmapExtBlockPtr(Block nr) const;
-    FSBlock *userDirBlockPtr(Block nr) const;
-    FSBlock *fileHeaderBlockPtr(Block nr) const;
-    FSBlock *fileListBlockPtr(Block nr) const;
-    FSBlock *dataBlockPtr(Block nr) const;
-    FSBlock *hashableBlockPtr(Block nr) const;
-    
-    
-    // Reads a single byte from a block
-    u8 readByte(Block nr, isize offset) const;
-
-    // Returns a portion of the block as an ASCII dump
-    string ascii(Block nr, isize offset, isize len) const;
-    
-    
-    //
-    // Querying the block allocation bitmap
+    // Querying block properties
     //
 
 public:
+
+    // Returns the type of a certain block or a block item
+    FSBlockType typeof(Block nr) const noexcept;
+    bool is(Block nr, FSBlockType t) const noexcept { return typeof(nr) == t; }
+    FSItemType typeof(Block nr, isize pos) const noexcept;
+
+    // Convenience wrappers
+    bool isEmpty(Block nr) const noexcept { return typeof(nr) == FSBlockType::EMPTY; }
+
+protected:
+
+    // Predicts the type of a block
+    FSBlockType predictType(Block nr, const u8 *buf) const noexcept;
+
+
+    //
+    // Accessing the block storage
+    //
     
-    // Checks if a block is free or allocated
-    bool isFree(Block nr) const;
-    bool isAllocated(Block nr) const { return !isFree(nr); }
+public:
+
+    // Returns a block pointer or null if the block does not exist
+    FSBlock *read(Block nr) noexcept;
+    FSBlock *read(Block nr, FSBlockType type) noexcept;
+    FSBlock *read(Block nr, std::vector<FSBlockType> types) noexcept;
+    const FSBlock *read(Block nr) const noexcept;
+    const FSBlock *read(Block nr, FSBlockType type) const noexcept;
+    const FSBlock *read(Block nr, std::vector<FSBlockType> types) const noexcept;
+
+    // Returns a reference to a stored block (throws on error)
+    FSBlock &at(Block nr);
+    FSBlock &at(Block nr, FSBlockType type);
+    FSBlock &at(Block nr, std::vector<FSBlockType> types);
+    const FSBlock &at(Block nr) const;
+    const FSBlock &at(Block nr, FSBlockType type) const;
+    const FSBlock &at(Block nr, std::vector<FSBlockType> types) const;
+
+    // Operator overload
+    FSBlock &operator[](size_t nr);
+    const FSBlock &operator[](size_t nr) const;
+
+
+    //
+    // Managing the block allocation bitmap
+    //
+
+public:
     
+    // Checks if a block is allocated or unallocated
+    bool isUnallocated(Block nr) const noexcept;
+    bool isAllocated(Block nr) const noexcept { return !isUnallocated(nr); }
+
+    // Returns the number of allocated or unallocated blocks
+    isize numUnallocated() const noexcept;
+    isize numAllocated() const noexcept { return numBlocks() - numUnallocated(); }
+
 protected:
     
     // Locates the allocation bit for a certain block
-    FSBlock *locateAllocationBit(Block nr, isize *byte, isize *bit) const;
-    
-    
-    //
-    // Managing directories and files
-    //
-    
-public:
-    
-    // Returns the block representing the current directory
-    FSBlock *currentDirBlock();
-    
-    // Changes the current directory
-    FSBlock *changeDir(const string &name);
+    FSBlock *locateAllocationBit(Block nr, isize *byte, isize *bit) noexcept;
+    const FSBlock *locateAllocationBit(Block nr, isize *byte, isize *bit) const noexcept;
 
-    // Prints a directory listing
-    void printDirectory(bool recursive) throws;
-    
-    // Returns the path of a file system item
-    string getPath(FSBlock *block);
-    string getPath(Block nr) { return getPath(blockPtr(nr)); }
-    string getPath() { return getPath(currentDirBlock()); }
+    // Translate the bitmap into to a vector with the n-bit set iff the n-th block is free
+    std::vector<u32> serializeBitmap() const;
 
-    // Seeks an item inside the current directory
-    Block seekRef(FSName name);
-    Block seekRef(const string &name) { return seekRef(FSName(name)); }
-    FSBlock *seek(const string &name) { return blockPtr(seekRef(name)); }
-    FSBlock *seekDir(const string &name) { return userDirBlockPtr(seekRef(name)); }
-    FSBlock *seekFile(const string &name) { return fileHeaderBlockPtr(seekRef(name)); }
-    
-    
+
     //
-    // Integrity checking
+    // Managing files and directories
     //
 
 public:
-    
-    // Checks all blocks in this volume
-    FSErrorReport check(bool strict) const;
 
-    // Checks a single byte in a certain block
-    ErrorCode check(Block nr, isize pos, u8 *expected, bool strict) const;
+    // Returns the root of the directory tree
+    FSBlock &root() { return at(rootBlock); }
+    const FSBlock &root() const { return at(rootBlock); }
 
-    // Checks if the block with the given number is part of the volume
-    bool isBlockNumber(isize nr) const { return nr >= 0 && nr < numBlocks(); }
+    // Returns the working directory
+    FSBlock &pwd() { return at(current); }
+    const FSBlock &pwd() const { return at(current); }
 
-    // Checks if the type of a block matches one of the provides types
-    ErrorCode checkBlockType(Block nr, FSBlockType type) const;
-    ErrorCode checkBlockType(Block nr, FSBlockType type, FSBlockType altType) const;
+    // Returns the parent directory
+    FSBlock &parent(const FSBlock &block);
+    FSBlock *parent(const FSBlock *block) noexcept;
+    const FSBlock &parent(const FSBlock &block) const;
+    const FSBlock *parent(const FSBlock *block) const noexcept;
 
-    // Checks if a certain block is corrupted
-    bool isCorrupted(Block nr) { return getCorrupted(nr) != 0; }
+    // Changes the working directory
+    void cd(const FSName &name);
+    void cd(const FSBlock &path);
+    void cd(const string &path);
 
-    // Returns the position in the corrupted block list (0 = OK)
-    isize getCorrupted(Block nr);
+    // Checks if a an item exists in the directory tree
+    bool exists(const FSBlock &top, const fs::path &path) const;
+    bool exists(const fs::path &path) const { return exists(pwd(), path); }
 
-    // Returns a reference to the next or the previous corrupted block
-    Block nextCorrupted(Block nr);
-    Block prevCorrupted(Block nr);
+    // Seeks an item in the directory tree (returns nullptr if not found)
+    FSBlock *seekPtr(const FSBlock *top, const FSName &name) noexcept;
+    FSBlock *seekPtr(const FSBlock *top, const fs::path &name) noexcept;
+    FSBlock *seekPtr(const FSBlock *top, const string &name) noexcept;
+    const FSBlock *seekPtr(const FSBlock *top, const FSName &name) const noexcept;
+    const FSBlock *seekPtr(const FSBlock *top, const fs::path &name) const noexcept;
+    const FSBlock *seekPtr(const FSBlock *top, const string &name) const noexcept;
 
-    // Checks if a certain block is the n-th corrupted block
-    bool isCorrupted(Block nr, isize n);
+    // Seeks an item in the directory tree (returns nullptr if not found)
+    FSBlock &seek(const FSBlock &top, const FSName &name);
+    FSBlock &seek(const FSBlock &top, const fs::path &name);
+    FSBlock &seek(const FSBlock &top, const string &name);
+    const FSBlock &seek(const FSBlock &top, const FSName &name) const;
+    const FSBlock &seek(const FSBlock &top, const fs::path &name) const;
+    const FSBlock &seek(const FSBlock &v, const string &name) const;
 
-    // Returns a reference to the n-th corrupted block
-    Block seekCorruptedBlock(isize n);
-    
-    
-    //
-    // Traversing the file system
-    //
-    
-protected:
-    
-    // Returns a collections of nodes for all items in the current directory
-    void collect(Block nr, std::vector<Block> &list, bool recursive = true) throws;
-    
+    // Seeks all items satisfying a predicate
+    std::vector<const FSBlock *> find(const FSOpt &opt) const;
+    std::vector<const FSBlock *> find(const FSBlock *root, const FSOpt &opt) const;
+    std::vector<const FSBlock *> find(const FSBlock &root, const FSOpt &opt) const;
+    std::vector<Block> find(Block root, const FSOpt &opt) const;
+
+    // Seeks all items with a pattern-matching name
+    std::vector<const FSBlock *> find(const FSPattern &pattern) const;
+    std::vector<const FSBlock *> find(const FSBlock *top, const FSPattern &pattern) const;
+    std::vector<const FSBlock *> find(const FSBlock &top, const FSPattern &pattern) const;
+    std::vector<Block> find(Block root, const FSPattern &pattern) const;
+
+    // Collects all items with a pattern-matching path
+    std::vector<const FSBlock *> match(const FSPattern &pattern) const;
+    std::vector<const FSBlock *> match(const FSBlock *top, const FSPattern &pattern) const;
+    std::vector<const FSBlock *> match(const FSBlock &top, const FSPattern &pattern) const;
+    std::vector<Block> match(Block root, const FSPattern &pattern) const;
+
 private:
-    
-    // Collects all references stored in a hash table
-    void collectHashedRefs(Block nr, std::stack<Block> &list,
-                           std::set<Block> &visited) throws;
-    
-    // Collects all references with the same hash value
-    void collectRefsWithSameHashValue(Block nr, std::stack<Block> &list,
-                                      std::set<Block> &visited) throws;
 
-    
+    std::vector<const FSBlock *> find(const FSBlock *top, const FSOpt &opt,
+                                      std::unordered_set<Block> &visited) const;
+
+    std::vector<const FSBlock *> match(const FSBlock *top,
+                                       std::vector<FSPattern> pattern) const;
+
+
     //
     // Traversing linked lists
     //
+
+public:
     
-protected:
-    
-    // Returns the last element in the list of extension blocks
-    FSBlock *lastFileListBlockInChain(Block start);
-    FSBlock *lastFileListBlockInChain(FSBlock *block);
-    
-    // Returns the last element in the list of blocks with the same hash
-    FSBlock *lastHashBlockInChain(Block start);
-    FSBlock *lastHashBlockInChain(FSBlock *block);
-    
+    // Follows a linked list and collects all blocks
+    std::vector<const FSBlock *> collect(const FSBlock &block,
+                                         std::function<const FSBlock *(const FSBlock *)> next) const;
+    std::vector<Block> collect(const Block nr,
+                               std::function<const FSBlock *(const FSBlock *)> next) const;
+
+    // Collects blocks of a certain type
+    std::vector<const FSBlock *> collectDataBlocks(const FSBlock &block) const;
+    std::vector<const FSBlock *> collectListBlocks(const FSBlock &block) const;
+    std::vector<const FSBlock *> collectHashedBlocks(const FSBlock &block, isize bucket) const;
+    std::vector<const FSBlock *> collectHashedBlocks(const FSBlock &block) const;
+    std::vector<Block> collectDataBlocks(Block nr) const;
+    std::vector<Block> collectListBlocks(Block nr) const;
+    std::vector<Block> collectHashedBlocks(Block nr, isize bucket) const;
+    std::vector<Block> collectHashedBlocks(Block nr) const;
+
 
     //
-    // Importing and exporting
+    // Argument checkers
     //
-    
+
 public:
 
-    // Predicts the type of a block by analyzing its number and data
-    FSBlockType predictBlockType(Block nr, const u8 *buffer);
+    void require_initialized() const;
+    void require_formatted() const;
+    void require_file_or_directory(const FSBlock &block) const;
 
 
     //
     // GUI helper functions
     //
+
+public:
+
+    // Returns a portion of the block as an ASCII dump
+    string ascii(Block nr, isize offset, isize len) const noexcept;
+
+    // Returns a block summary for creating the block usage image
+    void createUsageMap(u8 *buffer, isize len) const;
+
+    // Returns a usage summary for creating the block allocation image
+    void createAllocationMap(u8 *buffer, isize len) const;
+
+    // Returns a block summary for creating the diagnose image
+    void createHealthMap(u8 *buffer, isize len) const;
     
-    // Determines how the layout image should look like in a certain column
-    FSBlockType getDisplayType(isize column);
-
-    // Determines how the diagnose image should look like in a certain column
-    isize diagnoseImageSlice(isize column);
-
     // Searches the block list for a block of a specific type
-    isize nextBlockOfType(FSBlockType type, isize after);
-
-    // Searches the block list for a corrupted block
-    isize nextCorruptedBlock(isize after);
+    isize nextBlockOfType(FSBlockType type, Block after) const;
 };
 
 }

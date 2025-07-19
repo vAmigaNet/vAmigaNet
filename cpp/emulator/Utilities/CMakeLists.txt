@@ -1,9 +1,10 @@
-target_include_directories(vAmigaCore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(VACore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-target_sources(vAmigaCore PRIVATE
+target_sources(VACore PRIVATE
 
   Buffer.cpp
   Chrono.cpp
+  Compression.cpp
   Concurrency.cpp
   MemUtils.cpp
   Checksum.cpp

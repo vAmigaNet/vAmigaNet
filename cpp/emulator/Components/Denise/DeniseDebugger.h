@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
@@ -15,7 +15,21 @@
 
 namespace vamiga {
 
-class DeniseDebugger: public SubComponent {
+class DeniseDebugger final : public SubComponent {
+
+    friend class Denise;
+    
+    Descriptions descriptions = {{
+
+        .type           = Class::DeniseDebugger,
+        .name           = "DeniseDebugger",
+        .description    = "Denise Debugger",
+        .shell          = ""
+    }};
+
+    Options options = {
+
+    };
 
     // Largest viewport seen in the current frame (constantly changing)
     ViewPortInfo maxViewPort = { };
@@ -46,31 +60,43 @@ public:
     
     using SubComponent::SubComponent;
 
+    DeniseDebugger& operator= (const DeniseDebugger& other) {
 
+        return *this;
+    }
+
+    
     //
-    // Methods from CoreObject
+    // Methods from Serializable
     //
     
 private:
     
-    const char *getDescription() const override { return "DeniseDebugger"; }
-    void _dump(Category category, std::ostream& os) const override { };
-    
-    
+    template <class T> void serialize(T& worker) { } SERIALIZERS(serialize);
+
+
     //
     // Methods from CoreComponent
     //
 
+public:
+
+    const Descriptions &getDescriptions() const override { return descriptions; }
+
 private:
     
+    void _dump(Category category, std::ostream &os) const override { };
     void _initialize() override;
-    void _reset(bool hard) override;
-    
-    isize _size() override { return 0; }
-    u64 _checksum() override { return 0; }
-    isize _load(const u8 *buffer) override { return 0; }
-    isize _save(u8 *buffer) override { return 0; }
-    
+
+
+    //
+    // Methods from Configurable
+    //
+
+public:
+
+    const Options &getOptions() const override { return options; }
+
 
     //
     // Tracking sprites

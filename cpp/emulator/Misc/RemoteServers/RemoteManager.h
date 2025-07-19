@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
@@ -14,21 +14,34 @@
 #include "SerServer.h"
 #include "RshServer.h"
 #include "GdbServer.h"
+#include "PromServer.h"
 
 namespace vamiga {
 
-class RemoteManager : public SubComponent {
+class RemoteManager final : public SubComponent, public Inspectable<RemoteManagerInfo> {
+
+    Descriptions descriptions = {{
+
+        .name           = "RemoteManager",
+        .description    = "Remote Manager",
+        .shell          = "server"
+    }};
+
+    Options options = {
+
+    };
 
 public:
     
     // The remote servers
-    SerServer serServer = SerServer(amiga);
-    RshServer rshServer = RshServer(amiga);
-    GdbServer gdbServer = GdbServer(amiga);
-    
-    // Convenience wrapper
+    SerServer serServer = SerServer(amiga, isize(ServerType::SER));
+    RshServer rshServer = RshServer(amiga, isize(ServerType::RSH));
+    PromServer promServer = PromServer(amiga, isize(ServerType::PROM));
+    GdbServer gdbServer = GdbServer(amiga, isize(ServerType::GDB));
+
+    // Convenience access
     std::vector <RemoteServer *> servers = {
-        &serServer, &rshServer, &gdbServer
+        &serServer, &rshServer, &gdbServer, &promServer
     };
 
     
@@ -39,17 +52,24 @@ public:
 public:
     
     RemoteManager(Amiga& ref);
-    // ~RemoteManager();
     
-    
+    RemoteManager& operator= (const RemoteManager& other) {
+
+        CLONE(serServer)
+        CLONE(rshServer)
+        CLONE(gdbServer)
+
+        return *this;
+    }
+
+
     //
     // Methods from CoreObject
     //
     
 protected:
     
-    const char *getDescription() const override { return "RemoteManager"; }
-    void _dump(Category category, std::ostream& os) const override;
+    void _dump(Category category, std::ostream &os) const override;
     
     
     //
@@ -58,24 +78,31 @@ protected:
     
 private:
     
-    void _reset(bool hard) override { }
-    isize _size() override { return 0; }
-    u64 _checksum() override { return 0; }
-    isize _load(const u8 *buffer) override {return 0; }
-    isize _save(u8 *buffer) override { return 0; }
-    
-    
-    //
-    // Configuring
-    //
-    
+    template <class T> void serialize(T& worker) { } SERIALIZERS(serialize);
+        
 public:
 
-    i64 getConfigItem(Option option, long id) const;
-    void setConfigItem(Option option, i64 value);
-    void setConfigItem(Option option, long id, i64 value);
+    const Descriptions &getDescriptions() const override { return descriptions; }
 
-    
+
+    //
+    // Methods from Configurable
+    //
+
+public:
+
+    const Options &getOptions() const override { return options; }
+
+
+    //
+    // Methods from Inspectable
+    //
+
+public:
+
+    void cacheInfo(RemoteManagerInfo &result) const override;
+
+
     //
     // Managing connections
     //

@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #include "config.h"
@@ -15,13 +15,8 @@
 
 namespace vamiga {
 
-RshServer::RshServer(Amiga& ref) : RemoteServer(ref)
-{
-
-}
-
 void
-RshServer::_dump(Category category, std::ostream& os) const
+RshServer::_dump(Category category, std::ostream &os) const
 {
     using namespace util;
     
@@ -29,29 +24,11 @@ RshServer::_dump(Category category, std::ostream& os) const
 }
 
 void
-RshServer::resetConfig()
-{
-    assert(isPoweredOff());
-    auto &defaults = amiga.defaults;
-
-    std::vector <Option> options = {
-        
-        OPT_SRV_PORT,
-        OPT_SRV_PROTOCOL,
-        OPT_SRV_AUTORUN,
-        OPT_SRV_VERBOSE
-    };
-
-    for (auto &option : options) {
-        setConfigItem(option, defaults.get(option, SERVER_RSH));
-    }
-}
-
-void
 RshServer::didStart()
 {
     if (config.verbose) {
-        retroShell << "Remote server is listening at port " << config.port << "\n";
+
+        *this << "Remote server is listening at port " << config.port << "\n";
     }
 }
 
@@ -62,8 +39,7 @@ RshServer::didConnect()
         
         try {
 
-            retroShell.welcome();
-            send(retroShell.getPrompt());
+            retroShell.asyncExec("welcome");
 
         } catch (...) { };
     }

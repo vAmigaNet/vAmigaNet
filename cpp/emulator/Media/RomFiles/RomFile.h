@@ -10,62 +10,44 @@
 #pragma once
 
 #include "RomFileTypes.h"
-#include "AmigaFile.h"
+#include "AnyFile.h"
 
 namespace vamiga {
 
-class RomFile : public AmigaFile {
+class RomFile : public AnyFile {
 
     // Accepted header signatures
     static const u8 bootRomHeaders[1][8];
-    static const u8 kickRomHeaders[8][7];
+    static const u8 kickRomHeaders[11][7];
     static const u8 encrRomHeaders[1][11];
 
     // Path to the rom.key file (if needed)
-    string romKeyPath = "";
+    fs::path romKeyPath;
 
 public:
 
-    static bool isCompatible(const string &path);
-    static bool isCompatible(std::istream &stream);
-
-    static bool isRomBuffer(const u8 *buf, isize len);
-    static bool isRomFile(const string &path);
-
-    // Classifies a ROM identifier by type
-    static bool isBootRom(u32 crc32);
-    static bool isArosRom(u32 crc32);
-    static bool isDiagRom(u32 crc32);
-    static bool isCommodoreRom(u32 crc32);
-    static bool isHyperionRom(u32 crc32);
-    static bool isPatchedRom(u32 crc32);
-
-    // Translates a ROM indentifier into a textual description
-    static const char *shortName(u32 crc32);
-    static const char *title(u32 crc32);
-    static const char *version(u32 crc32);
-    static const char *released(u32 crc32);
-    static const char *model(u32 crc32);
+    static bool isCompatible(const fs::path &path);
+    static bool isCompatible(const u8 *buf, isize len);
+    static bool isCompatible(const Buffer<u8> &buffer);
 
 
     //
     // Initializing
     //
 
-    RomFile(const string &path) throws { init(path); }
-    RomFile(const string &path, std::istream &stream) throws { init(path, stream); }
+    RomFile(const fs::path &path) throws { init(path); }
     RomFile(const u8 *buf, isize len) throws { init(buf, len); }
 
-    const char *getDescription() const override { return "ROM"; }
+    const char *objectName() const override { return "ROM"; }
 
 
     //
-    // Methods from AmigaFile
+    // Methods from AnyFile
     //
 
-    FileType type() const override { return FILETYPE_ROM; }
-    bool isCompatiblePath(const string &path) const override { return isCompatible(path); }
-    bool isCompatibleStream(std::istream &stream) const override { return isCompatible(stream); }
+    FileType type() const override { return FileType::ROM; }
+    bool isCompatiblePath(const fs::path &path) const override { return isCompatible(path); }
+    bool isCompatibleBuffer(const u8 *buf, isize len) const override { return isCompatible(buf, len); }
 
 
     //

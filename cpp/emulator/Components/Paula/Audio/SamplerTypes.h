@@ -9,38 +9,46 @@
 
 #pragma once
 
-#include "Aliases.h"
-#include "Reflection.h"
+#include "Infrastructure/Reflection.h"
 
 //
 // Enumerations
 //
 
-enum_long(SMP_METHOD)
-{
-    SMP_NONE,
-    SMP_NEAREST,
-    SMP_LINEAR
-};
-typedef SMP_METHOD SamplingMethod;
+namespace vamiga {
 
-#ifdef __cplusplus
-struct SamplingMethodEnum : util::Reflection<SamplingMethodEnum, SamplingMethod>
+enum class SamplingMethod
+{
+    NONE,
+    NEAREST,
+    LINEAR
+};
+
+struct SamplingMethodEnum : Reflection<SamplingMethodEnum, SamplingMethod>
 {
     static constexpr long minVal = 0;
-    static constexpr long maxVal = SMP_LINEAR;
-    static bool isValid(auto val) { return val >= minVal && val <= maxVal; }
-
-    static const char *prefix() { return "SMP"; }
-    static const char *key(SamplingMethod value)
+    static constexpr long maxVal = long(SamplingMethod::LINEAR);
+    
+    static const char *_key(SamplingMethod value)
     {
         switch (value) {
                 
-            case SMP_NONE:     return "NONE";
-            case SMP_NEAREST:  return "NEAREST";
-            case SMP_LINEAR:   return "LINEAR";
+            case SamplingMethod::NONE:     return "NONE";
+            case SamplingMethod::NEAREST:  return "NEAREST";
+            case SamplingMethod::LINEAR:   return "LINEAR";
+        }
+        return "???";
+    }
+    static const char *help(SamplingMethod value)
+    {
+        switch (value) {
+                
+            case SamplingMethod::NONE:     return "Latest sample";
+            case SamplingMethod::NEAREST:  return "Nearest neighbor";
+            case SamplingMethod::LINEAR:   return "Linear interpolation";
         }
         return "???";
     }
 };
-#endif
+
+}

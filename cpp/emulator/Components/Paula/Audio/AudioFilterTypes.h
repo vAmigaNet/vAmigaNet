@@ -9,51 +9,59 @@
 
 #pragma once
 
-#include "Aliases.h"
-#include "Reflection.h"
+#include "Infrastructure/Reflection.h"
+
+namespace vamiga {
 
 //
 // Enumerations
 //
 
-enum_long(FILTER_TYPE)
+enum class FilterType : long
 {
-    FILTER_NONE,
-    FILTER_A500,
-    FILTER_A1000,
-    FILTER_A1200,
-    FILTER_VAMIGA,
-    FILTER_LOW,
-    FILTER_LED,
-    FILTER_HIGH
+    NONE,
+    A500,
+    A1000,
+    A1200,
+    LOW,
+    LED,
+    HIGH
 };
-typedef FILTER_TYPE FilterType;
 
-#ifdef __cplusplus
-struct FilterTypeEnum : util::Reflection<FilterTypeEnum, FilterType>
+struct FilterTypeEnum : Reflection<FilterTypeEnum, FilterType>
 {
     static constexpr long minVal = 0;
-    static constexpr long maxVal = FILTER_HIGH;
-    static bool isValid(auto val) { return val >= minVal && val <= maxVal; }
-
-    static const char *prefix() { return "FILTER"; }
-    static const char *key(FilterType value)
+    static constexpr long maxVal = long(FilterType::HIGH);
+    
+    static const char *_key(FilterType value)
     {
         switch (value) {
                 
-            case FILTER_NONE:       return "NONE";
-            case FILTER_A500:       return "A500";
-            case FILTER_A1000:      return "A1000";
-            case FILTER_A1200:      return "A1200";
-            case FILTER_VAMIGA:     return "VAMIGA";
-            case FILTER_LOW:        return "LOW";
-            case FILTER_LED:        return "LED";
-            case FILTER_HIGH:       return "HIGH";
+            case FilterType::NONE:       return "NONE";
+            case FilterType::A500:       return "A500";
+            case FilterType::A1000:      return "A1000";
+            case FilterType::A1200:      return "A1200";
+            case FilterType::LOW:        return "LOW";
+            case FilterType::LED:        return "LED";
+            case FilterType::HIGH:       return "HIGH";
+        }
+        return "???";
+    }
+    static const char *help(FilterType value)
+    {
+        switch (value) {
+                
+            case FilterType::NONE:       return "No audio filter";
+            case FilterType::A500:       return "Amiga 500 filter pipeline";
+            case FilterType::A1000:      return "Amiga 1000 filter pipeline";
+            case FilterType::A1200:      return "Amiga 1200 filter pipeline";
+            case FilterType::LOW:        return "Low-pass filter only";
+            case FilterType::LED:        return "LED filter only. Ignore the LED state";
+            case FilterType::HIGH:       return "High-pass filter only";
         }
         return "???";
     }
 };
-#endif
 
 
 //
@@ -66,3 +74,5 @@ typedef struct
     FilterType filterType;
 }
 AudioFilterConfig;
+
+}

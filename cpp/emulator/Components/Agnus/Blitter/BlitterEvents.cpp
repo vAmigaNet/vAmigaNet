@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #include "config.h"
@@ -36,8 +36,8 @@ Blitter::serviceEvent(EventID id)
             }
 
             // Only proceed if the bus is free
-            if (!agnus.busIsFree<BUS_BLITTER>()) {
-                trace(BLTTIM_DEBUG, "BLT_STRT1: Blocked by %d\n", agnus.busOwner[agnus.pos.h]);
+            if (!agnus.busIsFree<BusOwner::BLITTER>()) {
+                trace(BLTTIM_DEBUG, "BLT_STRT1: Blocked by %s\n", BusOwnerEnum::key(agnus.busOwner[agnus.pos.h]));
                 break;
             }
 
@@ -48,8 +48,8 @@ Blitter::serviceEvent(EventID id)
         case BLT_STRT2:
 
             // Only proceed if the bus is a free
-            if (!agnus.busIsFree<BUS_BLITTER>()) {
-                trace(BLTTIM_DEBUG, "BLT_STRT2: Blocked by %d\n", agnus.busOwner[agnus.pos.h]);
+            if (!agnus.busIsFree<BusOwner::BLITTER>()) {
+                trace(BLTTIM_DEBUG, "BLT_STRT2: Blocked by %s\n", BusOwnerEnum::key(agnus.busOwner[agnus.pos.h]));
                 break;
             }
 

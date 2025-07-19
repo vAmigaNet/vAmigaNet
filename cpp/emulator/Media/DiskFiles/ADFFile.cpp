@@ -12,6 +12,7 @@
 #include "Amiga.h"
 #include "BootBlockImage.h"
 #include "Checksum.h"
+#include "EADFFile.h"
 #include "FloppyDisk.h"
 #include "FloppyDrive.h"
 #include "IOUtils.h"
@@ -21,28 +22,33 @@
 namespace vamiga {
 
 bool
-ADFFile::isCompatible(const string &path)
+ADFFile::isCompatible(const fs::path &path)
 {
-    auto suffix = util::uppercased(util::extractSuffix(path));
-    return suffix == "ADF";
+    // Check the suffix
+    auto suffix = util::uppercased(path.extension().string());
+    if (suffix != ".ADF") return false;
+    
+    // Make sure it's not an extended ADF
+    return !EADFFile::isCompatible(path);
 }
 
 bool
-ADFFile::isCompatible(std::istream &stream)
+ADFFile::isCompatible(const u8 *buf, isize len)
 {
-    isize length = util::streamLength(stream);
-    
     // Some ADFs contain an additional byte at the end. Ignore it.
-    length &= ~1;
-    
-    // There are no magic bytes. Hence, we only check the file size.
-    return
-    length == ADFSIZE_35_DD ||
-    length == ADFSIZE_35_DD_81 ||
-    length == ADFSIZE_35_DD_82 ||
-    length == ADFSIZE_35_DD_83 ||
-    length == ADFSIZE_35_DD_84 ||
-    length == ADFSIZE_35_HD;
+    len &= ~1;
+
+    // The size must be a multiple of the cylinder size
+    if (len % 11264) return false;
+
+    // Check some more limits
+    return len <= ADFSIZE_35_DD_84 || len == ADFSIZE_35_HD;
+}
+
+bool
+ADFFile::isCompatible(const Buffer<u8> &buf)
+{
+    return isCompatible(buf.ptr, buf.size);
 }
 
 isize
@@ -51,12 +57,12 @@ ADFFile::fileSize(Diameter diameter, Density density)
     assert_enum(Diameter, diameter);
     assert_enum(Density, density);
 
-    if (diameter != INCH_35) throw VAError(ERROR_DISK_INVALID_DIAMETER);
+    if (diameter != Diameter::INCH_35) throw AppError(Fault::DISK_INVALID_DIAMETER);
     
-    if (density == DENSITY_DD) return ADFSIZE_35_DD;
-    if (density == DENSITY_HD) return ADFSIZE_35_HD;
+    if (density == Density::DD) return ADFSIZE_35_DD;
+    if (density == Density::HD) return ADFSIZE_35_HD;
 
-    throw VAError(ERROR_DISK_INVALID_DENSITY);
+    throw AppError(Fault::DISK_INVALID_DENSITY);
 }
 
 void
@@ -71,11 +77,11 @@ ADFFile::init(Diameter diameter, Density density)
 void
 ADFFile::init(const FloppyDiskDescriptor &descr)
 {
-    if (descr.diameter != INCH_35) throw VAError(ERROR_DISK_INVALID_DIAMETER);
+    if (descr.diameter != Diameter::INCH_35) throw AppError(Fault::DISK_INVALID_DIAMETER);
 
     switch (descr.density) {
 
-        case DENSITY_DD:
+        case Density::DD:
 
             switch (descr.cylinders) {
 
@@ -86,22 +92,22 @@ ADFFile::init(const FloppyDiskDescriptor &descr)
                 case 84: init(ADFSIZE_35_DD_84); break;
 
                 default:
-                    throw VAError(ERROR_DISK_INVALID_LAYOUT);
+                    throw AppError(Fault::DISK_INVALID_LAYOUT);
             }
             break;
 
-        case DENSITY_HD:
+        case Density::HD:
 
             init(ADFSIZE_35_HD);
             break;
 
         default:
-            throw VAError(ERROR_DISK_INVALID_DENSITY);
+            throw AppError(Fault::DISK_INVALID_DENSITY);
     }
 }
 
 void
-ADFFile::init(FloppyDisk &disk)
+ADFFile::init(const FloppyDisk &disk)
 {
     init(disk.getDiameter(), disk.getDensity());
     
@@ -112,30 +118,37 @@ ADFFile::init(FloppyDisk &disk)
 }
 
 void
-ADFFile::init(FloppyDrive &drive)
+ADFFile::init(const FloppyDrive &drive)
 {
-    if (drive.disk == nullptr) throw VAError(ERROR_DISK_MISSING);
+    if (drive.disk == nullptr) throw AppError(Fault::DISK_MISSING);
     init(*drive.disk);
 }
 
 void
-ADFFile::init(MutableFileSystem &volume)
+ADFFile::init(const MutableFileSystem &volume)
 {
     switch (volume.numBlocks()) {
             
         case 2 * 880:
-            init(INCH_35, DENSITY_DD);
+            init(Diameter::INCH_35, Density::DD);
             break;
             
         case 4 * 880:
-            init(INCH_35, DENSITY_HD);
+            init(Diameter::INCH_35, Density::HD);
             break;
             
         default:
-            throw VAError(ERROR_FS_WRONG_CAPACITY);
+            throw AppError(Fault::FS_WRONG_CAPACITY);
     }
 
     volume.exportVolume(data.ptr, data.size);
+}
+
+void
+ADFFile::finalizeRead()
+{
+    // Add some empty cylinders if the file contains less than 80
+    if (data.size < ADFSIZE_35_DD) data.resize(ADFSIZE_35_DD, 0);
 }
 
 isize
@@ -166,28 +179,28 @@ ADFFile::numSectors() const
 {
     switch (getDensity()) {
             
-        case DENSITY_DD: return 11;
-        case DENSITY_HD: return 22;
+        case Density::DD: return 11;
+        case Density::HD: return 22;
             
         default:
             fatalError;
     }
 }
 
-FSVolumeType
+FSFormat
 ADFFile::getDos() const
 {
     if (strncmp((const char *)data.ptr, "DOS", 3) || data[3] > 7) {
-        return FS_NODOS;
+        return FSFormat::NODOS;
     }
 
-    return (FSVolumeType)data[3];
+    return (FSFormat)data[3];
 }
 
 void
-ADFFile::setDos(FSVolumeType dos)
+ADFFile::setDos(FSFormat dos)
 {
-    if (dos == FS_NODOS) {
+    if (dos == FSFormat::NODOS) {
         std::memset(data.ptr, 0, 4);
     } else {
         std::memcpy(data.ptr, "DOS", 3);
@@ -198,19 +211,19 @@ ADFFile::setDos(FSVolumeType dos)
 Diameter
 ADFFile::getDiameter() const
 {
-    return INCH_35;
+    return Diameter::INCH_35;
 }
 
 Density
 ADFFile::getDensity() const
 {
-    return (data.size & ~1) == ADFSIZE_35_HD ? DENSITY_HD : DENSITY_DD;
+    return (data.size & ~1) == ADFSIZE_35_HD ? Density::HD : Density::DD;
 }
 
-FileSystemDescriptor
+FSDescriptor
 ADFFile::getFileSystemDescriptor() const
 {
-    FileSystemDescriptor result;
+    FSDescriptor result;
     
     // Determine the root block location
     Block root = data.size < ADFSIZE_35_HD ? 880 : 1760;
@@ -222,8 +235,7 @@ ADFFile::getFileSystemDescriptor() const
     if (bitmap == 0 || bitmap >= (Block)numBlocks()) bitmap = root + 1;
 
     // Setup the descriptor
-    result.numBlocks = numCyls() * numHeads() * numSectors(); // TODO: REPLACE BY numBlocks()
-    assert(result.numBlocks == numBlocks());
+    result.numBlocks = numBlocks();
     result.bsize = 512;
     result.numReserved = 2;
     result.dos = getDos();
@@ -252,33 +264,33 @@ ADFFile::killVirus()
     
     if (isOFSVolumeType(getDos())) {
 
-        plain(ADF_DEBUG, "a standard OFS bootblock\n");
-        BootBlockImage bb = BootBlockImage(BB_AMIGADOS_13);
+        debug(ADF_DEBUG, "a standard OFS bootblock\n");
+        BootBlockImage bb = BootBlockImage(BootBlockId::AMIGADOS_13);
         bb.write(data.ptr + 4, 4, 1023);
 
     } else if (isFFSVolumeType(getDos())) {
 
-        plain(ADF_DEBUG, "a standard FFS bootblock\n");
-        BootBlockImage bb = BootBlockImage(BB_AMIGADOS_20);
+        debug(ADF_DEBUG, "a standard FFS bootblock\n");
+        BootBlockImage bb = BootBlockImage(BootBlockId::AMIGADOS_20);
         bb.write(data.ptr + 4, 4, 1023);
 
     } else {
 
-        plain(ADF_DEBUG, "zeroes\n");
+        debug(ADF_DEBUG, "zeroes\n");
         std::memset(data.ptr + 4, 0, 1020);
     }
 }
 
 void
-ADFFile::formatDisk(FSVolumeType fs, BootBlockId id, string name)
+ADFFile::formatDisk(FSFormat fs, BootBlockId id, string name)
 {
-    assert_enum(FSVolumeType, fs);
+    assert_enum(FSFormat, fs);
 
     debug(ADF_DEBUG,
-          "Formatting disk (%ld, %s)\n", numBlocks(), FSVolumeTypeEnum::key(fs));
+          "Formatting disk (%ld, %s)\n", numBlocks(), FSFormatEnum::key(fs));
 
     // Only proceed if a file system is given
-    if (fs == FS_NODOS) return;
+    if (fs == FSFormat::NODOS) return;
     
     // Get a device descriptor for this ADF
     auto descriptor = getFileSystemDescriptor();
@@ -292,17 +304,17 @@ ADFFile::formatDisk(FSVolumeType fs, BootBlockId id, string name)
     volume.makeBootable(id);
     
     // Export the file system to the ADF
-    if (!volume.exportVolume(data.ptr, data.size)) throw VAError(ERROR_FS_UNKNOWN);
+    if (!volume.exportVolume(data.ptr, data.size)) throw AppError(Fault::FS_UNKNOWN);
 }
 
 void
 ADFFile::encodeDisk(FloppyDisk &disk) const
 {
     if (disk.getDiameter() != getDiameter()) {
-        throw VAError(ERROR_DISK_INVALID_DIAMETER);
+        throw AppError(Fault::DISK_INVALID_DIAMETER);
     }
     if (disk.getDensity() != getDensity()) {
-        throw VAError(ERROR_DISK_INVALID_DENSITY);
+        throw AppError(Fault::DISK_INVALID_DENSITY);
     }
 
     isize tracks = numTracks();
@@ -315,10 +327,11 @@ ADFFile::encodeDisk(FloppyDisk &disk) const
     for (Track t = 0; t < tracks; t++) encodeTrack(disk, t);
 
     // In debug mode, also run the decoder
-    if constexpr (ADF_DEBUG) {
+    if (ADF_DEBUG) {
         
         ADFFile adf(disk);
-        auto tmp = Amiga::tmp("debug.adf").string();
+        // auto tmp = Amiga::tmp("debug.adf").string();
+        string tmp = "/tmp/debug.adf";
         debug(ADF_DEBUG, "Saving image to %s for debugging\n", tmp.c_str());
         adf.writeToFile(tmp);
     }
@@ -336,18 +349,10 @@ ADFFile::encodeTrack(FloppyDisk &disk, Track t) const
     // Encode all sectors
     for (Sector s = 0; s < sectors; s++) encodeSector(disk, t, s);
     
-    // TODO: Remove after while
-    assert((disk.data.track[t][disk.length.track[t] - 1] & 1) == disk.readBit(t, disk.length.track[t] * 8 - 1));
-
     // Rectify the first clock bit (where the buffer wraps over)
     if (disk.readBit(t, disk.length.track[t] * 8 - 1)) {
         disk.writeBit(t, 0, 0);
     }
-    /*
-    if (disk.data.track[t][disk.length.track[t] - 1] & 1) {
-        disk.data.track[t][0] &= 0x7F;
-    }
-    */
 
     // Compute a debug checksum
     debug(ADF_DEBUG, "Track %ld checksum = %x\n",
@@ -433,36 +438,38 @@ ADFFile::dumpSector(Sector s) const
 }
 
 void
-ADFFile::decodeDisk(FloppyDisk &disk)
+ADFFile::decodeDisk(const FloppyDisk &disk)
 {
+    printf("ADFFile::decodeDisk\n");
     long tracks = numTracks();
-    
+
     debug(ADF_DEBUG, "Decoding Amiga disk with %ld tracks\n", tracks);
-    
+
     if (disk.getDiameter() != getDiameter()) {
-        throw VAError(ERROR_DISK_INVALID_DIAMETER);
+        throw AppError(Fault::DISK_INVALID_DIAMETER);
     }
     if (disk.getDensity() != getDensity()) {
-        throw VAError(ERROR_DISK_INVALID_DENSITY);
+        throw AppError(Fault::DISK_INVALID_DENSITY);
     }
 
     // Make the MFM stream scannable beyond the track end
-    disk.repeatTracks();
+    // TODO: THINK ABOUT OF DECODING WITHOUT MODIFYING THE DISK
+    const_cast<FloppyDisk &>(disk).repeatTracks();
 
     // Decode all tracks
     for (Track t = 0; t < tracks; t++) decodeTrack(disk, t);
 }
 
 void
-ADFFile::decodeTrack(FloppyDisk &disk, Track t)
+ADFFile::decodeTrack(const FloppyDisk &disk, Track t)
 { 
     long sectors = numSectors();
 
     debug(ADF_DEBUG, "Decoding track %ld\n", t);
     
-    u8 *src = disk.data.track[t];
-    u8 *dst = data.ptr + t * sectors * 512;
-    
+    auto *src = disk.data.track[t];
+    auto *dst = data.ptr + t * sectors * 512;
+
     // Seek all sync marks
     std::vector<isize> sectorStart(sectors);
     isize nr = 0; isize index = 0;
@@ -486,7 +493,7 @@ ADFFile::decodeTrack(FloppyDisk &disk, Track t)
     if (nr != sectors) {
         
         warn("Found %ld sectors, expected %ld. Aborting.\n", nr, sectors);
-        throw VAError(ERROR_DISK_WRONG_SECTOR_COUNT);
+        throw AppError(Fault::DISK_WRONG_SECTOR_COUNT);
     }
     
     // Decode all sectors
@@ -496,7 +503,7 @@ ADFFile::decodeTrack(FloppyDisk &disk, Track t)
 }
 
 void
-ADFFile::decodeSector(u8 *dst, u8 *src)
+ADFFile::decodeSector(u8 *dst, const u8 *src)
 {
     assert(dst != nullptr);
     assert(src != nullptr);
@@ -509,7 +516,7 @@ ADFFile::decodeSector(u8 *dst, u8 *src)
     u8 sector = info[2];
     if (sector >= numSectors()) {
         warn("Invalid sector number %d. Aborting.\n", sector);
-        throw VAError(ERROR_DISK_INVALID_SECTOR_NUMBER);
+        throw AppError(Fault::DISK_INVALID_SECTOR_NUMBER);
     }
     
     // Skip sector header

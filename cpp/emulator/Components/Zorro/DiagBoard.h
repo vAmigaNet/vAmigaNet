@@ -40,7 +40,8 @@ class DiagBoard : public ZorroBoard {
     
 public:
     
-    DiagBoard(Amiga& ref);
+    using ZorroBoard::ZorroBoard;
+    DiagBoard& operator= (const DiagBoard& other) { return *this; }
 
 
     //
@@ -49,8 +50,7 @@ public:
     
 private:
     
-    const char *getDescription() const override { return "DiagBoard"; }
-    void _dump(Category category, std::ostream& os) const override;
+    void _dump(Category category, std::ostream &os) const override;
 
     
     //
@@ -58,40 +58,27 @@ private:
     //
     
 private:
-    
-    void _reset(bool hard) override;
-    
+        
     template <class T>
-    void applyToPersistentItems(T& worker)
+    void serialize(T& worker)
     {
 
-    }
+    } SERIALIZERS(serialize);
 
-    template <class T>
-    void applyToResetItems(T& worker, bool hard = true)
-    {
-        if (hard) {
-            
-        }
-    }
-    
-    isize _size() override { COMPUTE_SNAPSHOT_SIZE }
-    u64 _checksum() override { COMPUTE_SNAPSHOT_CHECKSUM }
-    isize _load(const u8 *buffer) override { LOAD_SNAPSHOT_ITEMS }
-    isize _save(u8 *buffer) override { SAVE_SNAPSHOT_ITEMS }
+    void _didReset(bool hard) override;
 
     
     //
-    // Configuring
+    // Methods from Configurable
     //
 
 public:
 
     const DiagBoardConfig &getConfig() const { return config; }
-    void resetConfig() override;
-    
-    i64 getConfigItem(Option option) const;
-    void setConfigItem(Option option, i64 value);
+    const Options &getOptions() const override { return options; }
+    i64 getOption(Opt option) const override;
+    void checkOption(Opt opt, i64 value) override;
+    void setOption(Opt option, i64 value) override;
     
     
     //

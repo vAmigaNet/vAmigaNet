@@ -2,17 +2,17 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
 
-#include "Types.h"
+#include "BasicTypes.h"
 #include <utility>
 
-namespace util {
+namespace vamiga::util {
 
 /* The emulator uses buffers at various places. Most of them are derived from
  * one of the following two classes:
@@ -30,7 +30,7 @@ namespace util {
 template <class T, isize capacity> struct Array
 {
     // Element storage
-    T elements[capacity];
+    T *elements = new T[capacity];
 
     // Write pointer
     isize w;
@@ -41,23 +41,21 @@ template <class T, isize capacity> struct Array
     //
 
     Array() { clear(); }
-    
+    ~Array() { delete[] elements; }
+
+    Array& operator= (const Array& other) {
+
+        for (isize i = 0; i < capacity; i++) elements[i] = other.elements[i];
+        w = other.w;
+
+        return *this;
+    }
+
     void clear() { w = 0; }
     void clear(T t) { for (isize i = 0; i < capacity; i++) elements[i] = t; clear(); }
     void align(isize offset) { w = offset; }
 
-    
-    //
-    // Serializing
-    //
-    
-    template <class W>
-    void operator<<(W& worker)
-    {
-        worker << this->elements << this->w;
-    }
-    
-    
+
     //
     // Querying the fill status
     //
@@ -76,13 +74,11 @@ template <class T, isize capacity> struct Array
     
     T operator [] (isize i) const
     {
-        assert(i >= 0 && i < capacity);
         return elements[i];
     }
 
     T& operator [] (isize i)
     {
-        assert(i >= 0 && i < capacity);
         return elements[i];
     }
 
@@ -97,8 +93,28 @@ template <class T, isize capacity>
 struct SortedArray : public Array<T, capacity>
 {
     // Key storage
-    i64 keys[capacity];
-    
+    i64 *keys = new i64[capacity];
+
+
+    //
+    // Initializing
+    //
+
+    ~SortedArray() { delete[] keys; }
+
+    SortedArray& operator= (const SortedArray& other) {
+
+        Array<T, capacity>::operator=(other);
+        for (isize i = 0; i < capacity; i++) keys[i] = other.keys[i];
+
+        return *this;
+    }
+
+
+    //
+    // Inserting
+    //
+
     // Inserts an element at the end
     void write(i64 key, T element)
     {
@@ -132,13 +148,162 @@ struct SortedArray : public Array<T, capacity>
 };
 
 //
-// Ringbuffer
+// Resizable Ringbuffer
+//
+
+template <class T> struct ResizableRingBuffer
+{
+    isize capacity = 0;
+    
+    // Element storage
+    T *elements = nullptr;
+    
+    // Read and write pointers
+    isize r, w;
+    
+    
+    //
+    // Initializing
+    //
+    
+    ResizableRingBuffer(isize cap) { capacity = cap; elements = new T[cap](); clear(); }
+    ~ResizableRingBuffer() { delete[] elements; }
+    
+    ResizableRingBuffer& operator= (const ResizableRingBuffer& other) {
+        
+        for (isize i = 0; i < capacity; i++) elements[i] = other.elements[i];
+        r = other.r;
+        w = other.w;
+        
+        return *this;
+    }
+    
+    void resize(isize cap) {
+        
+        if (capacity != cap) {
+            
+            capacity = cap;
+            
+            if (elements) delete[] elements;
+            elements = new T[cap]();
+            
+            clear();
+        }
+    }
+
+    void clear() { r = w = 0; }
+    void clear(T t) { clear(); for (isize i = 0; i < capacity; i++) elements[i] = t; }
+    void align(isize offset) { w = (r + offset) % capacity; }
+    
+    
+    //
+    // Querying the fill status
+    //
+    
+    isize cap() const { return capacity; }
+    isize count() const { return r > w ? capacity - (r - w) : w - r; }
+    isize free() const { return capacity - count() - 1; }
+    double fillLevel() const { return (double)count() / capacity; }
+    bool isEmpty() const { return r == w; }
+    bool isFull() const { return count() == capacity - 1; }
+    
+    
+    //
+    // Working with indices
+    //
+    
+    isize begin() const { return r; }
+    isize end() const { return w; }
+    isize next(isize i) const { return i + 1 < capacity ? i + 1 : 0; }
+    isize prev(isize i) const { return i > 0 ? i - 1 : capacity - 1; }
+    
+    
+    //
+    // Reading and writing elements
+    //
+    
+    T& read()
+    {
+        assert(!isEmpty());
+        
+        auto oldr = r;
+        r = next(r);
+        return elements[oldr];
+    }
+    
+    const T& read(T fallback)
+    {
+        if (isEmpty()) write(fallback);
+        return read();
+    }
+    
+    void write(T element)
+    {
+        assert(!isFull());
+        
+        elements[w] = element;
+        w = next(w);
+    }
+
+    void put(T element)
+    {
+        elements[w] = element;
+        if ((w = next(w)) == r) r = next(r);
+    }
+    
+    void skip()
+    {
+        r = next(r);
+    }
+    
+    void skip(isize n)
+    {
+        r = (r + n) % capacity;
+    }
+    
+    
+    //
+    // Examining the element storage
+    //
+    
+    const T& current() const
+    {
+        return elements[r];
+    }
+
+    T *currentAddr()
+    {
+        return &elements[r];
+    }
+    
+    const T& current(isize offset) const
+    {
+        return elements[(r + offset) % capacity];
+    }
+    
+    const T& latest() const
+    {
+        return elements[prev(w)];
+    }
+    
+    std::vector<T> vector() const
+    {
+        std::vector<T> result;
+        for (auto i = begin(); i != end(); i = next(i)) {
+            result.push_back(elements[i]);
+        }
+        return result;
+    }
+};
+
+//
+// Fixed-size Ringbuffer
 //
 
 template <class T, isize capacity> struct RingBuffer
 {
     // Element storage
-    T elements[capacity];
+    T *elements = new T[capacity]();
 
     // Read and write pointers
     isize r, w;
@@ -149,29 +314,28 @@ template <class T, isize capacity> struct RingBuffer
     //
 
     RingBuffer() { clear(); }
-    
+    ~RingBuffer() { delete[] elements; }
+
+    RingBuffer& operator= (const RingBuffer& other) {
+
+        for (isize i = 0; i < capacity; i++) elements[i] = other.elements[i];
+        r = other.r;
+        w = other.w;
+
+        return *this;
+    }
+
     void clear() { r = w = 0; }
-    void clear(T t) { for (isize i = 0; i < capacity; i++) elements[i] = t; clear(); }
+    void clear(T t) { clear(); for (isize i = 0; i < capacity; i++) elements[i] = t; }
     void align(isize offset) { w = (r + offset) % capacity; }
 
-    
-    //
-    // Serializing
-    //
-    
-    template <class W>
-    void operator<<(W& worker)
-    {
-        worker << this->elements << this->r << this->w;
-    }
-    
-    
+
     //
     // Querying the fill status
     //
 
     isize cap() const { return capacity; }
-    isize count() const { return (capacity + w - r) % capacity; }
+    isize count() const { return r > w ? capacity - (r - w) : w - r; }
     isize free() const { return capacity - count() - 1; }
     double fillLevel() const { return (double)count() / capacity; }
     bool isEmpty() const { return r == w; }
@@ -244,14 +408,43 @@ template <class T, isize capacity> struct RingBuffer
     {
         return elements[(r + offset) % capacity];
     }
+
+    const T& latest() const
+    {
+        return elements[prev(w)];
+    }
+
+    std::vector<T> vector() const
+    {
+        std::vector<T> result;
+        for (auto i = begin(); i != end(); i = next(i)) {
+            result.push_back(elements[i]);
+        }
+        return result;
+    }
 };
 
 template <class T, isize capacity>
 struct SortedRingBuffer : public RingBuffer<T, capacity>
 {
     // Key storage
-    i64 keys[capacity];
-    
+    i64 *keys = new i64[capacity];
+
+
+    //
+    // Initializing
+    //
+
+    ~SortedRingBuffer() { delete[] keys; }
+
+    SortedRingBuffer& operator= (const SortedRingBuffer& other) {
+
+        RingBuffer<T, capacity>::operator=(other);
+        for (isize i = 0; i < capacity; i++) keys[i] = other.keys[i];
+
+        return *this;
+    }
+
     // Inserts an element at the proper position
     void insert(i64 key, T element)
     {

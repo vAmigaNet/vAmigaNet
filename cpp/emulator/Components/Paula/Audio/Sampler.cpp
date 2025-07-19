@@ -30,7 +30,7 @@ Sampler::interpolate(Cycle clock)
      *
      *     Cycle of sample at r1 <= Target cycle < Cycle of sample at r1 + 1
      *
-     * In the second step, the function interpolated between the two samples at
+     * In the second step, the function interpolates between the two samples at
      * r1 and r1 + 1 based on the requested method.
      */
 
@@ -48,24 +48,30 @@ Sampler::interpolate(Cycle clock)
     }
     assert(!isEmpty());
 
-    // If the buffer contains a single element, return that element
-    if (r2 == w) return elements[r1];
+    // If the buffer contains a single element, return that element while fading out
+    if (r2 == w) {
+        /*
+        if (elements[r1] < 0) elements[r1]++;
+        if (elements[r1] > 0) elements[r1]--;
+        */
+        return elements[r1];
+    }
 
     // Make sure that we've selected the right sample pair
     assert(clock >= keys[r1] && clock < keys[r2]);
 
     // Interpolate between position r1 and r2
-    if constexpr (method == SMP_NONE) {
+    if constexpr (method == SamplingMethod::NONE) {
 
         return elements[r1];
     }
     
-    if constexpr (method == SMP_NEAREST) {
+    if constexpr (method == SamplingMethod::NEAREST) {
         
         return ((clock - keys[r1]) < (keys[r2] - clock)) ? elements[r1] : elements[r2];
     }
     
-    if constexpr (method == SMP_LINEAR) {
+    if constexpr (method == SamplingMethod::LINEAR) {
 
         double dx = (double)(keys[r2] - keys[r1]);
         double dy = (double)(elements[r2] - elements[r1]);
@@ -75,8 +81,8 @@ Sampler::interpolate(Cycle clock)
     }
 }
 
-template i16 Sampler::interpolate<SMP_NONE>(Cycle clock);
-template i16 Sampler::interpolate<SMP_NEAREST>(Cycle clock);
-template i16 Sampler::interpolate<SMP_LINEAR>(Cycle clock);
+template i16 Sampler::interpolate<SamplingMethod::NONE>(Cycle clock);
+template i16 Sampler::interpolate<SamplingMethod::NEAREST>(Cycle clock);
+template i16 Sampler::interpolate<SamplingMethod::LINEAR>(Cycle clock);
 
 }

@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #include "config.h"
@@ -13,8 +13,6 @@
 #include "FSTypes.h"
 #include "IOUtils.h"
 #include "OSDebugger.h"
-
-#include <vector>
 #include <algorithm>
 
 namespace vamiga {
@@ -43,6 +41,19 @@ bool
 GeometryDescriptor::operator < (const GeometryDescriptor &rhs) const
 {
     return cylinders < rhs.cylinders;
+}
+
+std::vector<std::tuple<isize,isize,isize>> 
+GeometryDescriptor::driveGeometries(isize numBlocks)
+{
+    std::vector<std::tuple<isize,isize,isize>> result;
+
+    for (auto &geometry : driveGeometries(numBlocks, 512)) {
+
+        result.push_back(std::tuple<isize,isize,isize>
+                         (geometry.cylinders, geometry.heads, geometry.sectors));
+    }
+    return result;
 }
 
 std::vector<GeometryDescriptor>
@@ -88,7 +99,7 @@ GeometryDescriptor::driveGeometries(isize numBlocks, isize bsize)
 bool
 GeometryDescriptor::unique() const
 {
-    return driveGeometries(numBytes()).size() == 1;
+    return driveGeometries(numBytes(), 512).size() == 1;
 }
 
 void
@@ -98,7 +109,7 @@ GeometryDescriptor::dump() const
 }
 
 void
-GeometryDescriptor::dump(std::ostream& os) const
+GeometryDescriptor::dump(std::ostream &os) const
 {
     using namespace util;
     
@@ -111,26 +122,26 @@ GeometryDescriptor::dump(std::ostream& os) const
 void
 GeometryDescriptor::checkCompatibility() const
 {
-    if constexpr (HDR_ACCEPT_ALL) {
+    if (HDR_ACCEPT_ALL) {
         return;
     }
     if (cylinders == 0 || FORCE_HDR_UNKNOWN_GEOMETRY) {
-        throw VAError(ERROR_HDR_UNKNOWN_GEOMETRY);
+        throw AppError(Fault::HDR_UNKNOWN_GEOMETRY);
     }
     if (numBytes() > MB(504) || FORCE_HDR_TOO_LARGE) {
-        throw VAError(ERROR_HDR_TOO_LARGE);
+        throw AppError(Fault::HDR_TOO_LARGE);
     }
     if ((cylinders < cMin && heads > 1) || cylinders > cMax || FORCE_HDR_UNSUPPORTED_C) {
-        throw VAError(ERROR_HDR_UNSUPPORTED_CYL_COUNT, cylinders);
+        throw AppError(Fault::HDR_UNSUPPORTED_CYL_COUNT, cylinders);
     }
     if (heads < hMin || heads > hMax || FORCE_HDR_UNSUPPORTED_H) {
-        throw VAError(ERROR_HDR_UNSUPPORTED_HEAD_COUNT, heads);
+        throw AppError(Fault::HDR_UNSUPPORTED_HEAD_COUNT, heads);
     }
     if (sectors < sMin || sectors > sMax || FORCE_HDR_UNSUPPORTED_S) {
-        throw VAError(ERROR_HDR_UNSUPPORTED_SEC_COUNT, sectors);
+        throw AppError(Fault::HDR_UNSUPPORTED_SEC_COUNT, sectors);
     }
     if (bsize != 512 || FORCE_HDR_UNSUPPORTED_B) {
-        throw VAError(ERROR_HDR_UNSUPPORTED_BSIZE);
+        throw AppError(Fault::HDR_UNSUPPORTED_BSIZE);
     }
 }
 
@@ -154,7 +165,7 @@ PartitionDescriptor::dump() const
 }
 
 void
-PartitionDescriptor::dump(std::ostream& os) const
+PartitionDescriptor::dump(std::ostream &os) const
 {
     using namespace util;
     
@@ -195,13 +206,13 @@ void PartitionDescriptor::checkCompatibility(const GeometryDescriptor &geo) cons
     auto bsize = 4 * sizeBlock;
     
     if (bsize != 512) {
-        throw VAError(ERROR_HDR_UNSUPPORTED_BSIZE, std::to_string(bsize));
+        throw AppError(Fault::HDR_UNSUPPORTED_BSIZE, std::to_string(bsize));
     }
     if (lowCyl > highCyl) {
-        throw VAError(ERROR_HDR_CORRUPTED_PTABLE);
+        throw AppError(Fault::HDR_CORRUPTED_PTABLE);
     }
     if (isize(highCyl) >= geo.cylinders) {
-        throw VAError(ERROR_HDR_CORRUPTED_PTABLE);
+        throw AppError(Fault::HDR_CORRUPTED_PTABLE);
     }
 }
 
@@ -212,7 +223,7 @@ DriverDescriptor::dump() const
 }
 
 void
-DriverDescriptor::dump(std::ostream& os) const
+DriverDescriptor::dump(std::ostream &os) const
 {
     using namespace util;
 

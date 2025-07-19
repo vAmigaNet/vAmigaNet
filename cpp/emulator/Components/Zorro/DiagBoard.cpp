@@ -16,13 +16,8 @@
 
 namespace vamiga {
 
-DiagBoard::DiagBoard(Amiga& ref) : ZorroBoard(ref)
-{
-
-}
-
 void
-DiagBoard::_dump(Category category, std::ostream& os) const
+DiagBoard::_dump(Category category, std::ostream &os) const
 {
     using namespace util;
 
@@ -30,10 +25,8 @@ DiagBoard::_dump(Category category, std::ostream& os) const
 }
 
 void
-DiagBoard::_reset(bool hard)
-{
-    RESET_SNAPSHOT_ITEMS(hard)
-    
+DiagBoard::_didReset(bool hard)
+{    
     if (hard) {
         
         // Burn Expansion Rom
@@ -43,32 +36,16 @@ DiagBoard::_reset(bool hard)
         mem.patchExpansionLib();
 
         // Set initial state
-        state = pluggedIn() ? STATE_AUTOCONF : STATE_SHUTUP;
-    }
-}
-
-void
-DiagBoard::resetConfig()
-{
-    assert(isPoweredOff());
-    auto &defaults = amiga.defaults;
-
-    std::vector <Option> options = {
-        
-        OPT_DIAG_BOARD
-    };
-
-    for (auto &option : options) {
-        setConfigItem(option, defaults.get(option));
+        state = pluggedIn() ? BoardState::AUTOCONF : BoardState::SHUTUP;
     }
 }
 
 i64
-DiagBoard::getConfigItem(Option option) const
+DiagBoard::getOption(Opt option) const
 {
     switch (option) {
             
-        case OPT_DIAG_BOARD: return config.enabled;
+        case Opt::DIAG_BOARD: return config.enabled;
 
         default:
             fatalError;
@@ -76,15 +53,29 @@ DiagBoard::getConfigItem(Option option) const
 }
 
 void
-DiagBoard::setConfigItem(Option option, i64 value)
+DiagBoard::checkOption(Opt opt, i64 value)
+{
+    switch (opt) {
+
+        case Opt::DIAG_BOARD:
+
+            if (!isPoweredOff()) {
+                throw AppError(Fault::OPT_LOCKED);
+            }
+            return;
+
+        default:
+            throw(Fault::OPT_UNSUPPORTED);
+    }
+}
+
+void
+DiagBoard::setOption(Opt option, i64 value)
 {
     switch (option) {
             
-        case OPT_DIAG_BOARD:
+        case Opt::DIAG_BOARD:
 
-            if (!isPoweredOff()) {
-                throw VAError(ERROR_OPT_LOCKED);
-            }
             config.enabled = value;
             return;
             
@@ -106,7 +97,7 @@ DiagBoard::updateMemSrcTables()
     if (baseAddr == 0) return;
     
     // Map in this device
-    mem.cpuMemSrc[firstPage()] = MEM_ZOR;
+    mem.cpuMemSrc[firstPage()] = MemSrc::ZOR;
 }
 
 u8
@@ -301,7 +292,7 @@ DiagBoard::processLoadSeg(u32 ptr1, u32 ptr2, bool bstr)
         // Read task name
         string name;
         if (bstr) {
-            auto length = (isize)mem.spypeek8 <ACCESSOR_CPU> (4 * ptr1);
+            auto length = (isize)mem.spypeek8 <Accessor::CPU> (4 * ptr1);
             debug(DBD_DEBUG, "Length = %ld\n", length);
             osDebugger.read(4 * ptr1 + 1, name, length);
         } else {
@@ -327,14 +318,11 @@ DiagBoard::processLoadSeg(u32 ptr1, u32 ptr2, bool bstr)
 void
 DiagBoard::catchTask(const string &name)
 {
-    {   SUSPENDED
-        
-        if (!diagBoard.pluggedIn()) {
-            throw VAError(ERROR_OSDB, "Diagnose board is not plugged in.");
-        }
-        if (std::find(targets.begin(), targets.end(), name) == targets.end()) {
-            targets.push_back(name);
-        }
+    if (!diagBoard.pluggedIn()) {
+        throw AppError(Fault::OSDB, "Diagnose board is not plugged in.");
+    }
+    if (std::find(targets.begin(), targets.end(), name) == targets.end()) {
+        targets.push_back(name);
     }
 }
 

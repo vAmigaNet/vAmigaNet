@@ -11,6 +11,7 @@
 #include "StateMachine.h"
 #include "Paula.h"
 #include "IOUtils.h"
+#include "Amiga.h"
 
 namespace vamiga {
 
@@ -21,7 +22,7 @@ StateMachine<nr>::StateMachine(Amiga& ref) : SubComponent(ref)
 }
 
 template <isize nr> void
-StateMachine<nr>::_dump(Category category, std::ostream& os) const
+StateMachine<nr>::_dump(Category category, std::ostream &os) const
 {
     using namespace util;
     
@@ -34,23 +35,8 @@ StateMachine<nr>::_dump(Category category, std::ostream& os) const
     }
 }
 
-template <isize nr> const char *
-StateMachine<nr>::getDescription() const
-{
-    if constexpr (nr == 0) return "StateMachine 0";
-    if constexpr (nr == 1) return "StateMachine 1";
-    if constexpr (nr == 2) return "StateMachine 2";
-    if constexpr (nr == 3) return "StateMachine 3";
-}
-
 template <isize nr> void
-StateMachine<nr>::_reset(bool hard)
-{
-    RESET_SNAPSHOT_ITEMS(hard)
-}
-
-template <isize nr> void
-StateMachine<nr>::_inspect() const
+StateMachine<nr>::cacheInfo(StateMachineInfo &info) const
 {
     {   SYNCHRONIZED
         
@@ -91,6 +77,16 @@ StateMachine<nr>::disableDMA()
 
             move_001_000();
             break;
+            
+        case 0b010:
+            
+            move_010_000();
+            break;
+            
+        case 0b011:
+            
+            move_011_000();
+            break;
 
         case 0b101:
 
@@ -108,12 +104,12 @@ StateMachine<nr>::AUDxIP() const
 template <isize nr> void
 StateMachine<nr>::AUDxIR() const
 {
-    if constexpr (DISABLE_AUDIRQ) return;
+    if (DISABLE_AUDIRQ) return;
     
-    if constexpr (nr == 0) { paula.scheduleIrqRel(INT_AUD0, DMA_CYCLES(1)); }
-    if constexpr (nr == 1) { paula.scheduleIrqRel(INT_AUD1, DMA_CYCLES(1)); }
-    if constexpr (nr == 2) { paula.scheduleIrqRel(INT_AUD2, DMA_CYCLES(1)); }
-    if constexpr (nr == 3) { paula.scheduleIrqRel(INT_AUD3, DMA_CYCLES(1)); }
+    if constexpr (nr == 0) { paula.scheduleIrqRel(IrqSource::AUD0, DMA_CYCLES(1)); }
+    if constexpr (nr == 1) { paula.scheduleIrqRel(IrqSource::AUD1, DMA_CYCLES(1)); }
+    if constexpr (nr == 2) { paula.scheduleIrqRel(IrqSource::AUD2, DMA_CYCLES(1)); }
+    if constexpr (nr == 3) { paula.scheduleIrqRel(IrqSource::AUD3, DMA_CYCLES(1)); }
 }
 
 template <isize nr> void
@@ -162,9 +158,12 @@ StateMachine<nr>::AUDxAP() const
 template <isize nr> void
 StateMachine<nr>::penhi()
 {
+    // Only proceed if this is not the run-ahead instance
+    if (amiga.objid != 0) return;
+
     if (!enablePenhi) return;
 
-    Sampler &sampler = paula.muxer.sampler[nr];
+    Sampler &sampler = audioPort.sampler[nr];
 
     i8 sample = (i8)HI_BYTE(buffer);
     i16 scaled = (i16)(sample * audvol);
@@ -174,7 +173,7 @@ StateMachine<nr>::penhi()
     if (!sampler.isFull()) {
         sampler.append(agnus.clock, scaled);
     } else {
-        warn("penhi: Sample buffer is full\n");
+        trace(AUD_DEBUG, "penhi: Sample buffer is full\n");
     }
     
     enablePenhi = false;
@@ -183,9 +182,12 @@ StateMachine<nr>::penhi()
 template <isize nr> void
 StateMachine<nr>::penlo()
 {
+    // Only proceed if this is not the run-ahead instance
+    if (amiga.objid != 0) return;
+
     if (!enablePenlo) return;
 
-    Sampler &sampler = paula.muxer.sampler[nr];
+    Sampler &sampler = audioPort.sampler[nr];
     
     i8 sample = (i8)LO_BYTE(buffer);
     i16 scaled = (i16)(sample * audvol);
@@ -195,7 +197,7 @@ StateMachine<nr>::penlo()
     if (!sampler.isFull()) {
         sampler.append(agnus.clock, scaled);
     } else {
-        warn("penlo: Sample buffer is full\n");
+        trace(AUD_DEBUG, "penlo: Sample buffer is full\n");
     }
     
     enablePenlo = false;
@@ -318,6 +320,18 @@ StateMachine<nr>::move_010_011() {
 }
 
 template <isize nr> void
+StateMachine<nr>::move_010_000() {
+
+    trace(AUD_DEBUG, "move_010_000\n");
+
+    constexpr EventSlot slot = (EventSlot)(SLOT_CH0 + nr);
+    agnus.cancel<slot>();
+
+    intreq2 = false;
+    state = 0b000;
+}
+
+template <isize nr> void
 StateMachine<nr>::move_011_000() {
 
     trace(AUD_DEBUG, "move_011_000\n");
@@ -364,10 +378,10 @@ template StateMachine<1>::StateMachine(Amiga &ref);
 template StateMachine<2>::StateMachine(Amiga &ref);
 template StateMachine<3>::StateMachine(Amiga &ref);
 
-template StateMachineInfo StateMachine<0>::getInfo() const;
-template StateMachineInfo StateMachine<1>::getInfo() const;
-template StateMachineInfo StateMachine<2>::getInfo() const;
-template StateMachineInfo StateMachine<3>::getInfo() const;
+template void StateMachine<0>::cacheInfo(StateMachineInfo &result) const;
+template void StateMachine<1>::cacheInfo(StateMachineInfo &result) const;
+template void StateMachine<2>::cacheInfo(StateMachineInfo &result) const;
+template void StateMachine<3>::cacheInfo(StateMachineInfo &result) const;
 
 template void StateMachine<0>::enableDMA();
 template void StateMachine<1>::enableDMA();

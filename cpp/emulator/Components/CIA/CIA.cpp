@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #include "config.h"
@@ -21,71 +21,62 @@
 
 namespace vamiga {
 
-CIA::CIA(int n, Amiga& ref) : SubComponent(ref), nr(n)
-{    
-    subComponents = std::vector<CoreComponent *> { &tod };
+CIA::CIA(Amiga& ref, isize objid) : SubComponent(ref, objid)
+{
+    subComponents = std::vector<CoreComponent *> {
+
+        &tod
+    };
 }
 
 void
 CIA::_initialize()
 {
-    CoreComponent::_initialize();
-
     pa = 0xFF;
     pb = 0xFF;
 }
 
-void
-CIA::_reset(bool hard)
+void 
+CIA::_willReset(bool hard)
 {
     if (!hard) wakeUp();
+}
 
-    RESET_SNAPSHOT_ITEMS(hard)
-    
+void
+CIA::_didReset(bool hard)
+{
+
+}
+
+void
+CIA::operator << (SerResetter &worker)
+{
+    serialize(worker);
+
     cnt = true;
     irq = 1;
-    
+
     counterA = 0xFFFF;
     counterB = 0xFFFF;
     latchA = 0xFFFF;
     latchB = 0xFFFF;
-    
+
     // UAE initializes CRB with 4 (which I think is wrong)
-    if constexpr (MIMIC_UAE) crb = 0x4;
+    if (MIMIC_UAE) crb = 0x4;
 
     updatePA();
     updatePB();
-    
-    // Update the memory layout because the OVL bit may have changed
-    mem.updateMemSrcTables();
-}
-
-void
-CIA::resetConfig()
-{
-    assert(isPoweredOff());
-    auto &defaults = amiga.defaults;
-
-    std::vector <Option> options = {
-        
-        OPT_CIA_REVISION,
-        OPT_TODBUG,
-        OPT_ECLOCK_SYNCING
-    };
-    
-    for (auto &option : options) {
-        setConfigItem(option, defaults.get(option));
-    }
 }
 
 i64
-CIA::getConfigItem(Option option) const
+CIA::getOption(Opt option) const
 {
     switch (option) {
             
-        case OPT_CIA_REVISION:   return config.revision;
-        case OPT_TODBUG:         return config.todBug;
-        case OPT_ECLOCK_SYNCING: return config.eClockSyncing;
+        case Opt::CIA_REVISION:          return (i64)config.revision;
+        case Opt::CIA_TODBUG:            return config.todBug;
+        case Opt::CIA_ECLOCK_SYNCING:    return config.eClockSyncing;
+        case Opt::CIA_IDLE_SLEEP:        return config.idleSleep;
 
         default:
             fatalError;
@@ -93,27 +84,51 @@ CIA::getConfigItem(Option option) const
 }
 
 void
-CIA::setConfigItem(Option option, i64 value)
+CIA::checkOption(Opt opt, i64 value)
+{
+    switch (opt) {
+
+        case Opt::CIA_REVISION:
+
+            if (!CIARevEnum::isValid(value)) {
+                throw AppError(Fault::OPT_INV_ARG, CIARevEnum::keyList());
+            }
+            return;
+
+        case Opt::CIA_TODBUG:
+        case Opt::CIA_ECLOCK_SYNCING:
+        case Opt::CIA_IDLE_SLEEP:
+
+            return;
+
+        default:
+            throw(Fault::OPT_UNSUPPORTED);
+    }
+}
+
+void
+CIA::setOption(Opt option, i64 value)
 {
     switch (option) {
             
-        case OPT_CIA_REVISION:
-            
-            if (!CIARevisionEnum::isValid(value)) {
-                throw VAError(ERROR_OPT_INVARG, CIARevisionEnum::keyList());
-            }
-            
-            config.revision = (CIARevision)value;
+        case Opt::CIA_REVISION:
+
+            config.revision = (CIARev)value;
             return;
 
-        case OPT_TODBUG:
+        case Opt::CIA_TODBUG:
 
             config.todBug = value;
             return;
             
-        case OPT_ECLOCK_SYNCING:
+        case Opt::CIA_ECLOCK_SYNCING:
             
             config.eClockSyncing = value;
+            return;
+            
+        case Opt::CIA_IDLE_SLEEP:
+
+            config.idleSleep = value;
             return;
             
         default:
@@ -121,8 +136,8 @@ CIA::setConfigItem(Option option, i64 value)
     }
 }
 
-void
-CIA::_inspect() const
+void 
+CIA::cacheInfo(CIAInfo &info) const
 {
     {   SYNCHRONIZED
         
@@ -155,45 +170,56 @@ CIA::_inspect() const
         info.irq = irq;
         
         info.tod = tod.info;
-        info.todIrqEnable = imr & 0x04;
+        info.todIrqEnable = imr & 0x04;        
+    }
+}
+
+
+void 
+CIA::cacheStats(CIAStats &result) const
+{
+    {   SYNCHRONIZED
+
+        auto total = AS_CIA_CYCLES(agnus.clock);
+        auto idle = idleTotal() + idleSince();
         
-        info.idleSince = idleSince();
-        info.idleTotal = idleTotal();
-        info.idlePercentage = clock ? (double)idleCycles / (double)clock : 100.0;
+        auto totalDiff = total - result.totalCycles;
+        auto idleDiff = idle - result.idleCycles;
+        
+        result.totalCycles = total;
+        result.idleCycles = idle;
+
+        // debug(true, "totalDiff: %lld idleDiff: %lld\n", totalDiff, idleDiff);
+        result.idlePercentage =  totalDiff ? double(idleDiff) / double(totalDiff) : 1.0;
     }
 }
 
 void
-CIA::_dump(Category category, std::ostream& os) const
+CIA::_dump(Category category, std::ostream &os) const
 {
     using namespace util;
     
     if (category == Category::Config) {
         
-        os << tab("Revision");
-        os << CIARevisionEnum::key(config.revision) << std::endl;
-        os << tab("Emulate TOD bug");
-        os << bol(config.todBug) << std::endl;
-        os << tab("Sync with E-clock");
-        os << bol(config.eClockSyncing) << std::endl;
+        dumpConfig(os);
     }
 
     if (category == Category::Registers) {
-        
-        os << tab("Counter A") << hex(counterA) << std::endl;
-        os << tab("Latch A") << hex(latchA) << std::endl;
-        os << tab("Data register A") << hex(pra) << std::endl;
-        os << tab("Data port direction A") << hex(ddra) << std::endl;
-        os << tab("Data port A") << hex(pa) << std::endl;
-        os << tab("Control register A") << hex(cra) << std::endl;
+
+        os << tab("Counter A");
+        os << hex(counterA) << "    B : " << hex(counterB) << std::endl;
+        os << tab("Latch A");
+        os << hex(latchA) << "    B : " << hex(latchB) << std::endl;
+        os << tab("Data register A");
+        os << hex(pra) << "      B : " << hex(prb) << std::endl;
+        os << tab("Data port direction A");
+        os << hex(ddra) << "      B : " << hex(ddrb) << std::endl;
+        os << tab("Data port A");
+        os << hex(pa) << "      B : " << hex(pb) << std::endl;
+        os << tab("Control register A");
+        os << hex(cra) << "      B : " << hex(crb) << std::endl;
         os << std::endl;
-        os << tab("Counter B") << hex(counterB) << std::endl;
-        os << tab("Latch B") << hex(latchB) << std::endl;
-        os << tab("Data register B") << hex(prb) << std::endl;
-        os << tab("Data port direction B") << hex(ddrb) << std::endl;
-        os << tab("Data port B") << hex(pb) << std::endl;
-        os << tab("Control register B") << hex(crb) << std::endl;
-        os << std::endl;
+
         os << tab("Interrupt control reg") << hex(icr) << std::endl;
         os << tab("Interrupt mask reg") << hex(imr) << std::endl;
         os << std::endl;
@@ -270,7 +296,6 @@ CIA::emulateRisingEdgeOnCntPin()
             
             // Trigger interrupt
             delay |= CIASerInt0;
-            // debug(KBD_DEBUG, "Received serial byte: %02x\n", sdr);
         }
     }
 }
@@ -667,13 +692,19 @@ CIA::executeOneCycle()
     // Write back local copy
     this->delay = delay;
 
-    // Sleep if threshold is reached
-    if (tiredness > 8 && !CIA_ON_STEROIDS) {
+    // Sleep when threshold is reached
+    if (tiredness > 8 && config.idleSleep) {
         sleep();
         scheduleWakeUp();
     } else {
         scheduleNextExecution();
     }
+}
+
+void
+CIA::eofHandler()
+{
+
 }
 
 void
@@ -691,10 +722,17 @@ CIA::sleep()
     if (!(feed & CIACountA0)) sleepA = INT64_MAX;
     if (!(feed & CIACountB0)) sleepB = INT64_MAX;
     
-    // ZZzzz
-    sleepCycle = clock;
-    wakeUpCycle = std::min(sleepA, sleepB);;
-    sleeping = true;
+    // Determine the wakeup cycle
+    auto wakeupAt = std::min(sleepA, sleepB);
+
+    if (wakeupAt > clock) {
+
+        // ZZzzz
+        sleepCycle = clock;
+        wakeUpCycle = std::min(sleepA, sleepB);
+        sleeping = true;
+    }
+
     tiredness = 0;
 }
 
@@ -721,10 +759,12 @@ CIA::wakeUp(Cycle targetCycle)
     if (missedCycles > 0) {
         
         if (feed & CIACountA0) {
+
             assert(counterA >= AS_CIA_CYCLES(missedCycles));
             counterA -= (u16)AS_CIA_CYCLES(missedCycles);
         }
         if (feed & CIACountB0) {
+
             assert(counterB >= AS_CIA_CYCLES(missedCycles));
             counterB -= (u16)AS_CIA_CYCLES(missedCycles);
         }
@@ -751,20 +791,20 @@ CIA::idleSince() const
 void
 CIAA::_powerOn()
 {
-    msgQueue.put(MSG_POWER_LED_DIM);
+    msgQueue.put(Msg::POWER_LED_DIM);
 }
 
 void
 CIAA::_powerOff()
 {
-    msgQueue.put(MSG_POWER_LED_OFF);
+    msgQueue.put(Msg::POWER_LED_OFF);
 }
 
 void 
 CIAA::pullDownInterruptLine()
 {
     trace(CIA_DEBUG, "Pulling down IRQ line\n");
-    paula.raiseIrq(INT_PORTS);
+    paula.raiseIrq(IrqSource::PORTS);
 }
 
 void 
@@ -801,7 +841,7 @@ CIAA::updatePA()
     
     // Check the LED bit
     if ((oldpa ^ pa) & 0b00000010) {
-        msgQueue.put((pa & 0b00000010) ? MSG_POWER_LED_DIM : MSG_POWER_LED_ON);
+        msgQueue.put((pa & 0b00000010) ? Msg::POWER_LED_DIM : Msg::POWER_LED_ON);
     }
 
     // Check the OVL bit which controls the Kickstart ROM overlay
@@ -822,7 +862,7 @@ u8 CIAA::computePA() const
     controlPort2.changePra(result);
     
     // PLCC CIAs always return the PRA contents for output bits
-    if (config.revision == CIA_MOS_8520_PLCC)
+    if (config.revision == CIARev::MOS_8520_PLCC)
         result = (result & ~ddra) | (pra & ddra);
 
     return result;
@@ -882,7 +922,7 @@ CIAA::computePB() const
         REPLACE_BIT(result, 7, pb67TimerOut & (1 << 7));
 
     // PLCC CIAs always return the PRB contents for output bits
-    if (config.revision == CIA_MOS_8520_PLCC)
+    if (config.revision == CIARev::MOS_8520_PLCC)
         result = (result & ~ddrb) | (prb & ddrb);
 
     return result;
@@ -923,7 +963,7 @@ void
 CIAB::pullDownInterruptLine()
 {
     trace(CIA_DEBUG, "Pulling down IRQ line\n");
-    paula.raiseIrq(INT_EXTER);
+    paula.raiseIrq(IrqSource::EXTER);
 }
 
 void 
@@ -1000,7 +1040,7 @@ CIAB::computePA() const
     u8 result = (internal & ddra) | (external & ~ddra);
     
     // PLCC CIAs always return the PRA contents for output bits
-    if (config.revision == CIA_MOS_8520_PLCC)
+    if (config.revision == CIARev::MOS_8520_PLCC)
         result = (result & ~ddra) | (pra & ddra);
     
     return result;
@@ -1067,7 +1107,7 @@ CIAB::computePB() const
     u8 result = (internal & ddrb) | (external & ~ddrb);
     
     // PLCC CIAs always return the PRB contents for output bits
-    if (config.revision == CIA_MOS_8520_PLCC)
+    if (config.revision == CIARev::MOS_8520_PLCC)
         result = (result & ~ddrb) | (prb & ddrb);
     
     return result;

@@ -14,13 +14,8 @@
 
 namespace vamiga {
 
-ZorroManager::ZorroManager(Amiga& ref) : SubComponent(ref)
-{
-
-}
-
 void
-ZorroManager::_dump(Category category, std::ostream& os) const
+ZorroManager::_dump(Category category, std::ostream &os) const
 {
     using namespace util;
     
@@ -90,7 +85,7 @@ ZorroManager::peekACF(u32 addr) const
 {
     for (isize i = 0; slots[i]; i++) {
 
-        if (slots[i]->state == STATE_AUTOCONF) {
+        if (slots[i]->state == BoardState::AUTOCONF) {
             
             return slots[i]->peekACF8(addr);
         }
@@ -103,7 +98,7 @@ ZorroManager::pokeACF(u32 addr, u8 value)
 {
     for (isize i = 0; slots[i]; i++) {
 
-        if (slots[i]->state == STATE_AUTOCONF) {
+        if (slots[i]->state == BoardState::AUTOCONF) {
             
             slots[i]->pokeACF8(addr, value);
             return;

@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
@@ -12,10 +12,11 @@
 #include "BeamTypes.h"
 #include "AmigaTypes.h"
 #include "Constants.h"
+#include "Serializable.h"
 
 namespace vamiga {
 
-struct Beam
+struct Beam : SerializableStruct
 {
     // The vertical and horizontal beam position
     isize v = 0;
@@ -37,10 +38,17 @@ struct Beam
     bool lolToggle = false;
 
     // The type of the current line
-    VideoFormat type;
+    TV type;
 
-    template <class W>
-    void operator<<(W& worker)
+
+    //
+    // Methods from Serializable
+    //
+
+public:
+
+    template <class T>
+    void serialize(T& worker)
     {
         worker
 
@@ -52,7 +60,8 @@ struct Beam
         << lol
         << lolToggle
         << type;
-    }
+
+    } STRUCT_SERIALIZERS(serialize);
 
 
     //
@@ -69,8 +78,8 @@ struct Beam
 
     isize hCnt() const { return lol ? 228 : 227; }
     isize hMax() const { return lol ? 227 : 226; }
-    isize vCnt() const { return type == PAL ? vCntPal() : vCntNtsc(); }
-    isize vMax() const { return type == PAL ? vMaxPal() : vMaxNtsc(); }
+    isize vCnt() const { return type == TV::PAL ? vCntPal() : vCntNtsc(); }
+    isize vMax() const { return type == TV::PAL ? vMaxPal() : vMaxNtsc(); }
     isize vMaxPal() const { return lof ? 312 : 311; }
     isize vMaxNtsc() const { return lof ? 262 : 261; }
     isize vCntPal() const { return lof ? 313 : 312; }
@@ -129,7 +138,7 @@ struct Beam
     FrameType predictFrameType() const;
 
     // Predicts the type of the next frame
-    static isize predictNextFrameType(FrameType type, bool toggle);
+    static FrameType predictNextFrameType(FrameType type, bool toggle);
     FrameType predictNextFrameType() const;
 
     // Returns the number of DMA cycles executed in a single frame
@@ -142,7 +151,7 @@ struct Beam
 
 
     //
-    // Converting positions to pixel locations
+    // Converting positions
     //
 
     // Translates a DMA cycle to a pixel position
@@ -161,7 +170,7 @@ struct Beam
     void eof();
 
     // Called by Agnus when the video format is changed (PAL / NTSC)
-    void switchMode(VideoFormat format);
+    void switchMode(TV format);
 };
 
 }

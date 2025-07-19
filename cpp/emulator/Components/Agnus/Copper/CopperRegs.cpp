@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #include "config.h"
@@ -30,12 +30,12 @@ Copper::pokeCOPJMP1()
 {
     trace(COPREG_DEBUG, "pokeCOPJMP1: Jumping to %X\n", cop1lc);
 
-    if constexpr (s == ACCESSOR_AGNUS) {
+    if constexpr (s == Accessor::AGNUS) {
 
         fatalError;
 
     }
-    if constexpr (s == ACCESSOR_CPU) {
+    if constexpr (s == Accessor::CPU) {
 
         if (agnus.blitter.isActive()) {
             xfiles("pokeCOPJMP1: Blitter is running\n");
@@ -49,12 +49,12 @@ Copper::pokeCOPJMP2()
 {
     trace(COPREG_DEBUG, "pokeCOPJMP2(): Jumping to %X\n", cop2lc);
 
-    if constexpr (s == ACCESSOR_AGNUS) {
+    if constexpr (s == Accessor::AGNUS) {
 
         fatalError;
 
     }
-    if constexpr (s == ACCESSOR_CPU) {
+    if constexpr (s == Accessor::CPU) {
 
         if (agnus.blitter.isActive()) {
             xfiles("pokeCOPJMP2: Blitter is running\n");
@@ -68,19 +68,8 @@ Copper::pokeCOPINS(u16 value)
 {
     trace(COPREG_DEBUG, "COPPC: %X pokeCOPINS(%04X)\n", coppc0, value);
 
-    /* COPINS is a dummy address that can be used to write the first or
-     * the second instruction register, depending on the current state.
-     */
+    // Manually writing into COPINS seems to have no noticeable effect
     xfiles("Write to COPINS (%x)\n", value);
-    
-    // TODO: The following is certainly wrong...
-    /* if (state == COP_MOVE || state == COP_WAIT_OR_SKIP) {
-     cop2ins = value;
-     } else {
-     cop1ins = value;
-     }
-     */
-    cop1ins = value;
 }
 
 void
@@ -153,9 +142,9 @@ Copper::pokeNOOP(u16 value)
     trace(COPREG_DEBUG, "pokeNOOP(%04X)\n", value);
 }
 
-template void Copper::pokeCOPJMP1<ACCESSOR_CPU>();
-template void Copper::pokeCOPJMP1<ACCESSOR_AGNUS>();
-template void Copper::pokeCOPJMP2<ACCESSOR_CPU>();
-template void Copper::pokeCOPJMP2<ACCESSOR_AGNUS>();
+template void Copper::pokeCOPJMP1<Accessor::CPU>();
+template void Copper::pokeCOPJMP1<Accessor::AGNUS>();
+template void Copper::pokeCOPJMP2<Accessor::CPU>();
+template void Copper::pokeCOPJMP2<Accessor::AGNUS>();
 
 }

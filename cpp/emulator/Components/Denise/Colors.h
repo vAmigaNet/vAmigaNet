@@ -1,15 +1,15 @@
-// -----------------------------------------------------------------------------
+/// -----------------------------------------------------------------------------
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
 
-#include "Aliases.h"
+#include "Serializable.h"
 
 namespace vamiga {
 
@@ -81,13 +81,13 @@ struct YuvColor {
 // Amiga color (native Amiga RGB format)
 //
 
-struct AmigaColor {
-
+struct AmigaColor : SerializableStruct
+{
     u8 r;
     u8 g;
     u8 b;
 
-    template <class W> void operator<<(W& worker) { worker << r << g << b; }
+    // template <class W> void operator<<(W& worker) { worker << r << g << b; }
 
     AmigaColor() : r(0), g(0), b(0) {}
     AmigaColor(u8 rv, u8 gv, u8 bv) : r(rv & 0xF), g(gv & 0xF), b(bv & 0xF) {}
@@ -95,6 +95,23 @@ struct AmigaColor {
     AmigaColor(const RgbColor &c);
     AmigaColor(const YuvColor &c) : AmigaColor(RgbColor(c)) { }
     AmigaColor(const GpuColor &c);
+
+    //
+    // Methods from Serializable
+    //
+
+public:
+
+    template <class T>
+    void serialize(T& worker)
+    {
+        worker
+
+        << r << g << b;
+
+    } STRUCT_SERIALIZERS(serialize);
+
+
 
     u16 rawValue() const { return u16(r << 8 | g << 4 | b); }
 

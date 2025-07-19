@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #include "config.h"
@@ -13,171 +13,69 @@
 #include "Colors.h"
 #include "Denise.h"
 #include "DmaDebugger.h"
+#include "Emulator.h"
 
 #include <fstream>
 
 namespace vamiga {
 
-PixelEngine::PixelEngine(Amiga& ref) : SubComponent(ref)
-{
-    // Create random background noise pattern
-    noise.alloc(2 * PIXELS);
-    for (isize i = 0; i < noise.size; i++) {
-        noise[i] = rand() % 2 ? FrameBuffer::black : FrameBuffer::white;
-    }
-}
-
 void
 PixelEngine::clearAll()
 {
-    emuTexture[0].clear();
-    emuTexture[1].clear();
+    // Wipe out all textures
+    for (isize i = 0; i < NUM_TEXTURES; i++) emuTexture[i].clear();
 }
 
 void
-PixelEngine::_dump(Category category, std::ostream& os) const
+PixelEngine::_dump(Category category, std::ostream &os) const
 {
     using namespace util;
 
     if (category == Category::Config) {
 
-        os << tab("Palette");
-        os << PaletteEnum::key(config.palette) << std::endl;
-        os << tab("Brightness");
-        os << dec(config.brightness) << std::endl;
-        os << tab("Contrast");
-        os << dec(config.contrast) << std::endl;
-        os << tab("Saturation");
-        os << dec(config.saturation) << std::endl;
+        dumpConfig(os);
     }
 }
 
 void
 PixelEngine::_initialize()
 {
-    CoreComponent::_initialize();
-
     // Setup ECS BRDRBLNK color
     palette[64] = TEXEL(GpuColor(0x00, 0x00, 0x00).rawValue);
     
-    // Setup some debug colors
+    // Setup debug colors
     palette[65] = TEXEL(GpuColor(0xD0, 0x00, 0x00).rawValue);
     palette[66] = TEXEL(GpuColor(0xA0, 0x00, 0x00).rawValue);
     palette[67] = TEXEL(GpuColor(0x90, 0x00, 0x00).rawValue);
 }
 
 void
-PixelEngine::_reset(bool hard)
+PixelEngine::_didReset(bool hard)
 {
-    RESET_SNAPSHOT_ITEMS(hard)
-    
     if (hard) {
         
-        emuTexture[0].nr = 0;
-        emuTexture[0].lof = emuTexture[0].prevlof = true;
-        emuTexture[1].nr = 0;
-        emuTexture[1].lof = emuTexture[1].prevlof = true;
+        for (isize i = 0; i < NUM_TEXTURES; i++) {
+            
+            emuTexture[i].nr = 0;
+            emuTexture[i].lof = emuTexture[i].prevlof = true;
+        }
     }
 
     activeBuffer = 0;
     updateRGBA();
 }
 
-isize
-PixelEngine::didLoadFromBuffer(const u8 *buffer)
+void
+PixelEngine::_didLoad()
 {
+    clearAll();
     updateRGBA();
-    return 0;
 }
 
 void
 PixelEngine::_powerOn()
 {
     clearAll();
-}
-
-void
-PixelEngine::resetConfig()
-{
-    assert(isPoweredOff());
-    auto &defaults = amiga.defaults;
-
-    std::vector <Option> options = {
-        
-        OPT_PALETTE,
-        OPT_BRIGHTNESS,
-        OPT_CONTRAST,
-        OPT_SATURATION
-    };
-
-    for (auto &option : options) {
-        setConfigItem(option, defaults.get(option));
-    }
-}
-
-i64
-PixelEngine::getConfigItem(Option option) const
-{
-    switch (option) {
-            
-        case OPT_PALETTE:     return config.palette;
-        case OPT_BRIGHTNESS:  return config.brightness;
-        case OPT_CONTRAST:    return config.contrast;
-        case OPT_SATURATION:  return config.saturation;
-
-        default:
-            fatalError;
-    }
-}
-
-void
-PixelEngine::setConfigItem(Option option, i64 value)
-{
-    switch (option) {
-            
-        case OPT_PALETTE:
-            
-            if (!PaletteEnum::isValid(value)) {
-                throw VAError(ERROR_OPT_INVARG, PaletteEnum::keyList());
-            }
-            
-            config.palette = (Palette)value;
-            updateRGBA();
-            return;
-
-        case OPT_BRIGHTNESS:
-            
-            if (value < 0 || value > 100) {
-                throw VAError(ERROR_OPT_INVARG, "0...100");
-            }
-            
-            config.brightness = (isize)value;
-            updateRGBA();
-            return;
-            
-        case OPT_CONTRAST:
-
-            if (value < 0 || value > 100) {
-                throw VAError(ERROR_OPT_INVARG, "0...100");
-            }
-            
-            config.contrast = (isize)value;
-            updateRGBA();
-            return;
-
-        case OPT_SATURATION:
-
-            if (value < 0 || value > 100) {
-                throw VAError(ERROR_OPT_INVARG, "0...100");
-            }
-            
-            config.saturation = (isize)value;
-            updateRGBA();
-            return;
-
-        default:
-            fatalError;
-    }
 }
 
 void
@@ -220,10 +118,15 @@ PixelEngine::updateRGBA()
 void
 PixelEngine::adjustRGB(u8 &r, u8 &g, u8 &b)
 {
+    auto palette = monitor.getConfig().palette;
+
+    // The RGB palette does not alter anything. Return immediately
+    if (palette == Palette::RGB) return;
+    
     // Normalize adjustment parameters
-    double brightness =  config.brightness - 50.0;
-    double contrast = config.contrast / 100.0;
-    double saturation = config.saturation / 50.0;
+    double brightness =  (monitor.getConfig().brightness - 50.0);
+    double contrast = monitor.getConfig().contrast / 100.0;
+    double saturation = monitor.getConfig().saturation / 50.0;
 
     // Convert RGB to YUV
     double y =  0.299 * r + 0.587 * g + 0.114 * b;
@@ -243,35 +146,35 @@ PixelEngine::adjustRGB(u8 &r, u8 &g, u8 &b)
     y += brightness;
 
     // Translate to monochrome if applicable
-    switch(config.palette) {
+    switch(palette) {
 
-        case PALETTE_BLACK_WHITE:
+        case Palette::BLACK_WHITE:
             u = 0.0;
             v = 0.0;
             break;
 
-        case PALETTE_PAPER_WHITE:
+        case Palette::PAPER_WHITE:
             u = -128.0 + 120.0;
             v = -128.0 + 133.0;
             break;
 
-        case PALETTE_GREEN:
+        case Palette::GREEN:
             u = -128.0 + 29.0;
             v = -128.0 + 64.0;
             break;
 
-        case PALETTE_AMBER:
+        case Palette::AMBER:
             u = -128.0 + 24.0;
             v = -128.0 + 178.0;
             break;
 
-        case PALETTE_SEPIA:
+        case Palette::SEPIA:
             u = -128.0 + 97.0;
             v = -128.0 + 154.0;
             break;
 
         default:
-            assert(config.palette == PALETTE_COLOR);
+            assert(palette == Palette::COLOR);
     }
 
     // Convert YUV to RGB
@@ -294,13 +197,14 @@ PixelEngine::adjustRGB(u8 &r, u8 &g, u8 &b)
     b = u8(newB);
 }
 
-const FrameBuffer &
-PixelEngine::getStableBuffer()
+const Texture &
+PixelEngine::getStableBuffer(isize offset) const
 {
-    return emuTexture[!activeBuffer];
+    auto nr = activeBuffer + offset - 1;
+    return emuTexture[(nr + NUM_TEXTURES) % NUM_TEXTURES];
 }
 
-FrameBuffer &
+Texture &
 PixelEngine::getWorkingBuffer()
 {
     return emuTexture[activeBuffer];
@@ -327,38 +231,36 @@ PixelEngine::stablePtr(isize row, isize col)
 void
 PixelEngine::swapBuffers()
 {
+    emulator.lockTexture();
+
+    videoPort.buffersWillSwap();
+
     isize oldActiveBuffer = activeBuffer;
-    isize newActiveBuffer = !oldActiveBuffer;
+    isize newActiveBuffer = (activeBuffer + 1) % NUM_TEXTURES;
 
     emuTexture[newActiveBuffer].nr = agnus.pos.frame;
     emuTexture[newActiveBuffer].lof = agnus.pos.lof;
     emuTexture[newActiveBuffer].prevlof = emuTexture[oldActiveBuffer].lof;
 
     activeBuffer = newActiveBuffer;
-}
 
-Texel *
-PixelEngine::getNoise() const
-{
-    return noise.ptr + (rand() % PIXELS);
+    emulator.unlockTexture();
 }
 
 void
 PixelEngine::vsyncHandler()
 {
-    // swapBuffers();
     dmaDebugger.vSyncHandler();
 }
 
 void
 PixelEngine::eofHandler()
 {
-    swapBuffers();
     dmaDebugger.eofHandler();
 }
 
 void
-PixelEngine::endOfVBlankLine()
+PixelEngine::replayColRegChanges()
 {
     // Apply all color register changes that happened in this line
     for (isize i = 0, end = colChanges.end(); i < end; i++) {
@@ -370,13 +272,13 @@ PixelEngine::endOfVBlankLine()
 void
 PixelEngine::applyRegisterChange(const RegChange &change)
 {
-    switch (change.addr) {
+    switch (change.reg) {
 
-        case 0:
+        case Reg(0):
             
             break;
 
-        case 0x100: // BPLCON0
+        case Reg::BPLCON0:
 
             hamMode = Denise::ham(change.value);
             shresMode = Denise::shres(change.value);
@@ -384,8 +286,8 @@ PixelEngine::applyRegisterChange(const RegChange &change)
             
         default: // It must be a color register then
             
-            auto nr = (change.addr - 0x180) >> 1;
-            assert(nr < 32);
+            auto nr = isize(change.reg) - isize(Reg::COLOR00);
+            assert(0 <= nr && nr < 32);
 
             if (color[nr].rawValue() != change.value) {
                 setColor(nr, change.value);
@@ -405,7 +307,7 @@ PixelEngine::colorize(isize line)
     AmigaColor hold = color[0];
 
     // Add a dummy register change to ensure we draw until the line end
-    colChanges.insert(HPIXELS, RegChange { SET_NONE, 0 } );
+    colChanges.insert(HPIXELS, RegChange { .reg = Reg(0), .value = 0 } );
 
     // Iterate over all recorded register changes
     for (isize i = 0, end = colChanges.end(); i < end; i++) {
@@ -433,16 +335,22 @@ PixelEngine::colorize(isize line)
     // Wipe out the HBLANK area
     auto start = agnus.pos.pixel(HBLANK_MIN);
     auto stop  = agnus.pos.pixel(HBLANK_MAX);
-    for (pixel = start; pixel <= stop; pixel++) dst[pixel] = FrameBuffer::hblank;
+    for (pixel = start; pixel <= stop; pixel++) dst[pixel] = Texture::hblank;
 }
 
 void
 PixelEngine::colorize(Texel *dst, Pixel from, Pixel to)
 {
-    u8 *mbuf = denise.mBuffer;
+    auto *mbuf = denise.mBuffer;
+    auto *bbuf = denise.bBuffer;
 
+    /*
     for (Pixel i = from; i < to; i++) {
         dst[i] = palette[mbuf[i]];
+    }
+    */
+    for (Pixel i = from; i < to; i++) {
+        dst[i] = palette[bbuf[i] == 0xFF ? mbuf[i] : bbuf[i]];
     }
 }
 
@@ -450,13 +358,14 @@ void
 PixelEngine::colorizeSHRES(Texel *dst, Pixel from, Pixel to)
 {
     auto *mbuf = denise.mBuffer;
+    auto *bbuf = denise.bBuffer;
     auto *zbuf = denise.zBuffer;
 
     if constexpr (sizeof(Texel) == 4) {
 
         // Output two super-hires pixels as a single texel
         for (Pixel i = from; i < to; i++) {
-            dst[i] = palette[mbuf[i]];
+            dst[i] = palette[bbuf[i] == 0xFF ? mbuf[i] : bbuf[i]];
         }
 
     } else {
@@ -466,7 +375,12 @@ PixelEngine::colorizeSHRES(Texel *dst, Pixel from, Pixel to)
 
             u32 *p = (u32 *)(dst + i);
 
-            if (Denise::isSpritePixel(zbuf[i])) {
+            if (bbuf[i] != 0xFF) {
+
+                p[0] =
+                p[1] = u32(palette[bbuf[i]]);
+
+            } else if (Denise::isSpritePixel(zbuf[i])) {
 
                 p[0] =
                 p[1] = u32(palette[mbuf[i]]);
@@ -483,16 +397,25 @@ PixelEngine::colorizeSHRES(Texel *dst, Pixel from, Pixel to)
 void
 PixelEngine::colorizeHAM(Texel *dst, Pixel from, Pixel to, AmigaColor& ham)
 {
-    u8 *bbuf = denise.bBuffer;
-    u8 *ibuf = denise.iBuffer;
-    u8 *mbuf = denise.mBuffer;
+    auto *dbuf = denise.dBuffer;
+    auto *ibuf = denise.iBuffer;
+    auto *mbuf = denise.mBuffer;
+    auto *bbuf = denise.bBuffer;
 
     for (Pixel i = from; i < to; i++) {
+
+        // Check for border pixels
+        if (bbuf[i] != 0xFF) {
+
+            dst[i] = palette[bbuf[i]];
+            ham = color[bbuf[i]];
+            continue;
+        }
 
         u8 index = ibuf[i];
         assert(isPaletteIndex(index));
 
-        switch ((bbuf[i] >> 4) & 0b11) {
+        switch ((dbuf[i] >> 4) & 0b11) {
 
             case 0b00: // Get color from register
 

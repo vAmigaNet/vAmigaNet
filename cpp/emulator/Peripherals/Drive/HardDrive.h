@@ -2,23 +2,57 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
 
 #include "HardDriveTypes.h"
-#include "Drive.h"
-#include "AgnusTypes.h"
 #include "HdControllerTypes.h"
-#include "HDFFile.h"
+#include "AgnusTypes.h"
+#include "Drive.h"
+#include "Buffer.h"
 #include "MemUtils.h"
 
 namespace vamiga {
 
-class HardDrive : public Drive {
+class HardDrive final : public Drive, public Inspectable<HardDriveInfo> {
+    
+    Descriptions descriptions = {
+        {
+            .type           = Class::HardDrive,
+            .name           = "HardDrive0",
+            .description    = "Hard Drive 0",
+            .shell          = "hd0"
+        },
+        {
+            .type           = Class::HardDrive,
+            .name           = "HardDrive1",
+            .description    = "Hard Drive 1",
+            .shell          = "hd1"
+        },
+        {
+            .type           = Class::HardDrive,
+            .name           = "HardDrive2",
+            .description    = "Hard Drive 2",
+            .shell          = "hd2"
+        },
+        {
+            .type           = Class::HardDrive,
+            .name           = "HardDrive3",
+            .description    = "Hard Drive 3",
+            .shell          = "hd3"
+        }
+    };
+
+    Options options = {
+
+        Opt::HDR_TYPE, 
+        Opt::HDR_PAN,
+        Opt::HDR_STEP_VOLUME
+    };
     
     friend class HDFFile;
     friend class HdController;
@@ -29,9 +63,6 @@ class HardDrive : public Drive {
     // Current configuration
     HardDriveConfig config = {};
     
-    // Result of the latest inspection
-    mutable HardDriveInfo info = {};
-
     // Product information
     string diskVendor;
     string diskProduct;
@@ -50,22 +81,20 @@ class HardDrive : public Drive {
     std::vector <DriverDescriptor> drivers;
 
     // Disk data
-    Buffer<u8> data;
+    util::Buffer<u8> data;
     
+    // Keeps track of modified blocks (to update the run-ahead instance)
+    util::Buffer<bool> dirty;
+
     // Current position of the read/write head
     DriveHead head;
 
     // Current drive state
-    HardDriveState state = HDR_IDLE;
+    HardDriveState state = HardDriveState::IDLE;
     
     // Disk state flags
-    bool modified = false;
-    bool writeProtected = false;
-    optional <bool> bootable;
+    long flags = 0;
 
-    // Indicates if write-through mode is enabled
-    bool writeThrough = false;
-    
     
     //
     // Initializing
@@ -76,6 +105,8 @@ public:
     HardDrive(Amiga& ref, isize nr);
     ~HardDrive();
     
+    HardDrive& operator= (const HardDrive& other);
+
     // Creates a hard drive with a certain geometry
     void init(const GeometryDescriptor &geometry);
 
@@ -83,13 +114,71 @@ public:
     void init(isize size);
 
     // Creates a hard drive with the contents of a file system
-    void init(const MutableFileSystem &fs) throws;
+    void init(const class MutableFileSystem &fs) throws;
 
-    // Creates a hard drive with the contents of an HDF
-    void init(const HDFFile &hdf) throws;
+    // Creates a hard drive with the contents of a media file
+    void init(const class MediaFile &file) throws;
+
+    // Creates a hard drive with the contents of an HDF or HDZ
+    void init(const class HDFFile &hdf) throws;
+    void init(const class HDZFile &hdz) throws;
 
     // Creates a hard drive with the contents of an HDF file
-    void init(const string &path) throws;
+    void init(const fs::path &path) throws;
+
+    const HardDriveTraits &getTraits() const {
+
+        static HardDriveTraits traits;
+
+        traits.nr = objid;
+        
+        traits.diskVendor = diskVendor.c_str();
+        traits.diskProduct = diskProduct.c_str();
+        traits.diskRevision = diskRevision.c_str();
+        traits.controllerVendor = controllerVendor.c_str();
+        traits.controllerProduct = controllerProduct.c_str();
+        traits.controllerRevision = controllerRevision.c_str();
+
+        traits.cylinders = geometry.cylinders;
+        traits.heads = geometry.heads;
+        traits.sectors = geometry.sectors;
+        traits.bsize = geometry.bsize;
+
+        traits.tracks = geometry.numTracks();
+        traits.blocks = geometry.numBlocks();
+        traits.bytes = geometry.numBytes();
+        traits.upperCyl = geometry.upperCyl();
+        traits.upperHead = geometry.upperHead();
+        traits.upperTrack = geometry.upperTrack();
+
+        return traits;
+    }
+
+    const PartitionTraits &getPartitionTraits(isize nr) const {
+
+        static PartitionTraits traits;
+
+        auto descr = getPartitionDescriptor(nr);
+        traits.nr = nr;
+        traits.name = descr.name;
+        traits.lowerCyl = descr.lowCyl;
+        traits.upperCyl = descr.highCyl;
+        
+        switch (descr.dosType) {
+                
+            case 0x444F5300: traits.fsType = FSFormat::OFS; break;
+            case 0x444F5301: traits.fsType = FSFormat::FFS; break;
+            case 0x444F5302: traits.fsType = FSFormat::OFS_INTL; break;
+            case 0x444F5303: traits.fsType = FSFormat::FFS_INTL; break;
+            case 0x444F5304: traits.fsType = FSFormat::OFS_DC; break;
+            case 0x444F5305: traits.fsType = FSFormat::FFS_DC; break;
+            case 0x444F5306: traits.fsType = FSFormat::OFS_LNFS; break;
+            case 0x444F5307: traits.fsType = FSFormat::FFS_LNFS; break;
+            default:         traits.fsType = FSFormat::NODOS; break;
+        }
+        
+        return traits;
+    }
 
 private:
 
@@ -103,8 +192,7 @@ private:
     
 private:
     
-    const char *getDescription() const override;
-    void _dump(Category category, std::ostream& os) const override;
+    void _dump(Category category, std::ostream &os) const override;
     
     
     //
@@ -113,14 +201,24 @@ private:
     
 private:
     
-    void _reset(bool hard) override;
-    void _inspect() const override;
+    void _initialize() override;
     
     template <class T>
-    void applyToPersistentItems(T& worker)
+    void serialize(T& worker)
     {
+        if (isSoftResetter(worker)) return;
+
         worker
-        
+
+        << head.cylinder
+        << head.head
+        << head.offset
+        << state;
+
+        if (isResetter(worker)) return;
+
+        worker
+
         << config.type
         << config.pan
         << config.stepVolume
@@ -130,34 +228,21 @@ private:
         << controllerVendor
         << controllerProduct
         << controllerRevision
-        >> geometry
-        >> ptable
-        >> drivers
+        << geometry
+        << ptable
+        << drivers
         << data
-        << modified
-        << writeProtected
-        << bootable;
-    }
+        << flags;
 
-    template <class T>
-    void applyToResetItems(T& worker, bool hard = true)
-    {
-        if (hard) {
-            
-            worker
-            
-            << head.cylinder
-            << head.head
-            << head.offset
-            << state;
-        }
-    }
+    } SERIALIZERS(serialize);
 
-    isize _size() override { COMPUTE_SNAPSHOT_SIZE }
-    u64 _checksum() override { COMPUTE_SNAPSHOT_CHECKSUM }
-    isize _load(const u8 *buffer) override { LOAD_SNAPSHOT_ITEMS }
-    isize _save(u8 *buffer) override { SAVE_SNAPSHOT_ITEMS }
-    isize didLoadFromBuffer(const u8 *buffer) override;
+    void _didReset(bool hard) override;
+    void _didLoad() override;
+
+public:
+
+    const Descriptions &getDescriptions() const override { return descriptions; }
+
     
     //
     // Methods from Drive
@@ -173,29 +258,32 @@ public:
     string getControllerRevision() const override { return controllerRevision; }
 
     bool isConnected() const override;
-    
+
     Cylinder currentCyl() const override { return head.cylinder; }
     Head currentHead() const override { return head.head; }
     isize currentOffset() const override { return head.offset; }
+
+    bool getFlag(DiskFlags mask) const override;
+    void setFlag(DiskFlags mask, bool value) override;
 
     bool hasDisk() const override;
     bool hasModifiedDisk() const override;
     bool hasProtectedDisk() const override;
     void setModificationFlag(bool value) override;
     void setProtectionFlag(bool value) override;
+    
+    
+    //
+    // Methods from Configurable
+    //
 
-    
-    //
-    // Configuring
-    //
-    
 public:
     
     const HardDriveConfig &getConfig() const { return config; }
-    void resetConfig() override;
-    
-    i64 getConfigItem(Option option) const;
-    void setConfigItem(Option option, i64 value);
+    const Options &getOptions() const override { return options; }
+    i64 getOption(Opt option) const override;
+    void checkOption(Opt opt, i64 value) override;
+    void setOption(Opt option, i64 value) override;
     
 private:
     
@@ -209,10 +297,12 @@ private:
 
 public:
 
-    // Returns information about the disk or one of its partitions
-    HardDriveInfo getInfo() const { return CoreComponent::getInfo(info); }
-    const PartitionDescriptor &getPartitionInfo(isize nr);
-    
+    // Returns information about the disk
+    void cacheInfo(HardDriveInfo &info) const override;
+
+    // Returns information about a specific partition
+    const PartitionDescriptor &getPartitionDescriptor(isize nr) const;
+
     // Returns the disk geometry
     const GeometryDescriptor &getGeometry() const { return geometry; }
 
@@ -226,25 +316,27 @@ public:
     HardDriveState getState() const { return state; }
     
     // Gets or sets the 'modification' flag
-    bool isModified() const { return modified; }
-    void setModified(bool value) { modified = value; }
+    bool isModified() const { return flags & long(DiskFlags::MODIFIED); }
+    void setModified(bool value) { value ? flags |= long(DiskFlags::MODIFIED) : flags &= ~long(DiskFlags::MODIFIED); }
 
     // Returns the current controller state
-    HdcState getHdcState();
+    HdcState getHdcState() const;
 
     // Checks whether the drive will work with the currently installed Rom
-    bool isCompatible();
-    
+    bool isCompatible() const;
+       
+    // Checks whether the drive is bootable
+    bool isBootable();
     
     //
     // Formatting
     //
     
     // Returns a default volume name
-    string defaultName(isize partition = 0);
+    string defaultName(isize partition = 0) const;
 
     // Formats the disk
-    void format(FSVolumeType fs, string name) throws;
+    void format(FSFormat fs, string name) throws;
 
     // Change the drive geometry
     void changeGeometry(isize c, isize h, isize s, isize b = 512) throws;
@@ -264,7 +356,7 @@ public:
     i8 write(isize offset, isize length, u32 addr);
     
     // Reads a loadable file system
-    void readDriver(isize nr, Buffer<u8> &driver);
+    void readDriver(isize nr, util::Buffer<u8> &driver);
     
 private:
 
@@ -282,29 +374,12 @@ private:
     
 public:
     
-    // Restores a disk (called on connect)
-    bool restoreDisk() throws;
-
+    // Imports files from a folder (deletes existing files)
+    void importFolder(const fs::path &path) throws;
+    
     // Exports the disk in HDF format
-    void writeToFile(const string &path) throws;
+    void writeToFile(const fs::path &path) throws;
 
-    
-    //
-    // Managing write-through mode
-    //
-    
-    bool writeThroughEnabled() const { return writeThrough; }
-    void enableWriteThrough() throws;
-    void disableWriteThrough();
-
-private:
-    
-    // Return the path to the write-through storage file
-    string writeThroughPath();
-    
-    // Creates or updates the write-through storage file
-    void saveWriteThroughImage() throws;
-    
     
     //
     // Scheduling and serving events

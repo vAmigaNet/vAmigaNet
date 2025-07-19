@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
@@ -14,7 +14,30 @@
 
 namespace vamiga {
 
-class Joystick : public SubComponent {
+class Joystick final : public SubComponent, public Inspectable<JoystickInfo> {
+
+    Descriptions descriptions = {
+        {
+            .type           = Class::Joystick,
+            .name           = "Joystick1",
+            .description    = "Joystick in Port 1",
+            .shell          = "joystick1"
+        },
+        {
+            .type           = Class::Joystick,
+            .name           = "Joystick2",
+            .description    = "Joystick in Port 2",
+            .shell          = "joystick2"
+        }
+    };
+
+    Options options = {
+
+        Opt::JOY_AUTOFIRE,
+        Opt::JOY_AUTOFIRE_BURSTS,
+        Opt::JOY_AUTOFIRE_BULLETS,
+        Opt::JOY_AUTOFIRE_DELAY
+    };
 
     // Reference to control port this device belongs to
     ControlPort &port;
@@ -28,17 +51,18 @@ class Joystick : public SubComponent {
     bool button3 = false;
 
     // Horizontal joystick position (-1 = left, 1 = right, 0 = released)
-    int axisX = 0;
-    
-    // Vertical joystick position (-1 = up, 1 = down, 0 = released)
-    int axisY = 0;
+    isize axisX = 0;
 
-    // Bullet counter used in multi-fire mode
-    i64 bulletCounter = 0;
-    
+    // Vertical joystick position (-1 = up, 1 = down, 0 = released)
+    isize axisY = 0;
+
+    // Bullet counter used in autofire mode
+    isize bulletCounter = 0;
+
     // Next frame to auto-press or auto-release the fire button
     i64 nextAutofireFrame = 0;
-    
+    i64 nextAutofireReleaseFrame = 0;
+
     
     //
     // Initializing
@@ -48,55 +72,93 @@ public:
     
     Joystick(Amiga& ref, ControlPort& pref);
 
+    Joystick& operator= (const Joystick& other) {
+
+        CLONE(config)
+
+        CLONE(button)
+        CLONE(button2)
+        CLONE(button3)
+        CLONE(axisX)
+        CLONE(axisY)
+        CLONE(bulletCounter)
+        CLONE(nextAutofireFrame)
+        CLONE(nextAutofireReleaseFrame)
+
+        return *this;
+    }
+
     
     //
-    // Methods from CoreObject
+    // Methods from Serializable
     //
-    
+
 private:
     
-    const char *getDescription() const override;
-    void _dump(Category category, std::ostream& os) const override;
-    
-    
+    template <class T>
+    void serialize(T& worker)
+    {
+        if (isResetter(worker)) {
+
+            worker
+
+            << button
+            << button2
+            << button3
+            << axisX
+            << axisY
+            << bulletCounter
+            << nextAutofireFrame
+            << nextAutofireReleaseFrame;
+
+        } else {
+
+            worker
+
+            << config.autofire
+            << config.autofireBursts
+            << config.autofireBullets
+            << config.autofireDelay;
+        }
+
+    } SERIALIZERS(serialize);
+
+    void _didLoad() override;
+
+
     //
     // Methods from CoreComponent
     //
 
+public:
+
+    const Descriptions &getDescriptions() const override { return descriptions; }
+
 private:
-    
-    void _reset(bool hard) override;
 
-    template <class T>
-    void applyToPersistentItems(T& worker)
-    {
-        
-    }
+    void _dump(Category category, std::ostream &os) const override;
 
-    template <class T>
-    void applyToResetItems(T& worker, bool hard = true)
-    {
-        
-    }
 
-    isize _size() override { COMPUTE_SNAPSHOT_SIZE }
-    u64 _checksum() override { COMPUTE_SNAPSHOT_CHECKSUM }
-    isize _load(const u8 *buffer) override { LOAD_SNAPSHOT_ITEMS }
-    isize _save(u8 *buffer) override { SAVE_SNAPSHOT_ITEMS }
-    isize didLoadFromBuffer(const u8 *buffer) override;
-    
-    
     //
-    // Configuring
+    // Methods from Inspectable
     //
-    
+
+private:
+
+    void cacheInfo(JoystickInfo &result) const override;
+
+
+    //
+    // Methods from Configurable
+    //
+
 public:
 
     const JoystickConfig &getConfig() const { return config; }
-    void resetConfig() override;
-
-    i64 getConfigItem(Option option) const;
-    void setConfigItem(Option option, i64 value);
+    const Options &getOptions() const override { return options; }
+    i64 getOption(Opt option) const override;
+    void checkOption(Opt opt, i64 value) override;
+    void setOption(Opt option, i64 value) override;
 
 
     //
@@ -117,7 +179,7 @@ public:
     // Callback handler for function ControlPort::ciapa()
     u8 ciapa() const;
     
-    // Triggers a gamepad event
+    // Triggers a joystick event
     void trigger(GamePadAction event);
 
     // To be called after each frame
@@ -125,11 +187,18 @@ public:
     
 private:
 
+    // Sets the button state
+    void setButton(bool value);
+
+    // Checks whether autofiring is active
+    bool isAutofiring();
+
+    // Starts or stops autofire mode
+    void startAutofire();
+    void stopAutofire();
+
     // Reloads the autofire magazine
-    void reload();
-    
-    // Updates variable nextAutofireFrame
-    void scheduleNextShot();
+    void reload(isize bullets);
 };
 
 }

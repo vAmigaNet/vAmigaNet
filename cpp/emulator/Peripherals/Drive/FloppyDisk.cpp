@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #include "config.h"
@@ -14,37 +14,38 @@
 namespace vamiga {
 
 void
-FloppyDisk::init(Diameter dia, Density den)
+FloppyDisk::init(Diameter dia, Density den, bool wp)
 {
     diameter = dia;
     density = den;
     
     u32 trackLength = 0;
     
-    if (dia == INCH_35  && den == DENSITY_DD) trackLength = 12668;
-    if (dia == INCH_35  && den == DENSITY_HD) trackLength = 24636;
-    if (dia == INCH_525 && den == DENSITY_DD) trackLength = 12668;
+    if (dia == Diameter::INCH_35  && den == Density::DD) trackLength = 12668;
+    if (dia == Diameter::INCH_35  && den == Density::HD) trackLength = 24636;
+    if (dia == Diameter::INCH_525 && den == Density::DD) trackLength = 12668;
     
     if (trackLength == 0 || FORCE_DISK_INVALID_LAYOUT) {
-        throw VAError(ERROR_DISK_INVALID_LAYOUT);
+        throw AppError(Fault::DISK_INVALID_LAYOUT);
     }
     
     for (isize i = 0; i < 168; i++) length.track[i] = trackLength;
     clearDisk();
+    setWriteProtection(wp);
 }
 
 void
-FloppyDisk::init(const class FloppyFile &file)
+FloppyDisk::init(const class FloppyFile &file, bool wp)
 {
-    init(file.getDiameter(), file.getDensity());
+    init(file.getDiameter(), file.getDensity(), wp);
     encodeDisk(file);
 }
 
 void
-FloppyDisk::init(util::SerReader &reader, Diameter dia, Density den)
+FloppyDisk::init(SerReader &reader, Diameter dia, Density den, bool wp)
 {
-    init(dia, den);
-    applyToPersistentItems(reader);
+    init(dia, den, wp);
+    serialize(reader);
 }
 
 FloppyDisk::~FloppyDisk()
@@ -53,7 +54,7 @@ FloppyDisk::~FloppyDisk()
 }
 
 void
-FloppyDisk::_dump(Category category, std::ostream& os) const
+FloppyDisk::_dump(Category category, std::ostream &os) const
 {
     using namespace util;
     
@@ -63,16 +64,14 @@ FloppyDisk::_dump(Category category, std::ostream& os) const
         os << DiameterEnum::key(diameter) << std::endl;
         os << tab("Density");
         os << DensityEnum::key(density) << std::endl;
+        os << tab("Flags");
+        os << DiskFlagsEnum::mask(flags) << std::endl;
         os << tab("numCyls()");
         os << dec(numCyls()) << std::endl;
         os << tab("numHeads()");
         os << dec(numHeads()) << std::endl;
         os << tab("numTracks()");
         os << dec(numTracks()) << std::endl;
-        os << tab("Write protected");
-        os << bol(writeProtected) << std::endl;
-        os << tab("Modified");
-        os << bol(modified) << std::endl;
 
         isize oldlen = length.track[0];
         for (isize i = 0, oldi = 0; i <= numTracks(); i++) {
@@ -193,7 +192,7 @@ FloppyDisk::writeByte(Track t, isize offset, u8 value)
     assert(offset < length.track[t]);
 
     data.track[t][offset] = value;
-    modified = true;
+    setModified(true);
 }
 
 void
@@ -204,15 +203,14 @@ FloppyDisk::writeByte(Cylinder c, Head h, isize offset, u8 value)
     assert(offset < length.cylinder[c][h]);
 
     data.cylinder[c][h][offset] = value;
-    modified = true;
+    setModified(true);
 }
 
 void
 FloppyDisk::clearDisk()
 {
-    fnv = 0;
-    modified = bool(FORCE_DISK_MODIFIED);
-    
+    setModified(FORCE_DISK_MODIFIED);
+
     // Initialize with random data
     srand(0);
     for (isize i = 0; i < isizeof(data.raw); i++) {
@@ -222,7 +220,7 @@ FloppyDisk::clearDisk()
     /* In order to make some copy protected game titles work, we smuggle in
      * some magic values. E.g., Crunch factory expects 0x44A2 on cylinder 80.
      */
-    if (diameter == INCH_35 && density == DENSITY_DD) {
+    if (diameter == Diameter::INCH_35 && density == Density::DD) {
         
         for (isize t = 0; t < numTracks(); t++) {
             data.track[t][0] = 0x44;
@@ -303,7 +301,7 @@ FloppyDisk::encodeDisk(const FloppyFile &file)
 void
 FloppyDisk::shiftTracks(isize offset)
 {
-    debug(true, "Shifting tracks by %zd bytes against each other\n", offset);
+    debug(DSK_DEBUG, "Shifting tracks by %ld bytes against each other\n", offset);
 
     u8 spare[2 * 32768];
 
@@ -318,7 +316,7 @@ FloppyDisk::shiftTracks(isize offset)
 }
 
 void
-FloppyDisk::encodeMFM(u8 *dst, u8 *src, isize count)
+FloppyDisk::encodeMFM(u8 *dst, const u8 *src, isize count)
 {
     for(isize i = 0; i < count; i++) {
         
@@ -338,7 +336,7 @@ FloppyDisk::encodeMFM(u8 *dst, u8 *src, isize count)
 }
 
 void
-FloppyDisk::decodeMFM(u8 *dst, u8 *src, isize count)
+FloppyDisk::decodeMFM(u8 *dst, const u8 *src, isize count)
 {
     for(isize i = 0; i < count; i++) {
         
@@ -359,7 +357,7 @@ FloppyDisk::decodeMFM(u8 *dst, u8 *src, isize count)
 }
 
 void
-FloppyDisk::encodeOddEven(u8 *dst, u8 *src, isize count)
+FloppyDisk::encodeOddEven(u8 *dst, const u8 *src, isize count)
 {
     // Encode odd bits
     for(isize i = 0; i < count; i++)
@@ -371,7 +369,7 @@ FloppyDisk::encodeOddEven(u8 *dst, u8 *src, isize count)
 }
 
 void
-FloppyDisk::decodeOddEven(u8 *dst, u8 *src, isize count)
+FloppyDisk::decodeOddEven(u8 *dst, const u8 *src, isize count)
 {
     // Decode odd bits
     for(isize i = 0; i < count; i++)

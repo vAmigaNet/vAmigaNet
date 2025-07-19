@@ -2,20 +2,19 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
 
 #include "CoreObject.h"
 #include "Buffer.h"
-#include <vector>
-
-using util::Buffer;
 
 namespace vamiga {
+
+using util::Buffer;
 
 #define HUNK_UNIT       999
 #define HUNK_NAME       1000
@@ -98,7 +97,7 @@ struct HunkDescriptor {
     //
     
     void dump(Category category) const;
-    void dump(Category category, std::ostream& os) const;
+    void dump(Category category, std::ostream &os) const;
 };
 
 struct ProgramUnitDescriptor {
@@ -134,7 +133,7 @@ struct ProgramUnitDescriptor {
     //
     
     void dump(Category category) const;
-    void dump(Category category, std::ostream& os) const;
+    void dump(Category category, std::ostream &os) const;
 };
 
 }

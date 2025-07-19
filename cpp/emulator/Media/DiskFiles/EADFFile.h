@@ -48,8 +48,9 @@ class EADFFile : public FloppyFile {
     
 public:
 
-    static bool isCompatible(const string &path);
-    static bool isCompatible(std::istream &stream);
+    static bool isCompatible(const fs::path &path);
+    static bool isCompatible(const u8 *buf, isize len);
+    static bool isCompatible(const Buffer<u8> &buffer);
 
 
     //
@@ -58,9 +59,9 @@ public:
 
 public:
 
-    using AmigaFile::init;
+    using AnyFile::init;
     
-    EADFFile(const string &path) throws { init(path); }
+    EADFFile(const fs::path &path) throws { init(path); }
     EADFFile(const u8 *buf, isize len) throws { init(buf, len); }
     EADFFile(class FloppyDisk &disk) throws { init(disk); }
     EADFFile(class FloppyDrive &drive) throws { init(drive); }
@@ -75,18 +76,18 @@ public:
 
 public:
     
-    const char *getDescription() const override { return "EADF"; }
+    const char *objectName() const override { return "EADF"; }
 
     
     //
-    // Methods from AmigaFile
+    // Methods from AnyFile
     //
     
 public:
     
-    FileType type() const override { return FILETYPE_EADF; }
-    bool isCompatiblePath(const string &path) const override { return isCompatible(path); }
-    bool isCompatibleStream(std::istream &stream) const override { return isCompatible(stream); }
+    FileType type() const override { return FileType::EADF; }
+    bool isCompatiblePath(const fs::path &path) const override { return isCompatible(path); }
+    bool isCompatibleBuffer(const u8 *buf, isize len) const override { return isCompatible(buf, len); }
     void finalizeRead() throws override;
     
     
@@ -103,8 +104,8 @@ public:
     // Methods from FloppyFile
     //
     
-    FSVolumeType getDos() const override;
-    void setDos(FSVolumeType dos) override { };
+    FSFormat getDos() const override;
+    void setDos(FSFormat dos) override { };
     Diameter getDiameter() const override;
     Density getDensity() const override;
     
@@ -114,7 +115,7 @@ public:
     void readSector(u8 *dst, isize t, isize s) const override { }
     
     void encodeDisk(class FloppyDisk &disk) const throws override;
-    void decodeDisk(class FloppyDisk &disk) throws override;
+    void decodeDisk(const class FloppyDisk &disk) throws override;
     
 private:
     

@@ -2,30 +2,22 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #include "config.h"
 #include "DeniseDebugger.h"
-#include "Amiga.h"
+#include "Emulator.h"
 
 namespace vamiga {
 
 void
 DeniseDebugger::_initialize()
-{
-    CoreComponent::_initialize();
-    
+{    
     std::memset(spriteInfo, 0, sizeof(spriteInfo));
     std::memset(latchedSpriteInfo, 0, sizeof(latchedSpriteInfo));
-}
-
-void
-DeniseDebugger::_reset(bool hard)
-{
-    
 }
 
 void
@@ -81,6 +73,8 @@ DeniseDebugger::recordDiwH(isize hstrt, isize hstop)
 
         maxViewPort.hstrt = hstrt;
         maxViewPort.hstop = hstop;
+
+        trace(DIW_DEBUG, "recordDiwH: (%ld,%ld)\n", maxViewPort.hstrt, maxViewPort.hstop);
     }
 }
 
@@ -101,6 +95,8 @@ DeniseDebugger::updateDiwH(isize hstrt, isize hstop)
 
         maxViewPort.hstrt = std::min(maxViewPort.hstrt, hstrt);
         maxViewPort.hstop = std::max(maxViewPort.hstop, hstop);
+
+        trace(DIW_DEBUG, "updateDiwH: (%ld,%ld)\n", maxViewPort.hstrt, maxViewPort.hstop);
     }
 }
 
@@ -117,32 +113,26 @@ DeniseDebugger::updateDiwV(isize vstrt, isize vstop)
 SpriteInfo
 DeniseDebugger::getSpriteInfo(isize nr)
 {
-    SYNCHRONIZED
-    return latchedSpriteInfo[nr];
+    {   SYNCHRONIZED
+        
+        return latchedSpriteInfo[nr];
+    }
 }
 
 void
 DeniseDebugger::hsyncHandler(isize vpos)
 {
-#ifdef LINE_DEBUG
-
     if (LINE_DEBUG) {
 
-        u32 *ptr = pixelEngine.frameBufferAddr(vpos);
+        if (LINE_DEBUG == vpos) {
 
-        for (Pixel i = 0; i < HPIXELS; i++) {
-            ptr[i] = (i & 1) ? 0xFF0000FF : 0xFFFFFFFF;
+            auto *ptr = pixelEngine.workingPtr(vpos);
+
+            for (Pixel i = 0; i < HPIXELS; i++) {
+                ptr[i] = (i & 1) ? 0xFF0000FF : 0xFFFFFFFF;
+            }
         }
-
-        trace(false, "BPLCON0: %x BPLCON1: %x Hires: %d BPU: %d\n",
-
-              denise.bplcon0,
-              denise.bplcon1,
-              denise.hires(),
-              denise.bpu());
     }
-
-#endif
 }
 
 void
@@ -167,9 +157,9 @@ DeniseDebugger::vsyncHandler()
             latchedMaxViewPort = maxViewPort;
             
             // Notify the GUI if the last message was sent a while ago
-            if (abs(agnus.clock - vpMsgSent) > MSEC(200)) {
+            if (std::abs(agnus.clock - vpMsgSent) > MSEC(200)) {
 
-                msgQueue.put(MSG_VIEWPORT, ViewportMsg {
+                msgQueue.put(Msg::VIEWPORT, ViewportMsg {
                     i16(latchedMaxViewPort.hstrt),
                     i16(latchedMaxViewPort.vstrt),
                     i16(latchedMaxViewPort.hstop),
@@ -190,7 +180,7 @@ DeniseDebugger::vsyncHandler()
     // Sprite tracking
     //
     
-    if (amiga.isTracking()) {
+    if (emulator.isTracking()) {
         
         // Latch recorded sprite data
         for (isize i = 0; i < 8; i++) {

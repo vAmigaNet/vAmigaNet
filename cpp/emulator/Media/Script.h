@@ -2,29 +2,27 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
 
-#include "AmigaFile.h"
+#include "AnyFile.h"
 
 namespace vamiga {
 
 class Amiga;
 
-class Script : public AmigaFile {
+class Script : public AnyFile {
     
 public:
     
-    static bool isCompatible(const string &path);
-    static bool isCompatible(std::istream &stream);
+    static bool isCompatible(const fs::path &path);
+    static bool isCompatible(const u8 *buf, isize len);
+    static bool isCompatible(const Buffer<u8> &buffer);
     
-    bool isCompatiblePath(const string &path) const override { return isCompatible(path); }
-    bool isCompatibleStream(std::istream &stream) const override { return isCompatible(stream); }
-
     
     //
     // Initializing
@@ -32,19 +30,21 @@ public:
 
 public:
 
-    Script(const string &path) throws { init(path); }
+    Script(const fs::path &path) throws { init(path); }
     Script(const u8 *buf, isize len) throws { init(buf, len); }
 
-    const char *getDescription() const override { return "Script"; }
+    const char *objectName() const override { return "Script"; }
 
     
     //
-    // Methods from AmigaFile
+    // Methods from AnyFile
     //
     
 public:
     
-    FileType type() const override { return FILETYPE_SCRIPT; }
+    FileType type() const override { return FileType::SCRIPT; }
+    bool isCompatiblePath(const fs::path &path) const override { return isCompatible(path); }
+    bool isCompatibleBuffer(const u8 *buf, isize len) const override { return isCompatible(buf, len); }
 
     
     //

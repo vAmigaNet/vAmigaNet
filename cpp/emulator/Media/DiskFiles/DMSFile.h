@@ -19,8 +19,9 @@ class DMSFile : public FloppyFile {
 
 public:
     
-    static bool isCompatible(const string &path);
-    static bool isCompatible(std::istream &stream);
+    static bool isCompatible(const fs::path &path);
+    static bool isCompatible(const u8 *buf, isize len);
+    static bool isCompatible(const Buffer<u8> &buffer);
     
     
     //
@@ -29,23 +30,22 @@ public:
     
 public:
     
-    using AmigaFile::init;
+    using AnyFile::init;
     
-    DMSFile(const string &path) throws { init(path); }
-    DMSFile(const string &path, std::istream &stream) throws { init(path, stream); }
+    DMSFile(const fs::path &path) throws { init(path); }
     DMSFile(const u8 *buf, isize len) throws { init(buf, len); }
     
-    const char *getDescription() const override { return "DMS"; }
+    const char *objectName() const override { return "DMS"; }
 
     
     //
-    // Methods from AmigaFile
+    // Methods from AnyFile
     //
     
-    FileType type() const override { return FILETYPE_DMS; }
+    FileType type() const override { return FileType::DMS; }
     u64 fnv64() const override { return adf.fnv64(); }
-    bool isCompatiblePath(const string &path) const override { return isCompatible(path); }
-    bool isCompatibleStream(std::istream &stream) const override { return isCompatible(stream); }
+    bool isCompatiblePath(const fs::path &path) const override { return isCompatible(path); }
+    bool isCompatibleBuffer(const u8 *buf, isize len) const override { return isCompatible(buf, len); }
     void finalizeRead() throws override;
 
     
@@ -62,8 +62,8 @@ public:
     // Methods from FloppyFile
     //
     
-    FSVolumeType getDos() const override { return adf.getDos(); }
-    void setDos(FSVolumeType dos) override { adf.setDos(dos); }
+    FSFormat getDos() const override { return adf.getDos(); }
+    void setDos(FSFormat dos) override { adf.setDos(dos); }
     Diameter getDiameter() const override { return adf.getDiameter(); }
     Density getDensity() const override { return adf.getDensity(); }
     BootBlockType bootBlockType() const override { return adf.bootBlockType(); }

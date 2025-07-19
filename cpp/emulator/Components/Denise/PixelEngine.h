@@ -2,29 +2,42 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
 
-#include "PixelEngineTypes.h"
 #include "SubComponent.h"
 #include "ChangeRecorder.h"
 #include "Constants.h"
-#include "FrameBuffer.h"
+#include "Texture.h"
 
 namespace vamiga {
 
-class PixelEngine : public SubComponent {
+class PixelEngine final : public SubComponent {
+
+    Descriptions descriptions = {{
+
+        .type           = Class::PixelEngine,
+        .name           = "PixelEngine",
+        .description    = "Amiga Monitor",
+        .shell          = "monitor"
+    }};
+
+    Options options = {
+
+        /*
+        Opt::MON_PALETTE,
+        Opt::MON_BRIGHTNESS,
+        Opt::MON_CONTRAST,
+        Opt::MON_SATURATION
+        */
+    };
 
     friend class Denise;
 
-    // Current configuration
-    PixelEngineConfig config = {};
-
-public:
 
     //
     // Screen buffers
@@ -32,13 +45,15 @@ public:
 
 private:
 
-    /* The emulator utilizes double-buffering for the computed textures.
-     * At any time, one of the two buffers is the "working buffer". The other
-     * one is the "stable buffer". All drawing functions write to the working
-     * buffer and the GPU reads from the stable buffer. Once a frame has
-     * been completed, the working buffer and the stable buffer are swapped.
+    static constexpr isize NUM_TEXTURES = 8;
+    
+    /* The emulator manages textures in a ring buffer to allow access to older
+     * frames ("run-behind" feature). At any time, one texture serves as the
+     * working buffer, where all drawing functions write, while the other
+     * textures are considered stable. Once a frame is completed, the next
+     * texture in the ring becomes the new working buffer.
      */
-    FrameBuffer emuTexture[2];
+    Texture emuTexture[NUM_TEXTURES];
 
     // The currently active buffer
     isize activeBuffer = 0;
@@ -46,14 +61,13 @@ private:
     // Mutex for synchronizing access to the stable buffer
     util::Mutex bufferMutex;
 
-    // Buffer with background noise (random black and white pixels)
-    Buffer <Texel> noise;
-
     
     //
     // Color management
     //
 
+private:
+    
     // Lookup table for all 4096 Amiga colors
     Texel colorSpace[4096];
 
@@ -82,7 +96,7 @@ private:
 public:
 
     // Color register history
-    RegChangeRecorder<128> colChanges;
+    RegChangeRecorder<256> colChanges;
 
 
     //
@@ -91,82 +105,67 @@ public:
     
 public:
     
-    PixelEngine(Amiga& ref);
+    using SubComponent::SubComponent;
 
     // Initializes both frame buffers with a checkerboard pattern
     void clearAll();
 
+    PixelEngine& operator= (const PixelEngine& other) {
+
+        CLONE_ARRAY(colorSpace)
+        CLONE(colChanges)
+        CLONE_ARRAY(color)
+        CLONE(hamMode)
+        CLONE(shresMode)
+        CLONE_ARRAY(palette)
+
+        return *this;
+    }
+
 
     //
-    // Methods from CoreObject
+    // Methods from Serializable
     //
-    
+
 private:
-    
-    const char *getDescription() const override { return "PixelEngine"; }
-    void _dump(Category category, std::ostream& os) const override;
 
-    
+    template <class T>
+    void serialize(T& worker)
+    {
+        worker
+
+        << colChanges
+        << color
+        << hamMode
+        << shresMode;
+
+    } SERIALIZERS(serialize);
+
+
     //
     // Methods from CoreComponent
     //
     
+public:
+
+    const Descriptions &getDescriptions() const override { return descriptions; }
+
 private:
-    
+
+    void _dump(Category category, std::ostream &os) const override;
     void _initialize() override;
-    void _reset(bool hard) override;
+    void _powerOn() override;
+    void _didLoad() override;
+    void _didReset(bool hard) override;
 
     
     //
-    // Configuring
+    // Methods from Configurable
     //
 
 public:
     
-    const PixelEngineConfig &getConfig() const { return config; }
-    void resetConfig() override;
-
-    i64 getConfigItem(Option option) const;
-    void setConfigItem(Option option, i64 value);
-
-    
-    //
-    // Serializing
-    //
-    
-private:
-    
-    template <class T>
-    void applyToPersistentItems(T& worker)
-    {
-        
-    }
-
-    template <class T>
-    void applyToResetItems(T& worker, bool hard = true)
-    {
-        worker
-
-        >> colChanges
-        >> color
-        << hamMode
-        << shresMode;
-    }
-
-    isize _size() override { COMPUTE_SNAPSHOT_SIZE }
-    u64 _checksum() override { COMPUTE_SNAPSHOT_CHECKSUM }
-    isize _load(const u8 *buffer) override { LOAD_SNAPSHOT_ITEMS }
-    isize _save(u8 *buffer) override { SAVE_SNAPSHOT_ITEMS }
-    isize didLoadFromBuffer(const u8 *buffer) override;
-
-    
-    //
-    // Controlling
-    //
-    
-private:
-
-    void _powerOn() override;
+    const Options &getOptions() const override { return options; }
 
 
     //
@@ -193,11 +192,13 @@ public:
     // Using the color lookup table
     //
 
-private:
+public:
 
     // Updates the entire RGBA lookup table
     void updateRGBA();
 
+private:
+    
     // Adjusts the RGBA value according to the selected color parameters
     void adjustRGB(u8 &r, u8 &g, u8 &b);
 
@@ -209,8 +210,8 @@ private:
 public:
 
     // Returns the working buffer or the stable buffer
-    FrameBuffer &getWorkingBuffer();
-    const FrameBuffer &getStableBuffer();
+    Texture &getWorkingBuffer();
+    const Texture &getStableBuffer(isize offset = 0) const;
 
     // Return a pointer into the pixel storage
     Texel *workingPtr(isize row = 0, isize col = 0);
@@ -219,12 +220,6 @@ public:
     // Swaps the working buffer and the stable buffer
     void swapBuffers();
     
-    // Returns a pointer to randon noise
-    Texel *getNoise() const;
-
-    // Called after each line in the VBLANK area
-    void endOfVBlankLine();
-
     // Called after each frame to switch the frame buffers
     void vsyncHandler();
 
@@ -237,7 +232,10 @@ public:
 
 public:
 
-    // Applies a register change
+    // Applies all recorded color register changes
+    void replayColRegChanges();
+
+    // Applies a single register change
     void applyRegisterChange(const RegChange &change);
 
 

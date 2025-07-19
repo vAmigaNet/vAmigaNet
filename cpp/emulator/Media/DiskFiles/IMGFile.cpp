@@ -10,46 +10,57 @@
 #include "config.h"
 #include "IMGFile.h"
 #include "Checksum.h"
-#include "FloppyDisk.h"
+#include "FloppyDrive.h"
 #include "IOUtils.h"
 
 namespace vamiga {
 
 bool
-IMGFile::isCompatible(const string &path)
+IMGFile::isCompatible(const fs::path &path)
 {
-    auto suffix = util::uppercased(util::extractSuffix(path));
-    return suffix == "IMG";
+    auto suffix = util::uppercased(path.extension().string());
+    return suffix == ".IMG";
 }
 
 bool
-IMGFile::isCompatible(std::istream &stream)
+IMGFile::isCompatible(const u8 *buf, isize len)
 {
-    isize length = util::streamLength(stream);
-    
     // There are no magic bytes. We can only check the buffer size
-    return length == IMGSIZE_35_DD;
+    return len == IMGSIZE_35_DD;
+}
+
+bool
+IMGFile::isCompatible(const Buffer<u8> &buf)
+{
+    return isCompatible(buf.ptr, buf.size);
 }
 
 void
 IMGFile::init(Diameter dia, Density den)
 {
     // We only support 3.5"DD disks at the moment
-    if (dia == INCH_35 && den == DENSITY_DD) {
+    if (dia == Diameter::INCH_35 && den == Density::DD) {
 
         data.init(9 * 160 * 512);
 
     } else {
 
-        throw VAError(ERROR_DISK_INVALID_LAYOUT);
+        throw AppError(Fault::DISK_INVALID_LAYOUT);
     }
 }
 
 void
 IMGFile::init(FloppyDisk &disk)
 {
-    init(INCH_35, DENSITY_DD);
+    init(Diameter::INCH_35, Density::DD);
     decodeDisk(disk);
+}
+
+void
+IMGFile::init(FloppyDrive &drive)
+{
+    if (drive.disk == nullptr) throw AppError(Fault::DISK_MISSING);
+    init(*drive.disk);
 }
 
 isize
@@ -74,10 +85,10 @@ void
 IMGFile::encodeDisk(FloppyDisk &disk) const
 {
     if (disk.getDiameter() != getDiameter()) {
-        throw VAError(ERROR_DISK_INVALID_DIAMETER);
+        throw AppError(Fault::DISK_INVALID_DIAMETER);
     }
     if (disk.getDensity() != getDensity()) {
-        throw VAError(ERROR_DISK_INVALID_DENSITY);
+        throw AppError(Fault::DISK_INVALID_DENSITY);
     }
 
     isize tracks = numTracks();
@@ -87,7 +98,7 @@ IMGFile::encodeDisk(FloppyDisk &disk) const
     for (Track t = 0; t < tracks; t++) encodeTrack(disk, t);
 
     // In debug mode, also run the decoder
-    if constexpr (IMG_DEBUG) {
+    if (IMG_DEBUG) {
         
         IMGFile tmp(disk);
         debug(IMG_DEBUG, "Saving image to /tmp/debug.img for debugging\n");
@@ -193,34 +204,34 @@ IMGFile::encodeSector(FloppyDisk &disk, Track t, Sector s) const
 }
 
 void
-IMGFile::decodeDisk(FloppyDisk &disk)
+IMGFile::decodeDisk(const FloppyDisk &disk)
 {
     long tracks = numTracks();
     
     debug(IMG_DEBUG, "Decoding DOS disk (%ld tracks)\n", tracks);
     
     if (disk.getDiameter() != getDiameter()) {
-        throw VAError(ERROR_DISK_INVALID_DIAMETER);
+        throw AppError(Fault::DISK_INVALID_DIAMETER);
     }
     if (disk.getDensity() != getDensity()) {
-        throw VAError(ERROR_DISK_INVALID_DENSITY);
+        throw AppError(Fault::DISK_INVALID_DENSITY);
     }
-    
+
     // Make the MFM stream scannable beyond the track end
-    disk.repeatTracks();
+    const_cast<FloppyDisk &>(disk).repeatTracks();
 
     // Decode all tracks
     for (Track t = 0; t < tracks; t++) decodeTrack(disk, t);
 }
 
 void
-IMGFile::decodeTrack(FloppyDisk &disk, Track t)
+IMGFile::decodeTrack(const FloppyDisk &disk, Track t)
 {
     assert(t < disk.numTracks());
 
     long numSectors = 9;
-    u8 *src = disk.data.track[t];
-    u8 *dst = data.ptr + t * numSectors * 512;
+    auto *src = disk.data.track[t];
+    auto *dst = data.ptr + t * numSectors * 512;
     
     debug(IMG_DEBUG, "Decoding DOS track %ld\n", t);
 
@@ -257,12 +268,12 @@ IMGFile::decodeTrack(FloppyDisk &disk, Track t)
             cnt++;
 
         } else {
-            throw VAError(ERROR_DISK_INVALID_SECTOR_NUMBER);
+            throw AppError(Fault::DISK_INVALID_SECTOR_NUMBER);
         }
     }
 
     if (cnt != numSectors) {
-        throw VAError(ERROR_DISK_WRONG_SECTOR_COUNT);
+        throw AppError(Fault::DISK_WRONG_SECTOR_COUNT);
     }
 
     // Do some consistency checking
@@ -275,7 +286,7 @@ IMGFile::decodeTrack(FloppyDisk &disk, Track t)
 }
 
 void
-IMGFile::decodeSector(u8 *dst, u8 *src)
+IMGFile::decodeSector(u8 *dst, const u8 *src)
 {
     FloppyDisk::decodeMFM(dst, src, 512);
 }

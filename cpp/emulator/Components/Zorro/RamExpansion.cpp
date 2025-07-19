@@ -14,7 +14,7 @@
 namespace vamiga {
 
 void
-RamExpansion::_dump(Category category, std::ostream& os) const
+RamExpansion::_dump(Category category, std::ostream &os) const
 {
     using namespace util;
 
@@ -22,14 +22,12 @@ RamExpansion::_dump(Category category, std::ostream& os) const
 }
 
 void
-RamExpansion::_reset(bool hard)
+RamExpansion::_didReset(bool hard)
 {
-    RESET_SNAPSHOT_ITEMS(hard)
-
     if (hard) {
 
         // Enter autoconfig state, if FastRam should be emulated
-        state = mem.fastRamSize() ? STATE_AUTOCONF : STATE_SHUTUP;
+        state = mem.fastRamSize() ? BoardState::AUTOCONF : BoardState::SHUTUP;
     }
 }
 
@@ -56,7 +54,7 @@ RamExpansion::updateMemSrcTables()
 
     for (isize i = firstPage; i < firstPage + numPages; i++) {
 
-        mem.cpuMemSrc[i] = MEM_FAST;
+        mem.cpuMemSrc[i] = MemSrc::FAST;
     }
 }
 

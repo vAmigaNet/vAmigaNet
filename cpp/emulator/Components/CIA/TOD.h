@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
@@ -26,15 +26,24 @@ typedef union
 }
 Counter24;
 
-class TOD : public SubComponent {
-    
-    friend CIA;
-    
-    // Reference to the connected CIA
-    CIA &cia;
+class TOD final : public SubComponent, public Inspectable<TODInfo> {
 
-    // Result of the latest inspection
-    mutable TODInfo info = {};
+    Descriptions descriptions = {{
+
+        .type           = Class::TOD,
+        .name           = "TOD",
+        .description    = "Time-of-day Clock",
+        .shell          = "tod"
+    }};
+
+    Options options = {
+
+    };
+
+    friend class CIA;
+
+    // Reference to the connected CIA
+    class CIA &cia;
 
     // The 24 bit counter
     Counter24 tod;
@@ -78,33 +87,29 @@ public:
 
     TOD(CIA &ciaref, Amiga& ref);
 
-    
-    //
-    // Methods from CoreObject
-    //
-    
-private:
-    
-    const char *getDescription() const override;
-    void _dump(Category category, std::ostream& os) const override;
+    TOD& operator= (const TOD& other) {
 
-    
-    //
-    // Methods from CoreComponent
-    //
-    
-private:
-    
-    void _reset(bool hard) override;
+        CLONE(tod.value)
+        CLONE(preTod.value)
+        CLONE(lastInc)
+        CLONE(latch.value)
+        CLONE(alarm.value)
+        CLONE(frozen)
+        CLONE(stopped)
+        CLONE(matching)
 
-    template <class T>
-    void applyToPersistentItems(T& worker)
-    {
-        
+        return *this;
     }
-    
+
+
+    //
+    // Methods from Serializable
+    //
+
+private:
+
     template <class T>
-    void applyToResetItems(T& worker, bool hard = true)
+    void serialize(T& worker)
     {
         worker
 
@@ -116,23 +121,45 @@ private:
         << frozen
         << stopped
         << matching;
+
     }
 
-    isize _size() override { COMPUTE_SNAPSHOT_SIZE }
-    u64 _checksum() override { COMPUTE_SNAPSHOT_CHECKSUM }
-    isize _load(const u8 *buffer) override { LOAD_SNAPSHOT_ITEMS }
-    isize _save(u8 *buffer) override { SAVE_SNAPSHOT_ITEMS }
+    void operator << (SerResetter &worker) override;
+    void operator << (SerChecker &worker) override { serialize(worker); }
+    void operator << (SerCounter &worker) override { serialize(worker); }
+    void operator << (SerReader &worker) override { serialize(worker); }
+    void operator << (SerWriter &worker) override { serialize(worker); }
 
 
     //
-    // Analyzing
+    // Methods from CoreComponent
     //
     
 public:
-    
-    TODInfo getInfo() const { return CoreComponent::getInfo(info); }
 
-    void _inspect() const override;
+    const Descriptions &getDescriptions() const override { return descriptions; }
+
+private:
+    
+    void _dump(Category category, std::ostream &os) const override;
+
+
+    //
+    // Methods from Inspectable
+    //
+
+public:
+
+    void cacheInfo(TODInfo &result) const override;
+
+
+    //
+    // Methods from Configurable
+    //
+
+public:
+
+    const Options &getOptions() const override { return options; }
 
 
     //

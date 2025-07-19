@@ -2,192 +2,232 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
 
-#include "Aliases.h"
-#include "Reflection.h"
+#include "Infrastructure/Reflection.h"
+
+namespace vamiga {
 
 /* Memory source identifiers. The identifiers are used in the mem source lookup
  * table to specify the source and target of a peek or poke operation,
  * respectively.
  */
-enum_long(MEM_SOURCE)
+enum class MemSrc : long
 {
-    MEM_NONE,
-    MEM_CHIP,
-    MEM_CHIP_MIRROR,
-    MEM_SLOW,
-    MEM_SLOW_MIRROR,
-    MEM_FAST,
-    MEM_CIA,
-    MEM_CIA_MIRROR,
-    MEM_RTC,
-    MEM_CUSTOM,
-    MEM_CUSTOM_MIRROR,
-    MEM_AUTOCONF,
-    MEM_ZOR,
-    MEM_ROM,
-    MEM_ROM_MIRROR,
-    MEM_WOM,
-    MEM_EXT
+    NONE,
+    CHIP,
+    CHIP_MIRROR,
+    SLOW,
+    SLOW_MIRROR,
+    FAST,
+    CIA,
+    CIA_MIRROR,
+    RTC,
+    CUSTOM,
+    CUSTOM_MIRROR,
+    AUTOCONF,
+    ZOR,
+    ROM,
+    ROM_MIRROR,
+    WOM,
+    EXT
 };
-typedef MEM_SOURCE MemorySource;
 
-#ifdef __cplusplus
-struct MemorySourceEnum : util::Reflection<MemorySourceEnum, MemorySource>
+struct MemSrcEnum : Reflection<MemSrcEnum, MemSrc>
 {
     static constexpr long minVal = 0;
-    static constexpr long maxVal = MEM_EXT;
-    static bool isValid(auto val) { return val >= minVal && val <= maxVal; }
-
-    static const char *prefix() { return "MEM"; }
-    static const char *key(MemorySource value)
+    static constexpr long maxVal = (long)MemSrc::EXT;
+    
+    static const char *_key(long value) { return _key(MemSrc(value)); }
+    static const char *_key(MemSrc value)
     {
         switch (value) {
                 
-            case MEM_NONE:           return "NONE";
-            case MEM_CHIP:           return "CHIP";
-            case MEM_CHIP_MIRROR:    return "CHIP_MIRROR";
-            case MEM_SLOW:           return "SLOW";
-            case MEM_SLOW_MIRROR:    return "SLOW_MIRROR";
-            case MEM_FAST:           return "FAST";
-            case MEM_CIA:            return "CIA";
-            case MEM_CIA_MIRROR:     return "CIA_MIRROR";
-            case MEM_RTC:            return "RTC";
-            case MEM_CUSTOM:         return "CUSTOM";
-            case MEM_CUSTOM_MIRROR:  return "CUSTOM_MIRROR";
-            case MEM_AUTOCONF:       return "AUTOCONF";
-            case MEM_ZOR:            return "ZOR";
-            case MEM_ROM:            return "ROM";
-            case MEM_ROM_MIRROR:     return "ROM_MIRROR";
-            case MEM_WOM:            return "WOM";
-            case MEM_EXT:            return "EXT";
+            case MemSrc::NONE:           return "NONE";
+            case MemSrc::CHIP:           return "CHIP";
+            case MemSrc::CHIP_MIRROR:    return "CHIP_MIRROR";
+            case MemSrc::SLOW:           return "SLOW";
+            case MemSrc::SLOW_MIRROR:    return "SLOW_MIRROR";
+            case MemSrc::FAST:           return "FAST";
+            case MemSrc::CIA:            return "CIA";
+            case MemSrc::CIA_MIRROR:     return "CIA_MIRROR";
+            case MemSrc::RTC:            return "RTC";
+            case MemSrc::CUSTOM:         return "CUSTOM";
+            case MemSrc::CUSTOM_MIRROR:  return "CUSTOM_MIRROR";
+            case MemSrc::AUTOCONF:       return "AUTOCONF";
+            case MemSrc::ZOR:            return "ZOR";
+            case MemSrc::ROM:            return "ROM";
+            case MemSrc::ROM_MIRROR:     return "ROM_MIRROR";
+            case MemSrc::WOM:            return "WOM";
+            case MemSrc::EXT:            return "EXT";
+        }
+        return "???";
+    }
+    static const char *help(long value) { return help(MemSrc(value)); }
+    static const char *help(MemSrc value)
+    {
+        switch (value) {
+                
+            case MemSrc::NONE:           return "Unmapped";
+            case MemSrc::CHIP:           return "Chip RAM";
+            case MemSrc::CHIP_MIRROR:    return "Chip RAM mirror";
+            case MemSrc::SLOW:           return "Slow RAM";
+            case MemSrc::SLOW_MIRROR:    return "Slow RAM mirror";
+            case MemSrc::FAST:           return "Fast RAM";
+            case MemSrc::CIA:            return "CIA";
+            case MemSrc::CIA_MIRROR:     return "CIA mirror";
+            case MemSrc::RTC:            return "Real-time clock";
+            case MemSrc::CUSTOM:         return "Custom chips";
+            case MemSrc::CUSTOM_MIRROR:  return "Custom chips mirror";
+            case MemSrc::AUTOCONF:       return "Auto config";
+            case MemSrc::ZOR:            return "Zorro boards";
+            case MemSrc::ROM:            return "Kickstart ROM";
+            case MemSrc::ROM_MIRROR:     return "Kickstart ROM mirror";
+            case MemSrc::WOM:            return "Write-only memory";
+            case MemSrc::EXT:            return "Extension ROM";
         }
         return "???";
     }
 };
-#endif
 
-enum_long(ACCESSOR_TYPE)
+enum class Accessor : i8
 {
-    ACCESSOR_CPU,
-    ACCESSOR_AGNUS
+    CPU,
+    AGNUS,
+    DENISE
 };
-typedef ACCESSOR_TYPE Accessor;
 
-#ifdef __cplusplus
-struct AccessorEnum : util::Reflection<AccessorEnum, Accessor>
+struct AccessorEnum : Reflection<AccessorEnum, Accessor>
 {
     static constexpr long minVal = 0;
-    static constexpr long maxVal = ACCESSOR_AGNUS;
-    static bool isValid(auto val) { return val >= minVal && val <= maxVal; }
-
-    static const char *prefix() { return "ACCESSOR"; }
-    static const char *key(Accessor value)
+    static constexpr long maxVal = long(Accessor::DENISE);
+    
+    static const char *_key(Accessor value)
     {
         switch (value) {
                 
-            case ACCESSOR_CPU:    return "CPU";
-            case ACCESSOR_AGNUS:  return "AGNUS";
+            case Accessor::CPU:     return "CPU";
+            case Accessor::AGNUS:   return "AGNUS";
+            case Accessor::DENISE:  return "DENISE";
+        }
+        return "???";
+    }
+    static const char *help(Accessor value)
+    {
+        return "";
+    }
+};
+
+enum class BankMap : long
+{
+    A500,
+    A1000,
+    A2000A,
+    A2000B
+};
+
+struct BankMapEnum : Reflection<BankMapEnum, BankMap>
+{
+    static constexpr long minVal = 0;
+    static constexpr long maxVal = long(BankMap::A2000B);
+    
+    static const char *_key(BankMap value)
+    {
+        switch (value) {
+                
+            case BankMap::A500:    return "A500";
+            case BankMap::A1000:   return "A1000";
+            case BankMap::A2000A:  return "A2000A";
+            case BankMap::A2000B:  return "A2000B";
+        }
+        return "???";
+    }
+    static const char *help(BankMap value)
+    {
+        switch (value) {
+                
+            case BankMap::A500:    return "Amiga 500 memory layout";
+            case BankMap::A1000:   return "Amiga 1000 memory layout";
+            case BankMap::A2000A:  return "Amiga 2000A memory layout";
+            case BankMap::A2000B:  return "Amiga 2000B memory layout";
         }
         return "???";
     }
 };
-#endif
 
-enum_long(BANK_MAP)
+enum class RamInitPattern
 {
-    BANK_MAP_A500,
-    BANK_MAP_A1000,
-    BANK_MAP_A2000A,
-    BANK_MAP_A2000B
+    ALL_ZEROES,
+    ALL_ONES,
+    RANDOMIZED
 };
-typedef BANK_MAP BankMap;
 
-#ifdef __cplusplus
-struct BankMapEnum : util::Reflection<BankMapEnum, BankMap>
+struct RamInitPatternEnum : Reflection<RamInitPatternEnum, RamInitPattern>
 {
     static constexpr long minVal = 0;
-    static constexpr long maxVal = BANK_MAP_A2000B;
-    static bool isValid(auto val) { return val >= minVal && val <= maxVal; }
-
-    static const char *prefix() { return "BANK_MAP"; }
-    static const char *key(BankMap value)
+    static constexpr long maxVal = long(RamInitPattern::RANDOMIZED);
+    
+    static const char *_key(RamInitPattern value)
     {
         switch (value) {
                 
-            case BANK_MAP_A500:    return "A500";
-            case BANK_MAP_A1000:   return "A1000";
-            case BANK_MAP_A2000A:  return "A2000A";
-            case BANK_MAP_A2000B:  return "A2000B";
+            case RamInitPattern::ALL_ZEROES:    return "ALL_ZEROES";
+            case RamInitPattern::ALL_ONES:      return "ALL_ONES";
+            case RamInitPattern::RANDOMIZED:    return "RANDOMIZED";
+        }
+        return "???";
+    }
+    static const char *help(RamInitPattern value)
+    {
+        switch (value) {
+                
+            case RamInitPattern::ALL_ZEROES:    return "All bits set to 0";
+            case RamInitPattern::ALL_ONES:      return "All bits set to 1";
+            case RamInitPattern::RANDOMIZED:    return "Random bit patterns";
         }
         return "???";
     }
 };
-#endif
 
-enum_long(RAM_INIT_PATTERN)
+enum class UnmappedMemory
 {
-    RAM_INIT_ALL_ZEROES,
-    RAM_INIT_ALL_ONES,
-    RAM_INIT_RANDOMIZED
+    FLOATING,
+    ALL_ZEROES,
+    ALL_ONES
 };
-typedef RAM_INIT_PATTERN RamInitPattern;
 
-#ifdef __cplusplus
-struct RamInitPatternEnum : util::Reflection<RamInitPatternEnum, RamInitPattern>
+struct UnmappedMemoryEnum : Reflection<UnmappedMemoryEnum, UnmappedMemory>
 {
     static constexpr long minVal = 0;
-    static constexpr long maxVal = RAM_INIT_RANDOMIZED;
-    static bool isValid(auto val) { return val >= minVal && val <= maxVal; }
-
-    static const char *prefix() { return "RAM_INIT"; }
-    static const char *key(RamInitPattern value)
+    static constexpr long maxVal = long(UnmappedMemory::ALL_ONES);
+    
+    static const char *_key(UnmappedMemory value)
     {
         switch (value) {
                 
-            case RAM_INIT_ALL_ZEROES:  return "ALL_ZEROES";
-            case RAM_INIT_ALL_ONES:    return "ALL_ONES";
-            case RAM_INIT_RANDOMIZED:  return "RANDOMIZED";
+            case UnmappedMemory::FLOATING:      return "FLOATING";
+            case UnmappedMemory::ALL_ZEROES:    return "ALL_ZEROES";
+            case UnmappedMemory::ALL_ONES:      return "ALL_ONES";
+        }
+        return "???";
+    }
+    static const char *help(UnmappedMemory value)
+    {
+        switch (value) {
+                
+            case UnmappedMemory::FLOATING:      return "Folating bus";
+            case UnmappedMemory::ALL_ZEROES:    return "All bits read as 0";
+            case UnmappedMemory::ALL_ONES:      return "All bits read as 1";
         }
         return "???";
     }
 };
-#endif
 
-enum_long(UNMAPPED_MEMORY)
-{
-    UNMAPPED_FLOATING,
-    UNMAPPED_ALL_ZEROES,
-    UNMAPPED_ALL_ONES
-};
-typedef UNMAPPED_MEMORY UnmappedMemory;
-
-#ifdef __cplusplus
-struct UnmappedMemoryEnum : util::Reflection<UnmappedMemoryEnum, UnmappedMemory>
-{
-    static constexpr long minVal = 0;
-    static constexpr long maxVal = UNMAPPED_ALL_ONES;
-    static bool isValid(auto val) { return val >= minVal && val <= maxVal; }
-
-    static const char *prefix() { return "UNMAPPED"; }
-    static const char *key(UnmappedMemory value)
-    {
-        switch (value) {
-                
-            case UNMAPPED_FLOATING:    return "FLOATING";
-            case UNMAPPED_ALL_ZEROES:  return "ALL_ZEROES";
-            case UNMAPPED_ALL_ONES:    return "ALL_ONES";
-        }
-        return "???";
-    }
-};
-#endif
 
 //
 // Structures
@@ -199,20 +239,23 @@ typedef struct
     i32 chipSize;
     i32 slowSize;
     i32 fastSize;
-
+    
     // ROM size in bytes
     i32 romSize;
     i32 womSize;
     i32 extSize;
-
+    
     // First memory page where the extended ROM is blended it
     u32 extStart;
-
+    
     // Indicates if snapshots should contain Roms
     bool saveRoms;
     
     // Indicates if slow Ram accesses need a free bus
     bool slowRamDelay;
+    
+    // Special ECS feature
+    bool slowRamMirror;
     
     // Memory layout
     BankMap bankMap;
@@ -223,7 +266,26 @@ typedef struct
     // Specifies how to deal with unmapped memory
     UnmappedMemory unmappingType;
 }
-MemoryConfig;
+MemConfig;
+
+typedef struct
+{
+    bool hasRom;
+    bool hasWom;
+    bool hasExt;
+    bool hasBootRom;
+    bool hasKickRom;
+    bool womLock;
+    
+    u32 romMask;
+    u32 womMask;
+    u32 extMask;
+    u32 chipMask;
+    
+    MemSrc cpuMemSrc[256];
+    MemSrc agnusMemSrc[256];
+}
+MemInfo;
 
 typedef struct
 {
@@ -236,4 +298,6 @@ typedef struct
     struct { isize raw; double accumulated; } kickReads;
     struct { isize raw; double accumulated; } kickWrites;
 }
-MemoryStats;
+MemStats;
+
+}

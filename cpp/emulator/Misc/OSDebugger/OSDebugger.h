@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
@@ -15,8 +15,20 @@
 
 namespace vamiga {
 
-class OSDebugger : public SubComponent {
+class OSDebugger final : public SubComponent {
     
+    Descriptions descriptions = {{
+
+        .type           = Class::OSDebugger,
+        .name           = "OSDebugger",
+        .description    = "Operating System Debugger",
+        .shell          = "os"
+    }};
+
+    Options options = {
+
+    };
+
 private:
     
     //
@@ -27,35 +39,45 @@ public:
     
     using SubComponent::SubComponent;
     
-    
+    OSDebugger& operator= (const OSDebugger& other) {
+
+        return *this;
+    }
+
+
     //
     // Methods from CoreObject
     //
     
 private:
     
-    const char *getDescription() const override { return "OSDebugger"; }
-    void _dump(Category category, std::ostream& os) const override { }
+    void _dump(Category category, std::ostream &os) const override { }
 
     
     //
     // Methods from CoreComponent
     //
+    
+public:
 
-private:
-    
-    void _reset(bool hard) override { };
-    
-    
+    const Descriptions &getDescriptions() const override { return descriptions; }
+
+
+    //
+    // Methods from Configurable
+    //
+
+public:
+
+    const Options &getOptions() const override { return options; }
+
+
     //
     // Serializing
     //
     
-    isize _size() override { return 0; }
-    u64 _checksum() override { return 0; }
-    isize _load(const u8 *buffer) override { return 0; }
-    isize _save(u8 *buffer) override { return 0; }
-    
+    template <class T> void serialize(T& worker) { } SERIALIZERS(serialize);
+        
 
     //
     // Providing textual representations
@@ -181,36 +203,36 @@ public:
 
 public:
     
-    void dumpInfo(std::ostream& s);
-    void dumpExecBase(std::ostream& s);
+    void dumpInfo(std::ostream &s);
+    void dumpExecBase(std::ostream &s);
     
-    void dumpIntVectors(std::ostream& s);
-    void dumpIntVector(std::ostream& s, const os::IntVector &intVector);
+    void dumpIntVectors(std::ostream &s);
+    void dumpIntVector(std::ostream &s, const os::IntVector &intVector);
 
-    void dumpLibraries(std::ostream& s);
-    void dumpLibrary(std::ostream& s, u32 addr);
-    void dumpLibrary(std::ostream& s, const string &name);
-    void dumpLibrary(std::ostream& s, const os::Library &lib, bool verbose);
+    void dumpLibraries(std::ostream &s);
+    void dumpLibrary(std::ostream &s, u32 addr);
+    void dumpLibrary(std::ostream &s, const string &name);
+    void dumpLibrary(std::ostream &s, const os::Library &lib, bool verbose);
 
-    void dumpDevices(std::ostream& s);
-    void dumpDevice(std::ostream& s, u32 addr);
-    void dumpDevice(std::ostream& s, const string &name);
-    void dumpDevice(std::ostream& s, const os::Library &lib, bool verbose);
+    void dumpDevices(std::ostream &s);
+    void dumpDevice(std::ostream &s, u32 addr);
+    void dumpDevice(std::ostream &s, const string &name);
+    void dumpDevice(std::ostream &s, const os::Library &lib, bool verbose);
 
-    void dumpResources(std::ostream& s);
-    void dumpResource(std::ostream& s, u32 addr);
-    void dumpResource(std::ostream& s, const string &name);
-    void dumpResource(std::ostream& s, const os::Library &lib, bool verbose);
+    void dumpResources(std::ostream &s);
+    void dumpResource(std::ostream &s, u32 addr);
+    void dumpResource(std::ostream &s, const string &name);
+    void dumpResource(std::ostream &s, const os::Library &lib, bool verbose);
 
-    void dumpTasks(std::ostream& s);
-    void dumpTask(std::ostream& s, u32 addr);
-    void dumpTask(std::ostream& s, const string &name);
-    void dumpTask(std::ostream& s, const os::Task &task, bool verbose);
+    void dumpTasks(std::ostream &s);
+    void dumpTask(std::ostream &s, u32 addr);
+    void dumpTask(std::ostream &s, const string &name);
+    void dumpTask(std::ostream &s, const os::Task &task, bool verbose);
     
-    void dumpProcesses(std::ostream& s);
-    void dumpProcess(std::ostream& s, u32 addr);
-    void dumpProcess(std::ostream& s, const string &name);
-    void dumpProcess(std::ostream& s, const os::Process &process, bool verbose);
+    void dumpProcesses(std::ostream &s);
+    void dumpProcess(std::ostream &s, u32 addr);
+    void dumpProcess(std::ostream &s, const string &name);
+    void dumpProcess(std::ostream &s, const os::Process &process, bool verbose);
 };
 
 }

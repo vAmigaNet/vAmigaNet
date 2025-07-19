@@ -9,8 +9,9 @@
 
 #pragma once
 
-#include "Aliases.h"
-#include "Reflection.h"
+#include "Infrastructure/Reflection.h"
+
+namespace vamiga {
 
 //
 // Constants
@@ -35,31 +36,32 @@
 // Enumerations
 //
 
-enum_long(BOARD_STATE)
+enum class BoardState : long
 {
-    STATE_AUTOCONF,
-    STATE_ACTIVE,
-    STATE_SHUTUP
+    AUTOCONF,
+    ACTIVE,
+    SHUTUP
 };
-typedef BOARD_STATE BoardState;
 
-#ifdef __cplusplus
-struct BoardStateEnum : util::Reflection<BoardStateEnum, BoardState>
+struct BoardStateEnum : Reflection<BoardStateEnum, BoardState>
 {
     static constexpr long minVal = 0;
-    static constexpr long maxVal = STATE_SHUTUP;
-    static bool isValid(auto val) { return val >= minVal && val <= maxVal; }
+    static constexpr long maxVal = long(BoardState::SHUTUP);
     
-    static const char *prefix() { return "STATE"; }
-    static const char *key(BoardState value)
+    static const char *_key(BoardState value)
     {
         switch (value) {
-
-            case STATE_AUTOCONF:    return "AUTOCONF";
-            case STATE_ACTIVE:      return "ACTIVE";
-            case STATE_SHUTUP:      return "SHUTUP";
+                
+            case BoardState::AUTOCONF:    return "AUTOCONF";
+            case BoardState::ACTIVE:      return "ACTIVE";
+            case BoardState::SHUTUP:      return "SHUTUP";
         }
         return "???";
     }
+    static const char *help(BoardState value)
+    {
+        return "";
+    }
 };
-#endif
+
+}

@@ -10,7 +10,8 @@
 #pragma once
 
 #include "DiskFile.h"
-#include "MutableFileSystem.h"
+#include "MediaFileTypes.h"
+#include "FSDescriptor.h"
 #include "DriveTypes.h"
 
 namespace vamiga {
@@ -30,12 +31,14 @@ public:
     // Included device drivers
     std::vector <DriverDescriptor> drivers;
 
-    static bool isCompatible(const string &path);
-    static bool isCompatible(std::istream &stream);
+    static bool isCompatible(const fs::path &path);
+    static bool isCompatible(const u8 *buf, isize len);
+    static bool isCompatible(const Buffer<u8> &buffer);
+    
     static bool isOversized(isize size) { return size > MB(504); }
 
-    bool isCompatiblePath(const string &path) const override { return isCompatible(path); }
-    bool isCompatibleStream(std::istream &stream) const override { return isCompatible(stream); }
+    bool isCompatiblePath(const fs::path &path) const override { return isCompatible(path); }
+    bool isCompatibleBuffer(const u8 *buf, isize len) const override { return isCompatible(buf, len); }
 
     void finalizeRead() override;
     
@@ -46,24 +49,25 @@ public:
 
 public:
     
-    HDFFile(const string &path) throws { init(path); }
+    HDFFile() { }
+    HDFFile(const fs::path &path) throws { init(path); }
     HDFFile(const u8 *buf, isize len) throws { init(buf, len); }
-    HDFFile(const class HardDrive &hdn) throws { init(hdn); }
+    HDFFile(const class HardDrive &hd) throws { init(hd); }
 
-    void init(const string &path) throws;
+    void init(const fs::path &path) throws;
     void init(const u8 *buf, isize len) throws;
-    void init(const class HardDrive &hdn) throws;
+    void init(const class HardDrive &hd) throws;
 
-    const char *getDescription() const override { return "HDF"; }
+    const char *objectName() const override { return "HDF"; }
 
     
     //
-    // Methods from AmigaFile
+    // Methods from AnyFile
     //
     
 public:
     
-    FileType type() const override { return FILETYPE_HDF; }
+    FileType type() const override { return FileType::HDF; }
     
 
     //
@@ -84,7 +88,7 @@ public:
     std::vector<PartitionDescriptor> getPartitionDescriptors() const;
     DriverDescriptor getDriverDescriptor(isize driver = 0) const;
     std::vector<DriverDescriptor> getDriverDescriptors() const;
-    FileSystemDescriptor getFileSystemDescriptor(isize part = 0) const;
+    FSDescriptor getFileSystemDescriptor(isize part = 0) const;
 
 
     //
@@ -107,12 +111,18 @@ public:
 
 public:
     
+    // Returns information about the hard drive in this file
+    HDFInfo getInfo() const;
+
     // Returns the (predicted) geometry for this disk
     const GeometryDescriptor getGeometry() const { return geometry; }
-    
+
     // Returns true if this image contains a rigid disk block
     bool hasRDB() const;
 
+    // Returns true if this image contains a user directory block
+    // bool hasUserDir() const;
+    
     // Returns the number of loadable file system drivers
     isize numDrivers() const { return isize(drivers.size()); }
     
@@ -156,7 +166,7 @@ private:
     std::optional<string> rdbString(isize offset, isize len) const;
 
     // Extracts the DOS revision number from a certain block
-    FSVolumeType dos(isize nr) const;
+    FSFormat dos(isize nr) const;
 
     
     //
@@ -165,7 +175,7 @@ private:
     
 public:
     
-    isize writePartitionToFile(const string &path, isize nr);
+    isize writePartitionToFile(const fs::path &path, isize nr) const override;
 };
 
 }

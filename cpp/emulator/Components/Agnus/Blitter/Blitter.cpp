@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #include "config.h"
@@ -18,20 +18,26 @@ namespace vamiga {
 
 Blitter::Blitter(Amiga& ref) : SubComponent(ref)
 {
+
+}
+
+void
+Blitter::_initialize()
+{    
     // Initialize the fill pattern tables
     for (isize carryIn = 0; carryIn < 2; carryIn++) {
-        
+
         for (isize byte = 0; byte < 256; byte++) {
-            
+
             u8 carry = (u8)carryIn;
             u8 inclPattern = (u8)byte;
             u8 exclPattern = (u8)byte;
-            
+
             for (isize bit = 0; bit < 8; bit++) {
-                
+
                 inclPattern |= carry << bit; // inclusive fill
                 exclPattern ^= carry << bit; // exclusive fill
-                
+
                 if (byte & (1 << bit)) carry = !carry;
             }
             fillPattern[0][carryIn][byte] = inclPattern;
@@ -39,23 +45,16 @@ Blitter::Blitter(Amiga& ref) : SubComponent(ref)
             nextCarryIn[carryIn][byte] = carry;
         }
     }
-}
 
-void
-Blitter::_initialize()
-{
-    CoreComponent::_initialize();
-    
     initFastBlitter();
     initSlowBlitter();
 }
 
 void
-Blitter::_reset(bool hard)
+Blitter::_didReset(bool hard)
 {
-    RESET_SNAPSHOT_ITEMS(hard)
-
     if (hard) {
+        
         blitcount = 1;
         copycount = 0;
         linecount = 0;
@@ -65,35 +64,19 @@ Blitter::_reset(bool hard)
 void
 Blitter::_run()
 {
-    if constexpr (BLT_MEM_GUARD) {
+    if (BLT_MEM_GUARD) {
 
         memguard.resize(mem.getConfig().chipSize);
         memguard.clear();
     }
 }
 
-void
-Blitter::resetConfig()
-{
-    assert(isPoweredOff());
-    auto &defaults = amiga.defaults;
-
-    std::vector <Option> options = {
-        
-        OPT_BLITTER_ACCURACY
-    };
-
-    for (auto &option : options) {
-        setConfigItem(option, defaults.get(option));
-    }
-}
-
 i64
-Blitter::getConfigItem(Option option) const
+Blitter::getOption(Opt option) const
 {
     switch (option) {
             
-        case OPT_BLITTER_ACCURACY: return config.accuracy;
+        case Opt::BLITTER_ACCURACY: return config.accuracy;
 
         default:
             fatalError;
@@ -101,20 +84,32 @@ Blitter::getConfigItem(Option option) const
 }
 
 void
-Blitter::setConfigItem(Option option, i64 value)
+Blitter::checkOption(Opt opt, i64 value)
+{
+    switch (opt) {
+
+        case Opt::BLITTER_ACCURACY:
+
+            if (value < 0 || value > 2) {
+                throw AppError(Fault::OPT_INV_ARG, "0, 1, 2");
+            }
+            return;
+
+        default:
+            throw(Fault::OPT_UNSUPPORTED);
+    }
+}
+
+void
+Blitter::setOption(Opt option, i64 value)
 {
     switch (option) {
             
-        case OPT_BLITTER_ACCURACY:
-        {
-            if (value < 0 || value > 2) {
-                throw VAError(ERROR_OPT_INVARG, "0, 1, 2");
-            }
-            
-            SUSPENDED
+        case Opt::BLITTER_ACCURACY:
+
             config.accuracy = (isize)value;
             return;
-        }
+
         default:
             fatalError;
     }
@@ -135,7 +130,7 @@ Blitter::doMintermLogic(u16 a, u16 b, u16 c, u8 minterm) const
 {
     u16 result = doMintermLogicQuick(a, b, c, minterm);
 
-    if constexpr (BLT_DEBUG) {
+    if (BLT_DEBUG) {
         
         u16 result2 = 0;
         
@@ -508,7 +503,7 @@ Blitter::beginBlit()
 
     if (bltconLINE()) {
 
-        if constexpr (BLT_CHECKSUM) {
+        if (BLT_CHECKSUM) {
             
             linecount++;
             check1 = check2 = util::fnvInit32();
@@ -527,7 +522,7 @@ Blitter::beginBlit()
 
     } else {
 
-        if constexpr (BLT_CHECKSUM) {
+        if (BLT_CHECKSUM) {
             
             copycount++;
             check1 = check2 = util::fnvInit32();
@@ -609,7 +604,7 @@ Blitter::endBlit()
     debug(BLTTIM_DEBUG, "(%ld,%ld) Blitter terminates\n", agnus.pos.v, agnus.pos.h);
     
     running = false;
-    if constexpr (BLT_MEM_GUARD) blitcount++;
+    if (BLT_MEM_GUARD) blitcount++;
     
     // Clear the Blitter slot
     agnus.cancel<SLOT_BLT>();

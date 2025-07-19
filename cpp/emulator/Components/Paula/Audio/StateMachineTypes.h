@@ -9,7 +9,9 @@
 
 #pragma once
 
-#include "Aliases.h"
+#include "Infrastructure/Reflection.h"
+
+namespace vamiga {
 
 //
 // Structures
@@ -28,3 +30,5 @@ typedef struct
     u16 auddat;
 }
 StateMachineInfo;
+
+}

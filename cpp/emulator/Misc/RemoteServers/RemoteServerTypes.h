@@ -2,79 +2,79 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
 
-#include "Aliases.h"
-#include "Reflection.h"
+#include "Infrastructure/Reflection.h"
+
+namespace vamiga {
 
 //
 // Enumerations
 //
 
-enum_long(SRV_STATE)
+enum class SrvState : long
 {
-    SRV_STATE_OFF,        // The server is inactive
-    SRV_STATE_STARTING,  // The server is starting up
-    SRV_STATE_LISTENING,  // The server is waiting for a client to connect
-    SRV_STATE_CONNECTED,  // The server is connected to a client
-    SRV_STATE_STOPPING,   // The server is shutting down
-    SRV_STATE_ERROR       // The server is in an error state
+    OFF,        // The server is inactive
+    STARTING,   // The server is starting up
+    LISTENING,  // The server is waiting for a client to connect
+    CONNECTED,  // The server is connected to a client
+    STOPPING,   // The server is shutting down
+    INVALID     // The server is in an error state
 };
-typedef SRV_STATE SrvState;
 
-#ifdef __cplusplus
-struct SrvStateEnum : util::Reflection<SrvStateEnum, SrvState>
+struct SrvStateEnum : Reflection<SrvStateEnum, SrvState>
 {
     static constexpr long minVal = 0;
-    static constexpr long maxVal = SRV_STATE_ERROR;
-    static bool isValid(auto val) { return val >= minVal && val <= maxVal; }
+    static constexpr long maxVal = long(SrvState::INVALID);
     
-    static const char *prefix() { return "SRV"; }
-    static const char *key(SrvState value)
+    static const char *_key(SrvState value)
     {
         switch (value) {
                 
-            case SRV_STATE_OFF:         return "OFF";
-            case SRV_STATE_STARTING:    return "STARTING";
-            case SRV_STATE_LISTENING:   return "LISTENING";
-            case SRV_STATE_CONNECTED:   return "CONNECTED";
-            case SRV_STATE_STOPPING:    return "STOPPING";
-            case SRV_STATE_ERROR:       return "ERROR";
+            case SrvState::OFF:         return "OFF";
+            case SrvState::STARTING:    return "STARTING";
+            case SrvState::LISTENING:   return "LISTENING";
+            case SrvState::CONNECTED:   return "CONNECTED";
+            case SrvState::STOPPING:    return "STOPPING";
+            case SrvState::INVALID:     return "INVALID";
         }
         return "???";
     }
+    static const char *help(SrvState value)
+    {
+        return "";
+    }
 };
-#endif
 
-enum_long(SRVPROT)
+enum class ServerProtocol
 {
-    SRVPROT_DEFAULT
+    DEFAULT
 };
-typedef SRVPROT ServerProtocol;
 
-#ifdef __cplusplus
-struct ServerProtocolEnum : util::Reflection<ServerProtocolEnum, ServerProtocol>
+struct ServerProtocolEnum : Reflection<ServerProtocolEnum, ServerProtocol>
 {
     static constexpr long minVal = 0;
-    static constexpr long maxVal = SRVPROT_DEFAULT;
-    static bool isValid(auto val) { return val >= minVal && val <= maxVal; }
+    static constexpr long maxVal = long(ServerProtocol::DEFAULT);
     
-    static const char *prefix() { return "SRVPROT"; }
-    static const char *key(SrvState value)
+    static const char *_key(ServerProtocol value)
     {
         switch (value) {
                 
-            case SRVPROT_DEFAULT:   return "DEFAULT";
+            case ServerProtocol::DEFAULT:   return "DEFAULT";
         }
         return "???";
     }
+    static const char *help(ServerProtocol value)
+    {
+        return "";
+    }
 };
-#endif
+
 
 //
 // Structures
@@ -95,3 +95,5 @@ typedef struct
     bool verbose;
 }
 ServerConfig;
+
+}

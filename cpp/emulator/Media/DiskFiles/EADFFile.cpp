@@ -23,19 +23,29 @@ const std::vector<string> EADFFile::extAdfHeaders =
 };
 
 bool
-EADFFile::isCompatible(const string &path)
+EADFFile::isCompatible(const fs::path &path)
 {
-    return true;
+    for (auto &header : extAdfHeaders) {
+
+        if (util::matchingFileHeader(path, header)) return true;
+    }
+    return false;
 }
 
 bool
-EADFFile::isCompatible(std::istream &stream)
+EADFFile::isCompatible(const u8 *buf, isize len)
 {
     for (auto &header : extAdfHeaders) {
-        if (util::matchingStreamHeader(stream, header)) return true;
-    }
 
+        if (util::matchingBufferHeader(buf, header)) return true;
+    }
     return false;
+}
+
+bool
+EADFFile::isCompatible(const Buffer<u8> &buf)
+{
+    return isCompatible(buf.ptr, buf.size);
 }
 
 void
@@ -59,7 +69,7 @@ EADFFile::init(FloppyDisk &disk)
 void
 EADFFile::init(FloppyDrive &drive)
 {
-    if (drive.disk == nullptr) throw VAError(ERROR_DISK_MISSING);
+    if (drive.disk == nullptr) throw AppError(Fault::DISK_MISSING);
     init(*drive.disk);
 }
 
@@ -88,20 +98,20 @@ EADFFile::finalizeRead()
     
     if (std::strcmp((char *)data.ptr, "UAE-1ADF") != 0) {
         
-        warn("UAE-1ADF files are not supported\n");
-        throw VAError(ERROR_EXT_FACTOR5);
+        warn("Only UAE-1ADF files are supported\n");
+        throw AppError(Fault::EXT_FACTOR5);
     }
     
     if (numTracks < 160 || numTracks > 168) {
 
         warn("Invalid number of tracks\n");
-        throw VAError(ERROR_EXT_CORRUPTED);
+        throw AppError(Fault::EXT_CORRUPTED);
     }
 
     if (data.size < proposedHeaderSize() || data.size != proposedFileSize()) {
         
         warn("File size mismatch\n");
-        throw VAError(ERROR_EXT_CORRUPTED);
+        throw AppError(Fault::EXT_CORRUPTED);
     }
 
     for (isize i = 0; i < numTracks; i++) {
@@ -109,7 +119,7 @@ EADFFile::finalizeRead()
         if (typeOfTrack(i) != 0 && typeOfTrack(i) != 1) {
             
             warn("Unsupported track format\n");
-            throw VAError(ERROR_EXT_INCOMPATIBLE);
+            throw AppError(Fault::EXT_INCOMPATIBLE);
         }
 
         if (typeOfTrack(i) == 0) {
@@ -117,20 +127,21 @@ EADFFile::finalizeRead()
             if (usedBitsForTrack(i) != 11 * 512 * 8) {
 
                 warn("Unsupported standard track size\n");
-                throw VAError(ERROR_EXT_CORRUPTED);
+                throw AppError(Fault::EXT_CORRUPTED);
             }
         }
 
         if (usedBitsForTrack(i) > availableBytesForTrack(i) * 8) {
             
             warn("Corrupted length information\n");
-            throw VAError(ERROR_EXT_CORRUPTED);
+            throw AppError(Fault::EXT_CORRUPTED);
         }
 
         if (usedBitsForTrack(i) % 8) {
             
-            warn("Track length is not a multiple of 8\n");
-            throw VAError(ERROR_EXT_INCOMPATIBLE);
+            warn("Truncating track (bit count is not a multiple of 8)\n");
+            // throw AppError(Fault::EXT_INCOMPATIBLE);
+            W32BE(data.ptr + 12 + 12 * i + 8, usedBitsForTrack(i) & ~7);
         }
     }
     
@@ -149,16 +160,16 @@ EADFFile::finalizeRead()
     } catch (...) { }
 }
 
-FSVolumeType
+FSFormat
 EADFFile::getDos() const
 {
-    return adf ? adf.getDos() : FS_NODOS;
+    return adf ? adf.getDos() : FSFormat::NODOS;
 }
 
 Diameter
 EADFFile::getDiameter() const
 {
-    return INCH_35;
+    return Diameter::INCH_35;
 }
 
 Density
@@ -170,7 +181,7 @@ EADFFile::getDensity() const
         bitsInLargestTrack = std::max(bitsInLargestTrack, usedBitsForTrack(i));
     }
     
-    return bitsInLargestTrack < 16000 * 8 ? DENSITY_DD : DENSITY_HD;
+    return bitsInLargestTrack < 16000 * 8 ? Density::DD : Density::HD;
 }
 
 void
@@ -228,7 +239,7 @@ EADFFile::encodeExtendedTrack(class FloppyDisk &disk, Track t) const
 }
 
 void
-EADFFile::decodeDisk(FloppyDisk &disk)
+EADFFile::decodeDisk(const FloppyDisk &disk)
 {
     assert(!data.empty());
     

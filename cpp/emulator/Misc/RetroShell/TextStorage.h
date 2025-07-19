@@ -2,17 +2,16 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
 
-#include "Macros.h"
+#include "BasicTypes.h"
 #include <sstream>
 #include <fstream>
-#include <vector>
 
 namespace vamiga {
 
@@ -20,7 +19,7 @@ class TextStorage {
 
     // Maximum number of stored lines
     static constexpr usize capacity = 512;
-    
+
     // The stored lines
     std::vector<string> storage;
 
@@ -39,6 +38,9 @@ public:
     // Returns the number of stored lines
     isize size() const { return (isize)storage.size(); }
 
+    // Returns the number of trailing blank lines
+    isize trailingEmptyLines() const;
+
     // Returns a single line
     string operator [] (isize i) const;
     string& operator [] (isize i);
@@ -55,7 +57,13 @@ public:
     
     // Initializes the storage with a single empty line
     void clear();
-    
+
+    // Returns true if the console is cleared
+    bool isCleared();
+
+    // Returns true if the last line contains no text
+    bool lastLineIsEmpty();
+
 private:
     
     // Appends a new line

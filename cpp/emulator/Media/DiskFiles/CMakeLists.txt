@@ -1,15 +1,17 @@
-target_include_directories(vAmigaCore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(VACore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-target_sources(vAmigaCore PRIVATE
+target_sources(VACore PRIVATE
 
 DiskFile.cpp
 FloppyFile.cpp
-HDFFile.cpp
 ADFFile.cpp
+ADZFile.cpp
 EADFFile.cpp
+HDFFile.cpp
+HDZFile.cpp
 IMGFile.cpp
+STFile.cpp
 DMSFile.cpp
 EXEFile.cpp
-Folder.cpp
 
 )

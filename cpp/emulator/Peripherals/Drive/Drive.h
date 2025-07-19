@@ -2,14 +2,14 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
 
-#include "Drive.h"
+#include "DriveTypes.h"
 #include "SubComponent.h"
 #include "IOUtils.h"
 
@@ -17,21 +17,13 @@ namespace vamiga {
 
 class Drive : public SubComponent {
 
-protected:
-    
-    // Drive number (0 = df0 or hd0, 1 = df1 or hd1, etc.)
-    const isize nr;
-
-    
     //
     // Initializing
     //
 
 public:
 
-    Drive(Amiga& ref, isize nr);
-
-    isize getNr() { return nr; }
+    using SubComponent::SubComponent;
 
     
     //
@@ -67,6 +59,13 @@ public:
     virtual bool hasDisk() const = 0;
     virtual bool hasModifiedDisk() const = 0;
     virtual bool hasProtectedDisk() const = 0;
+
+    // Gets or sets a disk flag
+    virtual bool getFlag(DiskFlags mask) const = 0;
+    virtual void setFlag(DiskFlags mask, bool value) = 0;
+    void setFlag(DiskFlags mask) { setFlag(mask, true); }
+    void clearFlag(DiskFlags mask) { setFlag(mask, false); }
+
     bool hasUnmodifiedDisk() const { return hasDisk() && !hasModifiedDisk(); }
     bool hasUnprotectedDisk() const { return hasDisk() && !hasProtectedDisk(); }
     void toggleWriteProtection();

@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #include "config.h"
@@ -15,14 +15,20 @@ namespace vamiga {
 
 Sequencer::Sequencer(Amiga& ref) : SubComponent(ref)
 {
+
+}
+
+void
+Sequencer::_initialize()
+{
     initDasEventTable();
 }
 
 void
-Sequencer::_reset(bool hard)
+Sequencer::operator << (SerResetter &worker)
 {
-    RESET_SNAPSHOT_ITEMS(hard)
-    
+    serialize(worker);
+
     initBplEvents();
     initDasEvents();
 }
@@ -40,8 +46,9 @@ Sequencer::eolHandler()
     }
 
     // Check the vertical DIW flipflop
-    if (agnus.pos.v == vstop || agnus.inLastRasterline()) {
-
+    // if (agnus.pos.v == vstop || agnus.inLastRasterline()) {
+    if (agnus.pos.v == vstop || agnus.pos.v == (agnus.isPAL() ? 312 : 262)) {
+        
         trace(SEQ_DEBUG, "eolHandler: Vertical flipflop off\n");
         ddfInitial.bpv = ddf.bpv = false;
         hsyncActions |= UPDATE_SIG_RECORDER;
@@ -65,7 +72,7 @@ Sequencer::eolHandler()
         newDmaDAS = agnus.dmacon & 0b111111;
 
         // Disable sprites outside the sprite DMA area
-        if (agnus.pos.v < 25 || agnus.pos.v >= agnus.pos.vMax()) {
+        if (agnus.pos.v < (agnus.isPAL() ? 25 : 19) || agnus.pos.v >= agnus.pos.vMax()) {
             newDmaDAS &= 0b011111;
         }
     }

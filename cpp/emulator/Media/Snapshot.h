@@ -2,14 +2,14 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
 
-#include "AmigaFile.h"
+#include "AnyFile.h"
 #include "Constants.h"
 
 namespace vamiga {
@@ -40,40 +40,46 @@ struct SnapshotHeader {
     u8 subminor;
     u8 beta;
 
-    // Padding bytes
-    u8 reserved[6];
+    // Applied compression method
+    u8 compressor;
 
+    // Size of this snapshot when uncompressed
+    i32 rawSize;
+    
     // Preview image
     Thumbnail screenshot;
 };
 
-class Snapshot : public AmigaFile {
-
+class Snapshot : public AnyFile {
+    
 public:
     
-    static bool isCompatible(const string &path);
-    static bool isCompatible(std::istream &stream);
-
-
+    static bool isCompatible(const fs::path &path);
+    static bool isCompatible(const u8 *buf, isize len);
+    static bool isCompatible(const Buffer<u8> &buffer);
+    
+    
     //
     // Initializing
     //
     
-    Snapshot(const string &path) throws { init(path); }
+    Snapshot(const Snapshot &other) throws { init(other.data.ptr, other.data.size); }
+    Snapshot(const fs::path &path) throws { init(path); }
     Snapshot(const u8 *buf, isize len) throws { init(buf, len); }
     Snapshot(isize capacity);
     Snapshot(Amiga &amiga);
+    Snapshot(Amiga &amiga, Compressor compressor);
     
-    const char *getDescription() const override { return "Snapshot"; }
-
+    const char *objectName() const override { return "Snapshot"; }
+    
     
     //
-    // Methods from AmigaFile
+    // Methods from AnyFile
     //
     
-    FileType type() const override { return FILETYPE_SNAPSHOT; }
-    bool isCompatiblePath(const string &path) const override { return isCompatible(path); }
-    bool isCompatibleStream(std::istream &stream) const override { return isCompatible(stream); }
+    FileType type() const override { return FileType::SNAPSHOT; }
+    bool isCompatiblePath(const fs::path &path) const override { return isCompatible(path); }
+    bool isCompatibleBuffer(const u8 *buf, isize len) const override { return isCompatible(buf, len); }
     void finalizeRead() throws override;
     
     
@@ -83,6 +89,10 @@ public:
     
 public:
     
+    std::pair <isize,isize> previewImageSize() const override;
+    const u32 *previewImageData() const override;
+    time_t timestamp() const override;
+    
     // Checks the snapshot version number
     bool isTooOld() const;
     bool isTooNew() const;
@@ -90,16 +100,28 @@ public:
     bool matches() { return !isTooOld() && !isTooNew(); }
     
     // Returns a pointer to the snapshot header
-    const SnapshotHeader *getHeader() const { return (SnapshotHeader *)data.ptr; }
+    SnapshotHeader *getHeader() const { return (SnapshotHeader *)data.ptr; }
     
     // Returns a pointer to the thumbnail image
     const Thumbnail &getThumbnail() const { return getHeader()->screenshot; }
     
     // Returns pointer to the core data
-    u8 *getData() const { return data.ptr + sizeof(SnapshotHeader); }
+    u8 *getData() const override { return data.ptr + sizeof(SnapshotHeader); }
     
     // Takes a screenshot
     void takeScreenshot(Amiga &amiga);
+    
+
+    //
+    // Compressing
+    //
+    
+    // Returns the compression method
+    Compressor compressor() const override { return Compressor(getHeader()->compressor); }
+    
+    // Compresses or uncompresses the snapshot
+    void compress(Compressor method) override;
+    void uncompress() override;
 };
 
 }

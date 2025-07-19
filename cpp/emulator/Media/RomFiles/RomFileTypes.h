@@ -9,8 +9,9 @@
 
 #pragma once
 
-#include "Aliases.h"
-#include "Reflection.h"
+#include "Infrastructure/Reflection.h"
+
+namespace vamiga {
 
 //
 // Constants
@@ -53,7 +54,8 @@ static const u32 CRC32_KICK31_40_068_A3000      = 0xEFB239CC;
 static const u32 CRC32_KICK31_40_068_A4000      = 0xD6BAE334;
 static const u32 CRC32_KICK31_40_070_A4000T     = 0x75932C3A;
 
-static const u32 CRC32_HYP314_46_143_A500       = 0xD52B52FD;
+// static const u32 CRC32_HYP314_46_143_A500       = 0xD52B52FD;
+static const u32 CRC32_HYP314_46_143_A500       = 0x568F8786;
 static const u32 CRC32_HYP314_46_143_A1200      = 0xF17FA97F;
 static const u32 CRC32_HYP314_46_143_A2000      = 0xC25939AC;
 static const u32 CRC32_HYP314_46_143_A3000      = 0x50C3529C;
@@ -81,8 +83,79 @@ static const u32 CRC32_AROS_55696               = 0x3F4FCC0A;
 static const u32 CRC32_AROS_55696_EXT           = 0xF2E52B07;
 static const u32 CRC32_AROS_1ED13DE6E3          = 0x4CE7C8D6;
 static const u32 CRC32_AROS_1ED13DE6E3_EXT      = 0xF2A9CDC5;
+static const u32 CRC32_AROS_20250219            = 0xA3232963;
+static const u32 CRC32_AROS_20250219_EXT        = 0x9E4253EC;
+
+static const u32 CRC32_EMUTOS13                 = 0x7123C1C1;
 
 static const u32 CRC32_DIAG11                   = 0x4C4B5C05;
 static const u32 CRC32_DIAG12                   = 0x771CD0EA;
 static const u32 CRC32_DIAG121                  = 0x850209CD;
+static const u32 CRC32_DIAG13                   = 0x55E2E127;
 static const u32 CRC32_LOGICA20                 = 0x8484F426;
+
+static const u32 CRC32_CPUBLTRO_F8_0_3_2        = 0x169C8FCE;
+static const u32 CRC32_CPUBLTRO_FC_0_3_2        = 0x86CB5B1B;
+
+//
+// Enumerations
+//
+
+enum class RomVendor
+{
+    COMMODORE,
+    AROS,
+    HYPERION,
+    DEMO,
+    DIAG,
+    EMUTOS,
+    OTHER
+};
+
+struct RomVendorEnum : Reflection<RomVendorEnum, RomVendor> {
+    
+    static constexpr long minVal = 0;
+    static constexpr long maxVal = long(RomVendor::OTHER);
+    
+    static const char *_key(RomVendor value)
+    {
+        switch (value) {
+                
+            case RomVendor::COMMODORE:  return "COMMODORE";
+            case RomVendor::AROS:       return "AROS";
+            case RomVendor::HYPERION:   return "HYPERION";
+            case RomVendor::DEMO:       return "DEMO";
+            case RomVendor::DIAG:       return "DIAG";
+            case RomVendor::EMUTOS:     return "EMUTOS";
+            case RomVendor::OTHER:      return "OTHER";
+        }
+        return "???";
+    }
+    static const char *help(RomVendor value)
+    {
+        return "";
+    }
+};
+
+
+//
+// Structures
+//
+
+typedef struct {
+    
+    u32 crc;
+    
+    const char *title;
+    const char *revision;
+    const char *released;
+    const char *model;
+    
+    RomVendor vendor;
+    bool boot;
+    bool patched;
+    bool relocated;
+}
+RomTraits;
+
+}

@@ -2,47 +2,56 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
 
-#include "RemoteServer.h"
+#include "SocketServer.h"
 
 namespace vamiga {
 
-class RshServer : public RemoteServer {
+class RshServer final : public SocketServer {
 
 public:
     
-    RshServer(Amiga& ref);
+    using SocketServer::SocketServer;
+
+    RshServer& operator= (const RshServer& other) {
+
+        SocketServer::operator = (other);
+        return *this;
+    }
+
 
     //
     // Methods from CoreObject
     //
     
-protected:
-    
-    const char *getDescription() const override { return "RshServer"; }
-    void _dump(Category category, std::ostream& os) const override;
+private:
 
-    
-    //
-    // Methods from CoreComponent
-    //
+    void _dump(Category category, std::ostream &os) const override;
 
-    void resetConfig() override;
-    
-    
+
     //
     // Methods from RemoteServer
     //
+
+public:
+
+    // bool shouldRun() override { return true; }
+
+
+    //
+    // Methods from SocketServer
+    //
+
     
-    string doReceive() override throws;
-    void doProcess(const string &packet) override throws;
-    void doSend(const string &packet) override throws;
+    string doReceive() throws override;
+    void doProcess(const string &packet) throws override;
+    void doSend(const string &packet)throws  override;
     void didStart() override;
     void didConnect() override;
 };

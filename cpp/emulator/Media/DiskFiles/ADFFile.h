@@ -26,8 +26,9 @@ public:
     static constexpr isize ADFSIZE_35_DD_84 = 946176;   //  924 KB (+ 4 cyls)
     static constexpr isize ADFSIZE_35_HD    = 1802240;  // 1760 KB
     
-    static bool isCompatible(const string &path);
-    static bool isCompatible(std::istream &stream);
+    static bool isCompatible(const fs::path &path);
+    static bool isCompatible(const u8 *buf, isize len);
+    static bool isCompatible(const Buffer<u8> &buffer);
     
 private:
     
@@ -41,24 +42,22 @@ private:
     
 public:
     
-    using AmigaFile::init;
+    using AnyFile::init;
     
     ADFFile() { }
-    ADFFile(const string &path) throws { init(path); }
-    ADFFile(const string &path, std::istream &stream) throws { init(path, stream); }
+    ADFFile(const fs::path &path) throws { init(path); }
     ADFFile(const u8 *buf, isize len) throws { init(buf, len); }
-    ADFFile(FILE *file) throws { init(file); }
     ADFFile(Diameter dia, Density den) throws { init(dia, den); }
     ADFFile(const FloppyDiskDescriptor &descr) throws { init(descr); }
-    ADFFile(class FloppyDisk &disk) throws { init(disk); }
-    ADFFile(class FloppyDrive &drive) throws { init(drive); }
-    ADFFile(MutableFileSystem &volume) throws { init(volume); }
+    ADFFile(const class FloppyDisk &disk) throws { init(disk); }
+    ADFFile(const class FloppyDrive &drive) throws { init(drive); }
+    ADFFile(const MutableFileSystem &volume) throws { init(volume); }
     
     void init(Diameter dia, Density den) throws;
     void init(const FloppyDiskDescriptor &descr) throws;
-    void init(FloppyDisk &disk) throws;
-    void init(FloppyDrive &drive) throws;
-    void init(MutableFileSystem &volume) throws;
+    void init(const FloppyDisk &disk) throws;
+    void init(const FloppyDrive &drive) throws;
+    void init(const MutableFileSystem &volume) throws;
 
     
     //
@@ -67,19 +66,19 @@ public:
 
 public:
     
-    const char *getDescription() const override { return "ADF"; }
+    const char *objectName() const override { return "ADF"; }
 
     
     //
-    // Methods from AmigaFile
+    // Methods from AnyFile
     //
     
 public:
     
-    bool isCompatiblePath(const string &path) const override { return isCompatible(path); }
-    bool isCompatibleStream(std::istream &stream) const override { return isCompatible(stream); }
-    FileType type() const override { return FILETYPE_ADF; }
-    
+    bool isCompatiblePath(const fs::path &path) const override { return isCompatible(path); }
+    bool isCompatibleBuffer(const u8 *buf, isize len) const override { return isCompatible(buf, len); }
+    FileType type() const override { return FileType::ADF; }
+    void finalizeRead() override;
     
     //
     // Methods from DiskFile
@@ -96,8 +95,8 @@ public:
     
 public:
     
-    FSVolumeType getDos() const override;
-    void setDos(FSVolumeType dos) override;
+    FSFormat getDos() const override;
+    void setDos(FSFormat dos) override;
     Diameter getDiameter() const override;
     Density getDensity() const override;
     BootBlockType bootBlockType() const override;
@@ -105,15 +104,15 @@ public:
     void killVirus() override;
 
     void encodeDisk(class FloppyDisk &disk) const throws override;
-    void decodeDisk(class FloppyDisk &disk) throws override;
+    void decodeDisk(const class FloppyDisk &disk) throws override;
 
 private:
     
     void encodeTrack(class FloppyDisk &disk, Track t) const throws;
     void encodeSector(class FloppyDisk &disk, Track t, Sector s) const throws;
 
-    void decodeTrack(class FloppyDisk &disk, Track t) throws;
-    void decodeSector(u8 *dst, u8 *src) throws;
+    void decodeTrack(const class FloppyDisk &disk, Track t) throws;
+    void decodeSector(u8 *dst, const u8 *src) throws;
 
     
     //
@@ -123,7 +122,7 @@ private:
 public:
     
     // Returns a file system descriptor for this volume
-    struct FileSystemDescriptor getFileSystemDescriptor() const;
+    struct FSDescriptor getFileSystemDescriptor() const;
 
     
     //
@@ -132,7 +131,7 @@ public:
 
 public:
     
-    void formatDisk(FSVolumeType fs, BootBlockId id, string name) throws;
+    void formatDisk(FSFormat fs, BootBlockId id, string name) throws;
 
     
     //

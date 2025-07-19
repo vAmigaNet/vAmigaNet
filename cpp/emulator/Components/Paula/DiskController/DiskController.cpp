@@ -22,93 +22,68 @@
 namespace vamiga {
 
 void
-DiskController::_reset(bool hard)
+DiskController::operator << (SerResetter &worker)
 {
-    RESET_SNAPSHOT_ITEMS(hard)
-    
+    serialize(worker);
+
     prb = 0xFF;
     selected = -1;
     dsksync = 0x4489;
 }
 
-void
-DiskController::resetConfig()
-{
-    assert(isPoweredOff());
-    auto &defaults = amiga.defaults;
-
-    std::vector <Option> options = {
-        
-        OPT_DRIVE_SPEED,
-        OPT_AUTO_DSKSYNC,
-        OPT_LOCK_DSKSYNC
-    };
-
-    for (auto &option : options) {
-        setConfigItem(option, defaults.get(option));
-    }
-    
-    std::vector <Option> moreOptions = {
-        
-        OPT_DRIVE_CONNECT
-    };
-
-    for (auto &option : moreOptions) {
-        for (isize i = 0; i < 4; i++) {
-            setConfigItem(option, i, defaults.get(option, i));
-        }
-    }
-}
-
 i64
-DiskController::getConfigItem(Option option) const
+DiskController::getOption(Opt option) const
 {
     switch (option) {
             
-        case OPT_DRIVE_SPEED:   return config.speed;
-        case OPT_AUTO_DSKSYNC:  return config.autoDskSync;
-        case OPT_LOCK_DSKSYNC:  return config.lockDskSync;
-            
-        default:
-            fatalError;
-    }
-}
+        case Opt::DC_SPEED:          return config.speed;
+        case Opt::DC_AUTO_DSKSYNC:   return config.autoDskSync;
+        case Opt::DC_LOCK_DSKSYNC:   return config.lockDskSync;
 
-i64
-DiskController::getConfigItem(Option option, long id) const
-{
-    switch (option) {
-            
-        case OPT_DRIVE_CONNECT:  return config.connected[id];
-            
         default:
             fatalError;
     }
 }
 
 void
-DiskController::setConfigItem(Option option, i64 value)
+DiskController::checkOption(Opt opt, i64 value)
 {
-    switch (option) {
-            
-        case OPT_DRIVE_SPEED:
-        {
+    switch (opt) {
+
+        case Opt::DC_SPEED:
+
             if (!isValidDriveSpeed((isize)value)) {
-                throw VAError(ERROR_OPT_INVARG, "-1, 1, 2, 4, 8");
+                throw AppError(Fault::OPT_INV_ARG, "-1, 1, 2, 4, 8");
             }
+            return;
+
+        case Opt::DC_AUTO_DSKSYNC:
+        case Opt::DC_LOCK_DSKSYNC:
+
+            return;
+
+        default:
+            throw(Fault::OPT_UNSUPPORTED);
+    }
+}
+
+void
+DiskController::setOption(Opt option, i64 value)
+{
+    switch (option) {
             
-            SUSPENDED
+        case Opt::DC_SPEED:
+
             config.speed = (i32)value;
             scheduleFirstDiskEvent();
             return;
-        }
 
-        case OPT_AUTO_DSKSYNC:
+        case Opt::DC_AUTO_DSKSYNC:
             
             config.autoDskSync = value;
             return;
             
-        case OPT_LOCK_DSKSYNC:
+        case Opt::DC_LOCK_DSKSYNC:
             
             config.lockDskSync = value;
             return;
@@ -118,32 +93,8 @@ DiskController::setConfigItem(Option option, i64 value)
     }
 }
 
-void
-DiskController::setConfigItem(Option option, long id, i64 value)
-{
-    switch (option)
-    {
-        case OPT_DRIVE_CONNECT:
-            
-            assert(id >= 0 && id <= 3);
-            
-            // We don't allow the internal drive (Df0) to be disconnected
-            if (id == 0 && value == false) return;
-            
-            // Connect or disconnect the drive
-            config.connected[id] = value;
-            
-            // Inform the GUI
-            msgQueue.put(MSG_DRIVE_CONNECT, DriveMsg { i16(id), i16(value), 0, 0 } );
-            return;
-            
-        default:
-            fatalError;
-    }
-}
-
-void
-DiskController::_inspect() const
+void 
+DiskController::cacheInfo(DiskControllerInfo &result) const
 {
     {   SYNCHRONIZED
 
@@ -162,26 +113,13 @@ DiskController::_inspect() const
 }
 
 void
-DiskController::_dump(Category category, std::ostream& os) const
+DiskController::_dump(Category category, std::ostream &os) const
 {
     using namespace util;
     
     if (category == Category::Config) {
         
-        os << tab("Drive df0");
-        os << bol(config.connected[0], "connected", "disconnected") << std::endl;
-        os << tab("Drive df1");
-        os << bol(config.connected[1], "connected", "disconnected") << std::endl;
-        os << tab("Drive df2");
-        os << bol(config.connected[2], "connected", "disconnected") << std::endl;
-        os << tab("Drive df3");
-        os << bol(config.connected[3], "connected", "disconnected") << std::endl;
-        os << tab("Drive speed");
-        os << dec(config.speed) << std::endl;
-        os << tab("lockDskSync");
-        os << bol(config.lockDskSync) << std::endl;
-        os << tab("autoDskSync");
-        os << bol(config.autoDskSync) << std::endl;
+        dumpConfig(os);
     }
 
     if (category == Category::State) {
@@ -230,13 +168,13 @@ DiskController::spinning() const
 }
 
 void
-DiskController::setState(DriveState newState)
+DiskController::setState(DriveDmaState newState)
 {
     if (state != newState) setState(state, newState);
 }
 
 void
-DiskController::setState(DriveState oldState, DriveState newState)
+DiskController::setState(DriveDmaState oldState, DriveDmaState newState)
 {
     trace(DSK_DEBUG, "%s -> %s\n",
           DriveStateEnum::key(oldState), DriveStateEnum::key(newState));
@@ -245,20 +183,20 @@ DiskController::setState(DriveState oldState, DriveState newState)
     
     switch (state) {
             
-        case DRIVE_DMA_OFF:
+        case DriveDmaState::OFF:
             
             dsklen = 0;
             break;
             
-        case DRIVE_DMA_WRITE:
+        case DriveDmaState::WRITE:
             
-            msgQueue.put(MSG_DRIVE_WRITE, selected);
+            msgQueue.put(Msg::DRIVE_WRITE, selected);
             break;
             
         default:
             
-            if (oldState == DRIVE_DMA_WRITE)
-                msgQueue.put(MSG_DRIVE_READ, selected);
+            if (oldState == DriveDmaState::WRITE)
+                msgQueue.put(Msg::DRIVE_READ, selected);
     }
 }
 
@@ -314,15 +252,15 @@ DiskController::transferByte()
 {
     switch (state) {
             
-        case DRIVE_DMA_OFF:
-        case DRIVE_DMA_WAIT:
-        case DRIVE_DMA_READ:
+        case DriveDmaState::OFF:
+        case DriveDmaState::WAIT:
+        case DriveDmaState::READ:
 
             readByte();
             break;
 
-        case DRIVE_DMA_WRITE:
-        case DRIVE_DMA_FLUSH:
+        case DriveDmaState::WRITE:
+        case DriveDmaState::FLUSH:
 
             writeByte();
             break;
@@ -351,7 +289,7 @@ DiskController::readByte()
 void
 DiskController::readBit(bool bit)
 {
-    dataReg = (u16)((u32)dataReg << 1 | bit);
+    dataReg = (u16)((u32)dataReg << 1 | (u32)bit);
 
     // Fill the FIFO if we've received an entire byte
     if (++dataRegCount == 8) {
@@ -368,14 +306,14 @@ DiskController::readBit(bool bit)
 
         // Trigger a word SYNC interrupt
         trace(DSK_DEBUG, "SYNC IRQ (dsklen = %d)\n", dsklen);
-        paula.raiseIrq(INT_DSKSYN);
+        paula.raiseIrq(IrqSource::DSKSYN);
 
         // Enable DMA if the controller was waiting for it
-        if (state == DRIVE_DMA_WAIT) {
+        if (state == DriveDmaState::WAIT) {
 
             dataRegCount = 0;
             clearFifo();
-            setState(DRIVE_DMA_READ);
+            setState(DriveDmaState::READ);
         }
 
         // Reset the watchdog counter
@@ -391,7 +329,7 @@ DiskController::writeByte()
     if (fifoIsEmpty()) {
 
         // Switch off DMA if the last byte has been flushed out
-        if (state == DRIVE_DMA_FLUSH) setState(DRIVE_DMA_OFF);
+        if (state == DriveDmaState::FLUSH) setState(DriveDmaState::OFF);
 
     } else {
 
@@ -412,7 +350,7 @@ DiskController::performDMA()
     if ((dsklen & 0x3FFF) == 0) return;
     
     // Only proceed if DMA is enabled
-    if (state != DRIVE_DMA_READ && state != DRIVE_DMA_WRITE) return;
+    if (state != DriveDmaState::READ && state != DriveDmaState::WRITE) return;
     
     // How many words shall we read in?
     u32 count = drive ? config.speed : 1;
@@ -420,12 +358,12 @@ DiskController::performDMA()
     // Perform DMA
     switch (state) {
             
-        case DRIVE_DMA_READ:
+        case DriveDmaState::READ:
             
             performDMARead(drive, count);
             break;
             
-        case DRIVE_DMA_WRITE:
+        case DriveDmaState::WRITE:
             
             performDMAWrite(drive, count);
             break;
@@ -447,7 +385,7 @@ DiskController::performDMARead(FloppyDrive *drive, u32 remaining)
         u16 word = readFifo16();
         
         // Write word into memory
-        if constexpr (DSK_CHECKSUM) {
+        if (DSK_CHECKSUM) {
             
             checkcnt++;
             check1 = util::fnvIt32(check1, word);
@@ -458,8 +396,8 @@ DiskController::performDMARead(FloppyDrive *drive, u32 remaining)
         // Finish up if this was the last word to transfer
         if ((--dsklen & 0x3FFF) == 0) {
             
-            paula.raiseIrq(INT_DSKBLK);
-            setState(DRIVE_DMA_OFF);
+            paula.raiseIrq(IrqSource::DSKBLK);
+            setState(DriveDmaState::OFF);
             
             debug(DSK_CHECKSUM,
                   "read: cnt = %llu check1 = %x check2 = %x\n", checkcnt, check1, check2);
@@ -487,13 +425,13 @@ DiskController::performDMAWrite(FloppyDrive *drive, u32 remaining)
     do {
 
         // Read next word from memory
-        if constexpr (DSK_CHECKSUM) {
+        if (DSK_CHECKSUM) {
             checkcnt++;
             check2 = util::fnvIt32(check2, agnus.dskpt & agnus.ptrMask);
         }
         u16 word = agnus.doDiskDmaRead();
         
-        if constexpr (DSK_CHECKSUM) {
+        if (DSK_CHECKSUM) {
             check1 = util::fnvIt32(check1, word);
         }
         
@@ -505,7 +443,7 @@ DiskController::performDMAWrite(FloppyDrive *drive, u32 remaining)
         // Finish up if this was the last word to transfer
         if ((--dsklen & 0x3FFF) == 0) {
             
-            paula.raiseIrq(INT_DSKBLK);
+            paula.raiseIrq(IrqSource::DSKBLK);
             
             /* The timing-accurate approach: Set state to DRIVE_DMA_FLUSH.
              * The event handler recognises this state and switched to
@@ -524,7 +462,7 @@ DiskController::performDMAWrite(FloppyDrive *drive, u32 remaining)
                 u8 value = readFifo();
                 if (drive) drive->writeByteAndRotate(value);
             }
-            setState(DRIVE_DMA_OFF);
+            setState(DriveDmaState::OFF);
             
             debug(DSK_CHECKSUM, "write: cnt = %llu ", checkcnt);
             debug(DSK_CHECKSUM, "check1 = %x check2 = %x\n", check1, check2);
@@ -552,18 +490,18 @@ DiskController::performTurboDMA(FloppyDrive *drive)
     // Perform action depending on DMA state
     switch (state) {
             
-        case DRIVE_DMA_WAIT:
+        case DriveDmaState::WAIT:
             
             drive->findSyncMark();
             [[fallthrough]];
             
-        case DRIVE_DMA_READ:
+        case DriveDmaState::READ:
             
             if (drive) performTurboRead(drive);
-            if (drive) paula.raiseIrq(INT_DSKSYN);
+            if (drive) paula.raiseIrq(IrqSource::DSKSYN);
             break;
             
-        case DRIVE_DMA_WRITE:
+        case DriveDmaState::WRITE:
             
             if (drive) performTurboWrite(drive);
             break;
@@ -573,10 +511,10 @@ DiskController::performTurboDMA(FloppyDrive *drive)
     }
     
     // Trigger disk interrupt with some delay
-    Cycle delay = MIMIC_UAE ? 2 * HPOS_CNT_PAL - agnus.pos.h + 30 : 512;
-    paula.scheduleIrqRel(INT_DSKBLK, DMA_CYCLES(delay));
+    Cycle delay = MIMIC_UAE ? 2 * PAL::HPOS_CNT - agnus.pos.h + 30 : 512;
+    paula.scheduleIrqRel(IrqSource::DSKBLK, DMA_CYCLES(delay));
     
-    setState(DRIVE_DMA_OFF);
+    setState(DriveDmaState::OFF);
 }
 
 void
@@ -588,18 +526,18 @@ DiskController::performTurboRead(FloppyDrive *drive)
         u16 word = drive->readWordAndRotate();
         
         // Write word into memory
-        if constexpr (DSK_CHECKSUM) {
+        if (DSK_CHECKSUM) {
             
             checkcnt++;
             check1 = util::fnvIt32(check1, word);
             check2 = util::fnvIt32(check2, agnus.dskpt & agnus.ptrMask);
         }
-        mem.poke16 <ACCESSOR_AGNUS> (agnus.dskpt, word);
+        mem.poke16 <Accessor::AGNUS> (agnus.dskpt, word);
         agnus.dskpt += 2;
     }
     
     debug(DSK_CHECKSUM, "Turbo read %s: cyl: %ld side: %ld offset: %ld ",
-          drive->getDescription(),
+          drive->objectName(),
           drive->head.cylinder,
           drive->head.head,
           drive->head.offset);
@@ -614,9 +552,9 @@ DiskController::performTurboWrite(FloppyDrive *drive)
     for (isize i = 0; i < (dsklen & 0x3FFF); i++) {
         
         // Read word from memory
-        u16 word = mem.peek16 <ACCESSOR_AGNUS> (agnus.dskpt);
+        u16 word = mem.peek16 <Accessor::AGNUS> (agnus.dskpt);
         
-        if constexpr (DSK_CHECKSUM) {
+        if (DSK_CHECKSUM) {
             
             checkcnt++;
             check1 = util::fnvIt32(check1, word);
@@ -631,7 +569,7 @@ DiskController::performTurboWrite(FloppyDrive *drive)
     
     debug(DSK_CHECKSUM,
           "Turbo write %s: checkcnt = %llu check1 = %x check2 = %x\n",
-          drive->getDescription(), checkcnt, check1, check2);
+          drive->objectName(), checkcnt, check1, check2);
 }
 
 }

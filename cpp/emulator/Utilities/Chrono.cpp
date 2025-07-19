@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #include "config.h"
@@ -17,7 +17,7 @@
 #endif
 
 
-namespace util {
+namespace vamiga::util {
 
 #if defined(__MACH__)
 
@@ -44,10 +44,19 @@ Time::local(const std::time_t &time)
 {
     std::tm local {};
     localtime_r(&time, &local);
-    
+
     return local;
 }
-    
+
+std::tm
+Time::gmtime(const std::time_t &time)
+{
+    std::tm gmtime {};
+    gmtime_r(&time, &gmtime);
+
+    return gmtime;
+}
+
 void
 Time::sleep()
 {
@@ -85,6 +94,15 @@ Time::local(const std::time_t &time)
     localtime_r(&time, &local);
     
     return local;
+}
+
+std::tm
+Time::gmtime(const std::time_t &time)
+{
+    std::tm gmtime {};
+    gmtime_r(&time, &gmtime);
+
+    return gmtime;
 }
 
 void
@@ -126,6 +144,15 @@ Time::local(const std::time_t &time)
     localtime_s(&local, &time);
     
     return local;
+}
+
+std::tm
+Time::gmtime(const std::time_t &time)
+{
+    std::tm gmtime {};
+    gmtime_s(&gmtime, &time); 
+
+    return gmtime;
 }
 
 void
@@ -197,9 +224,27 @@ Time::operator-(const Time &rhs) const
 }
 
 Time
-Time::operator*(const int i) const
+Time::operator*(const long i) const
 {
-    return Time(i * this->ticks);
+    return Time(this->ticks * i);
+}
+
+Time
+Time::operator*(const double d) const
+{
+    return Time(i64(this->ticks * d));
+}
+
+Time
+Time::operator/(const long i) const
+{
+    return Time(this->ticks / i);
+}
+
+Time
+Time::operator/(const double d) const
+{
+    return Time(i64(this->ticks / d));
 }
 
 Time&
@@ -215,9 +260,27 @@ Time::operator-=(const Time &rhs)
 }
 
 Time&
-Time::operator*=(const int i)
+Time::operator*=(const long i)
 {
     return *this = *this * i;
+}
+
+Time&
+Time::operator*=(const double d)
+{
+    return *this = *this * d;
+}
+
+Time&
+Time::operator/=(const long i)
+{
+    return *this = *this / i;
+}
+
+Time&
+Time::operator/=(const double d)
+{
+    return *this = *this / d;
 }
 
 Time
@@ -239,7 +302,12 @@ Clock::Clock()
 void
 Clock::updateElapsed()
 {
-    auto now = Time::now();
+    updateElapsed(Time::now());
+}
+
+void 
+Clock::updateElapsed(Time now)
+{
     if (!paused) elapsed += now - start;
     start = now;
 }
@@ -270,25 +338,30 @@ Clock::go()
 Time
 Clock::restart()
 {
-    updateElapsed();
+    auto now = Time::now();
+
+    updateElapsed(now);
     auto result = elapsed;
 
-    start = Time::now();
+    start = now;
     elapsed = 0;
     paused = false;
     
     return result;
 }
 
-StopWatch::StopWatch(const string &description) : description(description)
+StopWatch::StopWatch(bool enable, const string &description) : enable(enable), description(description)
 {
-    clock.restart();
+    if (enable) clock.restart();
 }
 
 StopWatch::~StopWatch()
 {
-    auto elapsed = clock.stop();
-    fprintf(stderr, "%s: %f sec\n", description.c_str(), elapsed.asSeconds());
+    if (enable) {
+        
+        auto elapsed = clock.stop();
+        fprintf(stderr, "%s %1.4f sec\n", description.c_str(), elapsed.asSeconds());
+    }
 }
 
 }

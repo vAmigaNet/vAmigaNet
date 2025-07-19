@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
@@ -12,17 +12,31 @@
 #include "KeyboardTypes.h"
 #include "AgnusTypes.h"
 #include "SubComponent.h"
+#include "CmdQueue.h"
 #include "RingBuffer.h"
 
 namespace vamiga {
 
-class Keyboard : public SubComponent {
+class Keyboard final : public SubComponent, public Inspectable<KeyboardInfo> {
+
+    Descriptions descriptions = {{
+
+        .type           = Class::Keyboard,
+        .name           = "Keyboard",
+        .description    = "Keyboard",
+        .shell          = "keyboard"
+    }};
+
+    Options options = {
+
+        Opt::KBD_ACCURACY
+    };
 
     // Current configuration
     KeyboardConfig config;
 
     // The current keyboard state
-    KeyboardState state;
+    KbState state;
     
     // Shift register storing the transmission bits
     u8 shiftReg;
@@ -39,15 +53,32 @@ class Keyboard : public SubComponent {
     // Remebers the keys that are currently held down
     bool keyDown[128];
 
-    
+    // Delayed keyboard commands (used, e.g., for auto-typing)
+    util::SortedRingBuffer<Command, 1024> pending;
+
+
     //
-    // Initialization
+    // Methods
     //
     
 public:
     
     using SubComponent::SubComponent;
     
+    Keyboard& operator= (const Keyboard& other) {
+
+        CLONE(state)
+        CLONE(shiftReg)
+        CLONE(spLow)
+        CLONE(spHigh)
+        CLONE(queue)
+        CLONE(pending)
+
+        CLONE(config)
+
+        return *this;
+    }
+
     
     //
     // Methods from CoreObject
@@ -55,8 +86,7 @@ public:
     
 private:
     
-    const char *getDescription() const override { return "Keyboard"; }
-    void _dump(Category category, std::ostream& os) const override;
+    void _dump(Category category, std::ostream &os) const override;
     
     
     //
@@ -65,16 +95,8 @@ private:
 
 private:
     
-    void _reset(bool hard) override;
-
     template <class T>
-    void applyToPersistentItems(T& worker)
-    {
-        worker << config.accurate;
-    }
-
-    template <class T>
-    void applyToResetItems(T& worker, bool hard = true)
+    void serialize(T& worker)
     {
         worker
 
@@ -82,26 +104,43 @@ private:
         << shiftReg
         << spLow
         << spHigh
-        >> queue;
-    }
+        << queue;
 
-    isize _size() override { COMPUTE_SNAPSHOT_SIZE }
-    u64 _checksum() override { COMPUTE_SNAPSHOT_CHECKSUM }
-    isize _load(const u8 *buffer) override { LOAD_SNAPSHOT_ITEMS }
-    isize _save(u8 *buffer) override { SAVE_SNAPSHOT_ITEMS }
+        if (isResetter(worker)) return;
+
+        worker
+
+        << config.accurate;
+
+    } SERIALIZERS(serialize);
+
+    void _didReset(bool hard) override;
+    
+public:
+
+    const Descriptions &getDescriptions() const override { return descriptions; }
 
     
     //
-    // Configuring
+    // Methods from Inspectable
     //
+
+public:
+
+    void cacheInfo(KeyboardInfo &result) const override;
     
+
+    //
+    // Methods from Configurable
+    //
+
 public:
     
     const KeyboardConfig &getConfig() const { return config; }
-    void resetConfig() override;
-
-    i64 getConfigItem(Option option) const;
-    void setConfigItem(Option option, i64 value);
+    const Options &getOptions() const override { return options; }
+    i64 getOption(Opt option) const override;
+    void checkOption(Opt opt, i64 value) override;
+    void setOption(Opt option, i64 value) override;
 
     
     //
@@ -110,13 +149,20 @@ public:
     
 public:
 
-    bool keyIsPressed(KeyCode keycode) const;
-    void pressKey(KeyCode keycode);
-    void releaseKey(KeyCode keycode);
-    void toggleKey(KeyCode keycode);
-    void releaseAllKeys();
+    // Checks whether a certain key is pressed
+    bool isPressed(KeyCode keycode) const;
 
-    void autoType(KeyCode keycode, Cycle duration = MSEC(100), Cycle delay = 0);
+    // Presses or releases a key
+    void press(KeyCode keycode);
+    void release(KeyCode keycode);
+    void toggle(KeyCode keycode);
+    void releaseAll();
+
+    // Auto-types a string
+    void autoType(const string &text);
+
+    // Discards all pending key events
+    void abortTyping();
     
 private:
     
@@ -160,6 +206,16 @@ private:
 
     // Sends a sync pulse to the Amiga
     void sendSyncPulse();
+
+
+    //
+    // Processing commands and events
+    //
+
+public:
+
+    // Processes a command from the command queue
+    void processCommand(const Command &cmd);
 };
 
 }

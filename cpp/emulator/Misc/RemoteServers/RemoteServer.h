@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
@@ -21,87 +21,117 @@ class RemoteServer : public SubComponent {
 
     friend class RemoteManager;
 
+    Descriptions descriptions = {{
+
+        .name           = "SerServer",
+        .description    = "Serial Port Server",
+        .shell          = "server serial"
+    }, {
+        .name           = "RshServer",
+        .description    = "Remote Shell Server",
+        .shell          = "server rshell"
+    }, {
+        .name           = "PromServer",
+        .description    = "Prometheus Server",
+        .shell          = "server prom"
+    }, {
+        .name           = "GdbServer",
+        .description    = "GDB Remote Server",
+        .shell          = "server gdb"
+    }};
+
+    Options options = {
+
+        Opt::SRV_PORT,
+        Opt::SRV_PROTOCOL,
+        Opt::SRV_AUTORUN,
+        Opt::SRV_VERBOSE
+    };
+
 protected:
     
     // Current configuration
     ServerConfig config = {};
 
-    // Sockets
-    Socket listener;
-    Socket connection;
-
     // The server thread
     std::thread serverThread;
 
     // The current server state
-    SrvState state = SRV_STATE_OFF;
+    SrvState state = SrvState::OFF;
     
-    // The number of sent and received packets
-    isize numSent = 0;
-    isize numReceived = 0;
 
-    
     //
     // Initializing
     //
     
 public:
     
-    RemoteServer(Amiga& ref);
+    using SubComponent::SubComponent;
     ~RemoteServer() { shutDownServer(); }
     void shutDownServer();
     
-    
+    RemoteServer& operator= (const RemoteServer& other) {
+
+        CLONE(config)
+        
+        return *this;
+    }
+
+
     //
     // Methods from CoreObject
     //
     
+protected:
+
+    void _dump(Category category, std::ostream &os) const override;
+    
 public:
-    
-    const char *getDescription() const override { return "RemoteServer"; }
-    void _dump(Category category, std::ostream& os) const override;
-    
-    
+
+    const Descriptions &getDescriptions() const override { return descriptions; }
+
+
     //
     // Methods from CoreComponent
     //
     
-private:
+protected:
     
-    void _reset(bool hard) override { }
     void _powerOff() override;
 
     template <class T>
-    void applyToPersistentItems(T& worker)
+    void serialize(T& worker)
     {
+        if (isResetter(worker)) return;
+
         worker
 
         << config.port
         << config.protocol
+        << config.autoRun
         << config.verbose;
-    }
 
-    template <class T>
-    void applyToResetItems(T& worker, bool hard = true)
-    {
-    }
-
-    isize _size() override { COMPUTE_SNAPSHOT_SIZE }
-    u64 _checksum() override { COMPUTE_SNAPSHOT_CHECKSUM }
-    isize _load(const u8 *buffer) override { LOAD_SNAPSHOT_ITEMS }
+    };
+    virtual void operator << (SerChecker &worker) override { serialize(worker); }
+    virtual void operator << (SerCounter &worker) override { serialize(worker); }
+    virtual void operator << (SerResetter &worker) override { serialize(worker); }
+    virtual void operator << (SerReader &worker) override { serialize(worker); }
+    virtual void operator << (SerWriter &worker) override { serialize(worker); }
+    
     void _didLoad() override;
-    isize _save(u8 *buffer) override { SAVE_SNAPSHOT_ITEMS }
 
-    
+
     //
-    // Configuring
+    // Methods from Configurable
     //
-    
+
 public:
 
     const ServerConfig &getConfig() const { return config; }
-    i64 getConfigItem(Option option) const;
-    void setConfigItem(Option option, i64 value);
+    const Options &getOptions() const override { return options; }
+    i64 getOption(Opt option) const override;
+    void checkOption(Opt opt, i64 value) override;
+    void setOption(Opt option, i64 value) override;
 
 
     //
@@ -110,12 +140,12 @@ public:
     
 public:
 
-    bool isOff() const { return state == SRV_STATE_OFF; }
-    bool isStarting() const { return state == SRV_STATE_STARTING; }
-    bool isListening() const { return state == SRV_STATE_LISTENING; }
-    bool isConnected() const { return state == SRV_STATE_CONNECTED; }
-    bool isStopping() const { return state == SRV_STATE_STOPPING; }
-    bool isErroneous() const { return state == SRV_STATE_ERROR; }
+    bool isOff() const { return state == SrvState::OFF; }
+    bool isStarting() const { return state == SrvState::STARTING; }
+    bool isListening() const { return state == SrvState::LISTENING; }
+    bool isConnected() const { return state == SrvState::CONNECTED; }
+    bool isStopping() const { return state == SrvState::STOPPING; }
+    bool isErroneous() const { return state == SrvState::INVALID; }
 
     
     //
@@ -125,90 +155,38 @@ public:
 public:
 
     // Launch the remote server
-    void start() throws { SUSPENDED _start(); }
-    
+    virtual void start() throws;
+
     // Shuts down the remote server
-    void stop() throws { SUSPENDED _stop(); }
+    virtual void stop() throws;
 
     // Disconnects the client
-    void disconnect() throws { SUSPENDED _disconnect(); }
+    virtual void disconnect() throws = 0;
 
 protected:
 
-    // Called from disconnect(), start() and stop()
-    void _start() throws;
-    void _stop() throws;
-    void _disconnect() throws;
-    
     // Switches the internal state
     void switchState(SrvState newState);
     
 private:
     
-    // Used by the launch manager to determine if actions should be taken
+    // Used by the launch daemon to determine if actions should be taken
     virtual bool shouldRun() { return true; }
-    
-    // Indicates if the server is able to run
-    // virtual bool canRun() { return true; }
-    
-    
+
+
     //
     // Running the server
     //
-    
-private:
-    
+
+protected:
+
     // The main thread function
-    void main();
-
-    // Inner loops (called from main)
-    void mainLoop() throws;
-    void sessionLoop();
-    
-    
-    //
-    // Transmitting and processing packets
-    //
-    
-public:
-    
-    // Receives or packet
-    string receive() throws;
-    
-    // Sends a packet
-    void send(const string &payload) throws;
-    void send(char payload) throws;
-    void send(int payload) throws;
-    void send(long payload) throws;
-    void send(std::stringstream &payload) throws;
-    
-    // Operator overloads
-    RemoteServer &operator<<(char payload) { send(payload); return *this; }
-    RemoteServer &operator<<(const string &payload) { send(payload); return *this; }
-    RemoteServer &operator<<(int payload) { send(payload); return *this; }
-    RemoteServer &operator<<(long payload) { send(payload); return *this; }
-    RemoteServer &operator<<(std::stringstream &payload) { send(payload); return *this; }
-
-    // Processes a package
-    void process(const string &payload) throws;
-    
-private:
+    virtual void main() throws = 0;
 
     // Reports an error to the GUI
     void handleError(const char *description);
-    
-    
-    //
-    // Subclass specific implementations
-    //
 
-private:
-    
-    virtual string doReceive() throws = 0;
-    virtual void doSend(const string &payload) throws = 0;
-    virtual void doProcess(const string &payload) throws = 0;
-    
-    
+
     //
     // Delegation methods
     //

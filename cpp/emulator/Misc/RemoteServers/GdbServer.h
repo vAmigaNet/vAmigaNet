@@ -2,19 +2,19 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
 
-#include "RemoteServer.h"
+#include "SocketServer.h"
 #include "OSDebugger.h"
 
 namespace vamiga {
 
-enum class GdbCmd
+enum class GdbCmd : long
 {
     Attached,
     C,
@@ -33,8 +33,8 @@ enum class GdbCmd
     fThreadInfo,
 };
 
-class GdbServer : public RemoteServer {
-    
+class GdbServer final : public SocketServer {
+
     // The name of the process to be debugged
     string processName;
     
@@ -54,24 +54,22 @@ class GdbServer : public RemoteServer {
     
 public:
     
-    GdbServer(Amiga& ref);
-    
-    
+    using SocketServer::SocketServer;
+
+    GdbServer& operator= (const GdbServer& other) {
+
+        SocketServer::operator = (other);
+        return *this;
+    }
+
+
     //
     // Methods from CoreObject
     //
     
 private:
     
-    const char *getDescription() const override { return "GdbServer"; }
-    void _dump(Category category, std::ostream& os) const override;
-    
-    
-    //
-    // Methods from CoreComponent
-    //
-    
-    void resetConfig() override;
+    void _dump(Category category, std::ostream &os) const override;
     
     
     //
@@ -81,9 +79,9 @@ private:
 public:
     
     bool shouldRun() override;
-    string doReceive() override throws;
-    void doSend(const string &payload) override throws;
-    void doProcess(const string &payload) override throws;
+    string doReceive() throws override;
+    void doSend(const string &payload) throws override;
+    void doProcess(const string &payload) throws override;
     void didStart() override;
     void didStop() override;
     void didConnect() override;

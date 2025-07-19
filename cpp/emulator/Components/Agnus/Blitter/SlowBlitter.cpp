@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #include "config.h"
@@ -995,13 +995,13 @@ Blitter::beginSlowCopyBlit()
 
     // In debug mode, we execute the whole micro program immediately.
     // This let's us compare checksums with the FastBlitter.
-    if constexpr (SLOW_BLT_DEBUG) {
+    if (SLOW_BLT_DEBUG) {
 
         BusOwner owner = agnus.busOwner[agnus.pos.h];
         agnus.setBLS(false);
         
         while (agnus.hasEvent<SLOT_BLT>()) {
-            agnus.busOwner[agnus.pos.h] = BUS_NONE;
+            agnus.busOwner[agnus.pos.h] = BusOwner::NONE;
             serviceEvent();
         }
         
@@ -1052,13 +1052,13 @@ Blitter::beginSlowLineBlit()
 
     // In debug mode, we execute the whole micro program immediately.
     // This let's us compare checksums with the FastBlitter.
-    if constexpr (SLOW_BLT_DEBUG) {
+    if (SLOW_BLT_DEBUG) {
 
         BusOwner owner = agnus.busOwner[agnus.pos.h];
         agnus.setBLS(false);
         
         while (agnus.hasEvent<SLOT_BLT>()) {
-            agnus.busOwner[agnus.pos.h] = BUS_NONE;
+            agnus.busOwner[agnus.pos.h] = BusOwner::NONE;
             serviceEvent();
         }
         
@@ -1084,16 +1084,16 @@ Blitter::exec()
     // Trigger Blitter interrupt if this is the termination cycle
     if constexpr ((bool)(instr & BLTDONE)) {
         if (!birq) {
-            paula.scheduleIrqRel(INT_BLIT, DMA_CYCLES(1));
+            paula.scheduleIrqRel(IrqSource::BLIT, DMA_CYCLES(1));
             birq = true;
         }
     }
     
     // Allocate the bus if needed
-    if (bus && !agnus.allocateBus<BUS_BLITTER>()) return;
+    if (bus && !agnus.allocateBus<BusOwner::BLITTER>()) return;
 
     // Check if the Blitter needs a free bus to continue
-    if (busidle && !agnus.busIsFree<BUS_BLITTER>()) return;
+    if (busidle && !agnus.busIsFree<BusOwner::BLITTER>()) return;
 
     bltpc++;
 
@@ -1104,11 +1104,11 @@ Blitter::exec()
 
             agnus.doBlitterDmaWrite(bltdpt, dhold);
 
-            if constexpr (BLT_MEM_GUARD) {
+            if (BLT_MEM_GUARD) {
                 memguard[bltdpt & agnus.ptrMask & mem.chipMask] = blitcount;
             }
 
-            if constexpr (BLT_CHECKSUM) {
+            if (BLT_CHECKSUM) {
                 check1 = util::fnvIt32(check1, dhold);
                 check2 = util::fnvIt32(check2, bltdpt);
             }
@@ -1190,7 +1190,7 @@ Blitter::exec()
         // Run the minterm logic circuit
         dhold = doMintermLogic(ahold, bhold, chold, bltcon0 & 0xFF);
 
-        if constexpr (BLT_DEBUG) {
+        if (BLT_DEBUG) {
             assert(dhold == doMintermLogic(ahold, bhold, chold, bltcon0 & 0xFF));
         }
 
@@ -1254,24 +1254,24 @@ Blitter::fakeExec()
     // Trigger Blitter interrupt if this is the termination cycle
     if constexpr ((bool)(instr & BLTDONE)) {
         if (!birq) {
-            paula.scheduleIrqRel(INT_BLIT, DMA_CYCLES(1));
+            paula.scheduleIrqRel(IrqSource::BLIT, DMA_CYCLES(1));
             birq = true;
         }
     }
 
     // Allocate the bus if needed
-    if (bus && !agnus.allocateBus<BUS_BLITTER>()) return;
+    if (bus && !agnus.allocateBus<BusOwner::BLITTER>()) return;
 
     // Check if the Blitter needs a free bus to continue
-    if (busidle && !agnus.busIsFree<BUS_BLITTER>()) return;
+    if (busidle && !agnus.busIsFree<BusOwner::BLITTER>()) return;
 
     bltpc++;
 
     if constexpr ((bool)(instr & (FETCH | WRITE_D))) {
 
         // Record some fake data to make the DMA debugger happy
-        assert(agnus.pos.h < HPOS_CNT_NTSC);
-        agnus.busValue[agnus.pos.h] = 0x8888;
+        assert(agnus.pos.h < HPOS_CNT);
+        agnus.busData[agnus.pos.h] = 0x8888;
     }
 
     if constexpr ((bool)(instr & REPEAT)) {
@@ -1347,16 +1347,16 @@ Blitter::execLine()
     // Trigger Blitter interrupt if this is the termination cycle
     if constexpr ((bool)(instr & BLTDONE)) {
         if (!birq) {
-            paula.scheduleIrqRel(INT_BLIT, DMA_CYCLES(1));
+            paula.scheduleIrqRel(IrqSource::BLIT, DMA_CYCLES(1));
             birq = true;
         }
     }
     
     // Allocate the bus if needed
-    if (bus && !agnus.allocateBus<BUS_BLITTER>()) return;
+    if (bus && !agnus.allocateBus<BusOwner::BLITTER>()) return;
 
     // Check if the Blitter needs a free bus to continue
-    if (busidle && !agnus.busIsFree<BUS_BLITTER>()) return;
+    if (busidle && !agnus.busIsFree<BusOwner::BLITTER>()) return;
 
     bltpc++;
 
@@ -1367,11 +1367,11 @@ Blitter::execLine()
 
             agnus.doBlitterDmaWrite(bltdpt, dhold);
 
-            if constexpr (BLT_MEM_GUARD) {
+            if (BLT_MEM_GUARD) {
                 memguard[bltdpt & agnus.ptrMask & mem.chipMask] = blitcount;
             }
 
-            if constexpr (BLT_CHECKSUM) {
+            if (BLT_CHECKSUM) {
                 check1 = util::fnvIt32(check1, dhold);
                 check2 = util::fnvIt32(check2, bltdpt);
             }
@@ -1461,24 +1461,24 @@ Blitter::fakeExecLine()
     // Trigger Blitter interrupt if this is the termination cycle
     if constexpr ((bool)(instr & BLTDONE)) {
         if (!birq) {
-            paula.scheduleIrqRel(INT_BLIT, DMA_CYCLES(1));
+            paula.scheduleIrqRel(IrqSource::BLIT, DMA_CYCLES(1));
             birq = true;
         }
     }
     
     // Allocate the bus if needed
-    if (bus && !agnus.allocateBus<BUS_BLITTER>()) return;
+    if (bus && !agnus.allocateBus<BusOwner::BLITTER>()) return;
 
     // Check if the Blitter needs a free bus to continue
-    if (busidle && !agnus.busIsFree<BUS_BLITTER>()) return;
+    if (busidle && !agnus.busIsFree<BusOwner::BLITTER>()) return;
 
     bltpc++;
 
     if constexpr ((bool)(instr & (FETCH | BUS | WRITE_D))) {
 
         // Record some fake data to make the DMA debugger happy
-        assert(agnus.pos.h < HPOS_CNT_NTSC);
-        agnus.busValue[agnus.pos.h] = 0x8888;
+        assert(agnus.pos.h < HPOS_CNT);
+        agnus.busData[agnus.pos.h] = 0x8888;
     }
 
     if constexpr ((bool)(instr & REPEAT)) {

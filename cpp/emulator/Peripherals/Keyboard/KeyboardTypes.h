@@ -2,52 +2,53 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
 
-#include "Aliases.h"
-#include "Reflection.h"
+#include "Infrastructure/Reflection.h"
+
+namespace vamiga {
 
 //
 // Enumerations
 //
 
-enum_long(KB_STATE)
+enum class KbState
 {
-    KB_SELFTEST,
-    KB_SYNC,
-    KB_STRM_ON,
-    KB_STRM_OFF,
-    KB_SEND
+    SELFTEST,
+    SYNC,
+    STRM_ON,
+    STRM_OFF,
+    SEND
 };
-typedef KB_STATE KeyboardState;
 
-#ifdef __cplusplus
-struct KeyboardStateEnum : util::Reflection<KeyboardStateEnum, KeyboardState>
+struct KbStateEnum : Reflection<KbStateEnum, KbState>
 {
     static constexpr long minVal = 0;
-    static constexpr long maxVal = KB_SEND;
-    static bool isValid(auto val) { return val >= minVal && val <= maxVal; }
+    static constexpr long maxVal = long(KbState::SEND);
     
-    static const char *prefix() { return "KB"; }
-    static const char *key(KeyboardState value)
+    static const char *_key(KbState value)
     {
         switch (value) {
                 
-            case KB_SELFTEST:  return "SELFTEST";
-            case KB_SYNC:      return "SYNC";
-            case KB_STRM_ON:   return "STRM_ON";
-            case KB_STRM_OFF:  return "STRM_OFF";
-            case KB_SEND:      return "SEND";
+            case KbState::SELFTEST:  return "SELFTEST";
+            case KbState::SYNC:      return "SYNC";
+            case KbState::STRM_ON:   return "STRM_ON";
+            case KbState::STRM_OFF:  return "STRM_OFF";
+            case KbState::SEND:      return "SEND";
         }
         return "???";
     }
+    static const char *help(KbState value)
+    {
+        return "";
+    }
 };
-#endif
+
 
 //
 // Structures
@@ -58,3 +59,12 @@ typedef struct
     bool accurate;
 }
 KeyboardConfig;
+
+typedef struct
+{
+    KbState state;
+    u8 shiftReg;
+    
+} KeyboardInfo;
+
+}

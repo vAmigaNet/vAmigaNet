@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #include "config.h"
@@ -15,58 +15,19 @@
 
 namespace vamiga {
 
-Mouse::Mouse(Amiga& ref, ControlPort& pref) : SubComponent(ref), port(pref)
+Mouse::Mouse(Amiga& ref, ControlPort& pref) : SubComponent(ref, pref.objid), port(pref)
 {
 
-}
-
-const char *
-Mouse::getDescription() const
-{
-    return port.isPort1() ? "Mouse1" : "Mouse2";
-}
-
-void Mouse::_reset(bool hard)
-{
-    RESET_SNAPSHOT_ITEMS(hard)
-    
-    leftButton = false;
-    middleButton = false;
-    rightButton = false;
-    mouseX = 0;
-    mouseY = 0;
-    oldMouseX = 0;
-    oldMouseY = 0;
-    targetX = 0;
-    targetY = 0;
-}
-
-void
-Mouse::resetConfig()
-{
-    assert(isPoweredOff());
-    auto &defaults = amiga.defaults;
-
-    std::vector <Option> options = {
-        
-        OPT_PULLUP_RESISTORS,
-        OPT_SHAKE_DETECTION,
-        OPT_MOUSE_VELOCITY
-    };
-
-    for (auto &option : options) {
-        setConfigItem(option, defaults.get(option));
-    }
 }
 
 i64
-Mouse::getConfigItem(Option option) const
+Mouse::getOption(Opt option) const
 {
     switch (option) {
 
-        case OPT_PULLUP_RESISTORS:  return config.pullUpResistors;
-        case OPT_SHAKE_DETECTION:   return config.shakeDetection;
-        case OPT_MOUSE_VELOCITY:    return config.velocity;
+        case Opt::MOUSE_PULLUP_RESISTORS:    return config.pullUpResistors;
+        case Opt::MOUSE_SHAKE_DETECTION:     return config.shakeDetection;
+        case Opt::MOUSE_VELOCITY:            return config.velocity;
 
         default:
             fatalError;
@@ -74,25 +35,44 @@ Mouse::getConfigItem(Option option) const
 }
 
 void
-Mouse::setConfigItem(Option option, i64 value)
+Mouse::checkOption(Opt opt, i64 value)
+{
+    switch (opt) {
+
+        case Opt::MOUSE_PULLUP_RESISTORS:
+        case Opt::MOUSE_SHAKE_DETECTION:
+
+            return;
+
+        case Opt::MOUSE_VELOCITY:
+
+            if (value < 0 || value > 255) {
+                throw AppError(Fault::OPT_INV_ARG, "0...255");
+            }
+            return;
+
+        default:
+            throw(Fault::OPT_UNSUPPORTED);
+    }
+}
+
+void
+Mouse::setOption(Opt option, i64 value)
 {
     switch (option) {
             
-        case OPT_PULLUP_RESISTORS:
+        case Opt::MOUSE_PULLUP_RESISTORS:
             
             config.pullUpResistors = value;
             return;
 
-        case OPT_SHAKE_DETECTION:
+        case Opt::MOUSE_SHAKE_DETECTION:
             
             config.shakeDetection = value;
             return;
             
-        case OPT_MOUSE_VELOCITY:
+        case Opt::MOUSE_VELOCITY:
             
-            if (value < 0 || value > 255) {
-                throw VAError(ERROR_OPT_INVARG, "0...255");
-            }
             config.velocity = (isize)value;
             updateScalingFactors();
             return;
@@ -110,18 +90,13 @@ Mouse::updateScalingFactors()
 }
 
 void
-Mouse::_dump(Category category, std::ostream& os) const
+Mouse::_dump(Category category, std::ostream &os) const
 {
     using namespace util;
     
     if (category == Category::Config) {
         
-        os << tab("Pull-up resistors");
-        os << bol(config.pullUpResistors) << std::endl;
-        os << tab("Shake detection");
-        os << bol(config.shakeDetection) << std::endl;
-        os << tab("Velocity");
-        os << dec(config.velocity) << std::endl;
+        dumpConfig(os);
     }
 
     if (category == Category::State) {
@@ -218,7 +193,7 @@ bool
 Mouse::detectShakeXY(double x, double y)
 {
     if (config.shakeDetection && shakeDetector.isShakingAbs(x)) {
-        msgQueue.put(MSG_SHAKING);
+        msgQueue.put(Msg::SHAKING);
         return true;
     }
     return false;
@@ -228,7 +203,7 @@ bool
 Mouse::detectShakeDxDy(double dx, double dy)
 {
     if (config.shakeDetection && shakeDetector.isShakingRel(dx)) {
-        msgQueue.put(MSG_SHAKING);
+        msgQueue.put(Msg::SHAKING);
         return true;
     }
     return false;
@@ -242,7 +217,7 @@ Mouse::setXY(double x, double y)
     targetX = x * scaleX;
     targetY = y * scaleY;
     
-    port.setDevice(CPD_MOUSE);
+    port.setDevice(ControlPortDevice::MOUSE);
     port.updateMouseXY((i64)targetX, (i64)targetY);
 }
 
@@ -254,7 +229,7 @@ Mouse::setDxDy(double dx, double dy)
     targetX += dx * scaleX;
     targetY += dy * scaleY;
     
-    port.setDevice(CPD_MOUSE);
+    port.setDevice(ControlPortDevice::MOUSE);
     port.updateMouseXY((i64)targetX, (i64)targetY);
 }
 
@@ -264,7 +239,7 @@ Mouse::setLeftButton(bool value)
     trace(PRT_DEBUG, "setLeftButton(%d)\n", value);
     
     leftButton = value;
-    port.setDevice(CPD_MOUSE);
+    port.setDevice(ControlPortDevice::MOUSE);
 }
 
 void
@@ -273,7 +248,7 @@ Mouse::setMiddleButton(bool value)
     trace(PRT_DEBUG, "setMiddleButton(%d)\n", value);
 
     middleButton = value;
-    port.setDevice(CPD_MOUSE);
+    port.setDevice(ControlPortDevice::MOUSE);
 }
 
 void
@@ -282,7 +257,7 @@ Mouse::setRightButton(bool value)
     trace(PRT_DEBUG, "setRightButton(%d)\n", value);
     
     rightButton = value;
-    port.setDevice(CPD_MOUSE);
+    port.setDevice(ControlPortDevice::MOUSE);
 }
 
 void
@@ -294,12 +269,12 @@ Mouse::trigger(GamePadAction event)
 
     switch (event) {
 
-        case PRESS_LEFT: setLeftButton(true); break;
-        case RELEASE_LEFT: setLeftButton(false); break;
-        case PRESS_MIDDLE: setMiddleButton(true); break;
-        case RELEASE_MIDDLE: setMiddleButton(false); break;
-        case PRESS_RIGHT: setRightButton(true); break;
-        case RELEASE_RIGHT: setRightButton(false); break;
+        case GamePadAction::PRESS_LEFT: setLeftButton(true); break;
+        case GamePadAction::RELEASE_LEFT: setLeftButton(false); break;
+        case GamePadAction::PRESS_MIDDLE: setMiddleButton(true); break;
+        case GamePadAction::RELEASE_MIDDLE: setMiddleButton(false); break;
+        case GamePadAction::PRESS_RIGHT: setRightButton(true); break;
+        case GamePadAction::RELEASE_RIGHT: setRightButton(false); break;
         default: break;
     }
 }

@@ -2,16 +2,16 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
 
-#include "Types.h"
+#include "BasicTypes.h"
 
-namespace util {
+namespace vamiga::util {
 
 // Returns the FNV-1a seed value
 inline u32 fnvInit32() { return 0x811c9dc5; }
@@ -28,6 +28,5 @@ u64 fnv64(const u8 *addr, isize size);
 // Computes a CRC checksum for a given buffer
 u16 crc16(const u8 *addr, isize size);
 u32 crc32(const u8 *addr, isize size);
-u32 crc32forByte(u32 r);
 
 }

@@ -16,13 +16,22 @@
 
 namespace vamiga {
 
-class UART : public SubComponent {
-    
+class UART final : public SubComponent, public Inspectable<UARTInfo> {
+
+    Descriptions descriptions = {{
+
+        .type           = Class::UART,
+        .name           = "UART",
+        .description    = "Universal Asynchronous Receiver Transmitter",
+        .shell          = "uart"
+    }};
+
+    Options options = {
+
+    };
+
     friend class SerServer;
     
-    // Result of the latest inspection
-    mutable UARTInfo info = {};
-
     // Port period and control register
     u16 serper;
 
@@ -43,6 +52,9 @@ class UART : public SubComponent {
     // Bit reception counter
     u8 recCnt;
 
+    // Experimental
+    string payload;
+
 
     //
     // Initializing
@@ -52,34 +64,29 @@ public:
     
     using SubComponent::SubComponent;
     
-    
-    //
-    // Methods from CoreObject
-    //
-    
-private:
-    
-    const char *getDescription() const override { return "UART"; }
-    void _dump(Category category, std::ostream& os) const override;
+    UART& operator= (const UART& other) {
 
-    
-    //
-    // Methods from CoreComponent
-    //
-    
-private:
-    
-    void _reset(bool hard) override;
-    void _inspect() const override;
-    
-    template <class T>
-    void applyToPersistentItems(T& worker)
-    {
-        
+        CLONE(serper)
+        CLONE(receiveBuffer)
+        CLONE(receiveShiftReg)
+        CLONE(transmitBuffer)
+        CLONE(transmitShiftReg)
+        CLONE(outBit)
+        CLONE(ovrun)
+        CLONE(recCnt)
+
+        return *this;
     }
-    
+
+
+    //
+    // Methods from Serializable
+    //
+
+private:
+
     template <class T>
-    void applyToResetItems(T& worker, bool hard = true)
+    void serialize(T& worker)
     {
         worker
 
@@ -91,23 +98,42 @@ private:
         << outBit
         << ovrun
         << recCnt;
-    }
 
-    isize _size() override { COMPUTE_SNAPSHOT_SIZE }
-    u64 _checksum() override { COMPUTE_SNAPSHOT_CHECKSUM }
-    isize _load(const u8 *buffer) override { LOAD_SNAPSHOT_ITEMS }
-    isize _save(u8 *buffer) override { SAVE_SNAPSHOT_ITEMS }
-    
-    
+    } SERIALIZERS(serialize);
+
+
     //
-    // Analyzing
+    // Methods from CoreComponent
     //
 
 public:
 
-    UARTInfo getInfo() const { return CoreComponent::getInfo(info); }
+    const Descriptions &getDescriptions() const override { return descriptions; }
+
+private:
+    
+    void _dump(Category category, std::ostream &os) const override;
+    void _didReset(bool hard) override;
 
 
+    //
+    // Methods from Configurable
+    //
+
+public:
+
+    const Options &getOptions() const override { return options; }
+
+
+    //
+    // Methods from Inspectable
+    //
+
+public:
+
+    void cacheInfo(UARTInfo &result) const override;
+
+    
     //
     // Accessing
     //
@@ -130,7 +156,7 @@ public:
     Cycle pulseWidth() const { return DMA_CYCLES((serper & 0x7FFF) + 1); }
 
     // Returns the baud rate
-    isize baudRate() const { return CLK_FREQUENCY_PAL / (isize)pulseWidth(); }
+    isize baudRate() const { return PAL::CLK_FREQUENCY / (isize)pulseWidth(); }
     
 private:
 
@@ -159,13 +185,17 @@ public:
     // Called when the RXD port pin changes it's value
     void rxdHasChanged(bool value);
 
+    // Feeds text into the UART
+    void operator<<(char c);
+    void operator<<(const string &s);
+
 private:
 
     // Called when a byte has been received
-    void recordIncomingByte(u8 byte);
+    void recordIncomingByte(int byte);
 
     // Called when a byte has been sent
-    void recordOutgoingByte(u8 byte);
+    void recordOutgoingByte(int byte);
 
 
     //

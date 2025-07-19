@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
@@ -15,22 +15,29 @@
 #include "AudioStream.h"
 #include "ChangeRecorder.h"
 #include "DiskController.h"
-#include "Muxer.h"
+#include "AudioPort.h"
 #include "StateMachine.h"
 #include "UART.h"
 
 namespace vamiga {
 
-class Paula : public SubComponent {
-    
-private:
+class Paula final : public SubComponent, public Inspectable<PaulaInfo> {
 
-    // Result of the latest inspection
-    mutable PaulaInfo info = {};
+    Descriptions descriptions = {{
+
+        .type           = Class::Paula,
+        .name           = "Paula",
+        .description    = "Audio, Interrupts, Disk Control",
+        .shell          = "paula"
+    }};
+
+    Options options = {
+
+    };
 
     
     //
-    // Sub components
+    // Subcomponents
     //
     
 public:
@@ -40,9 +47,6 @@ public:
     StateMachine<1> channel1 = StateMachine<1>(amiga);
     StateMachine<2> channel2 = StateMachine<2>(amiga);
     StateMachine<3> channel3 = StateMachine<3>(amiga);
-
-    // Audio muxer
-    Muxer muxer = Muxer(amiga);
 
     // Disk controller
     DiskController diskController = DiskController(amiga);
@@ -107,48 +111,46 @@ public:
 
     Paula(Amiga& ref);
     
-    
-    //
-    // Methods from CoreObject
-    //
-    
-private:
-    
-    const char *getDescription() const override { return "Paula"; }
-    void _dump(Category category, std::ostream& os) const override;
+    Paula& operator= (const Paula& other) {
 
-    
-    //
-    // Methods from CoreComponent
-    //
+        CLONE(channel0)
+        CLONE(channel1)
+        CLONE(channel2)
+        CLONE(channel3)
+        CLONE(diskController)
+        CLONE(uart)
 
-private:
-    
-    void _reset(bool hard) override;
-    void _run() override;
-    void _pause() override;
-    void _warpOn() override;
-    void _warpOff() override;
-    void _inspect() const override;
+        CLONE(intreq)
+        CLONE(intena)
+        CLONE_ARRAY(setIntreq)
+        CLONE(iplPipe)
+        CLONE(potgo)
+        CLONE(potCntX0)
+        CLONE(potCntY0)
+        CLONE(potCntX1)
+        CLONE(potCntY1)
+        CLONE(chargeX0)
+        CLONE(chargeY0)
+        CLONE(chargeX1)
+        CLONE(chargeY1)
+        CLONE(adkcon)
+        CLONE(audioClock)
 
-    template <class T>
-    void applyToPersistentItems(T& worker)
-    {
-        
+        return *this;
     }
 
+
+    //
+    // Methods from Serializable
+    //
+
+private:
+
     template <class T>
-    void applyToResetItems(T& worker, bool hard = true)
+    void serialize(T& worker)
     {
-        if (hard) {
-
-            worker
-
-            << audioClock;
-        }
-
         worker
-        
+
         << intreq
         << intena
         << setIntreq
@@ -163,22 +165,53 @@ private:
         << chargeX1
         << chargeY1
         << adkcon;
-    }
 
-    isize _size() override { COMPUTE_SNAPSHOT_SIZE }
-    u64 _checksum() override { COMPUTE_SNAPSHOT_CHECKSUM }
-    isize _load(const u8 *buffer) override { LOAD_SNAPSHOT_ITEMS }
-    isize _save(u8 *buffer) override { SAVE_SNAPSHOT_ITEMS }
-    isize didLoadFromBuffer(const u8 *buffer) override;
-    
-    
+        if (isSoftResetter(worker)) return;
+
+        worker
+
+        << audioClock;
+
+    } SERIALIZERS(serialize);
+
+
     //
-    // Analyzing
+    // Methods from CoreObject
+    //
+
+public:
+
+    const Descriptions &getDescriptions() const override { return descriptions; }
+
+private:
+
+    void _dump(Category category, std::ostream &os) const override;
+
+    void _run() override;
+    void _pause() override;
+    void _warpOn() override;
+    void _warpOff() override;
+
+    void _didReset(bool hard) override;
+    void _didLoad() override;
+
+
+    //
+    // Methods from Configurable
+    //
+
+public:
+
+    const Options &getOptions() const override { return options; }
+
+
+    //
+    // Methods from Inspectable
     //
     
 public:
     
-    PaulaInfo getInfo() const { return CoreComponent::getInfo(info); }
+    void cacheInfo(PaulaInfo &result) const override;
 
 
     //
@@ -195,7 +228,7 @@ public:
 public:
     
     // Signals an interrupt in INTREQ
-    void raiseIrq(IrqSource src) { setINTREQ(true, (u16)(1 << src)); }
+    void raiseIrq(IrqSource src) { setINTREQ(true, u16(1 << isize(src))); }
     
     // Schedules an interrupt
     void scheduleIrqAbs(IrqSource src, Cycle trigger);

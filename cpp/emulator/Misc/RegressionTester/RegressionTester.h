@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
@@ -15,20 +15,31 @@
 
 namespace vamiga {
 
-class RegressionTester : public SubComponent {
+class RegressionTester final : public SubComponent {
 
-    // Pixel area ritten to the test image
+    Descriptions descriptions = {{
+
+        .type           = Class::RegressionTester,
+        .name           = "Regression",
+        .description    = "Regression Tester",
+        .shell          = "regression"
+    }};
+
+    Options options = {
+
+    };
+
     static constexpr isize X1 = 4 * 0x31;
-    static constexpr isize Y1 = VBLANK_MAX + 1;
+    static constexpr isize Y1 = PAL::VBLANK_MAX + 1;
     static constexpr isize X2 = HPIXELS;
     static constexpr isize Y2 = VPIXELS - 2;
 
 public:
 
     // Filename of the test image
-    string dumpTexturePath = "texture";
+    fs::path dumpTexturePath = fs::path("texture");
 
-    // Pixel ares observed by this regression test
+    // Pixel area which is written to the test image
     isize x1 = X1;
     isize y1 = Y1;
     isize x2 = X2;
@@ -48,15 +59,19 @@ public:
     
     using SubComponent::SubComponent;
     
-    
+    RegressionTester& operator= (const RegressionTester& other) {
+
+        return *this;
+    }
+
+
     //
     // Methods from CoreObject
     //
     
 private:
     
-    const char *getDescription() const override { return "RegressionTester"; }
-    void _dump(Category category, std::ostream& os) const override { }
+    void _dump(Category category, std::ostream &os) const override { }
 
     
     //
@@ -65,13 +80,22 @@ private:
 
 private:
     
-    void _reset(bool hard) override { };
-    isize _size() override { return 0; }
-    u64 _checksum() override { return 0; }
-    isize _load(const u8 *buffer) override { return 0; }
-    isize _save(u8 *buffer) override { return 0; }
-    
-    
+    template <class T> void serialize(T& worker) { } SERIALIZERS(serialize);
+        
+public:
+
+    const Descriptions &getDescriptions() const override { return descriptions; }
+
+
+    //
+    // Methods from Configurable
+    //
+
+public:
+
+    const Options &getOptions() const override { return options; }
+
+
     //
     // Running a regression test
     //
@@ -79,15 +103,15 @@ private:
 public:
 
     // Reverts to factory settings
-    void prepare(ConfigScheme scheme, string rom = "", string ext = "");
+    void prepare(ConfigScheme scheme, const fs::path &rom = {}, const fs::path &ext = {});
     
     // Runs a test case
-    void run(string adf);
+    void run(const fs::path &adf);
     
     // Creates the test image and exits the emulator
     void dumpTexture(Amiga &amiga);
-    void dumpTexture(Amiga &amiga, const string &filename);
-    void dumpTexture(Amiga &amiga, std::ostream& os);
+    void dumpTexture(Amiga &amiga, const fs::path &filename);
+    void dumpTexture(Amiga &amiga, std::ostream &os);
 
     
     //

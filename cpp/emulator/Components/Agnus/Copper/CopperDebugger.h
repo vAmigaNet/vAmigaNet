@@ -2,16 +2,17 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
 
 #include "SubComponent.h"
+#include "CPU.h"
 #include "MoiraDebugger.h"
-#include <map>
+#include <unordered_map>
 
 namespace vamiga {
 
@@ -21,33 +22,45 @@ struct CopperList {
     u32 end;
 };
 
-class CopperBreakpoints : public moira::Guards {
+class CopperBreakpoints : public GuardList {
 
     class Copper &copper;
 
 public:
     
-    CopperBreakpoints(Copper& ref) : copper(ref) { }
+    CopperBreakpoints(Copper& ref);
     void setNeedsCheck(bool value) override;
 };
 
-class CopperWatchpoints : public moira::Guards {
+class CopperWatchpoints : public GuardList {
 
     class Copper &copper;
 
 public:
     
-    CopperWatchpoints(Copper& ref) : copper(ref) { }
+    CopperWatchpoints(Copper& ref);
     void setNeedsCheck(bool value) override;
 };
 
-class CopperDebugger: public SubComponent {
+class CopperDebugger final : public SubComponent {
+
+    Descriptions descriptions = {{
+
+        .type           = Class::CopperDebugger,
+        .name           = "cdebugger",
+        .description    = "Copper Debugger",
+        .shell          = ""
+    }};
+
+    Options options = {
+
+    };
 
     friend class Amiga;
     friend class Copper;
     
     // Cached Copper lists
-    std::map<u32, CopperList> cache;
+    std::unordered_map<u32, CopperList> cache;
 
     // The most recently used Copper list 1
     CopperList *current1 = nullptr;
@@ -70,30 +83,38 @@ public:
     
     using SubComponent::SubComponent;
 
+    
+    //
+    // Methods from Serializable
+    //
 
-    //
-    // Methods from CoreObject
-    //
-    
 private:
-    
-    const char *getDescription() const override { return "CopperDebugger"; }
-    void _dump(Category category, std::ostream& os) const override;
-    
-    
+        
+    template <class T> void serialize(T& worker) { } SERIALIZERS(serialize);
+
+
     //
     // Methods from CoreComponent
     //
 
+public:
+
+    const Descriptions &getDescriptions() const override { return descriptions; }
+
 private:
-    
-    void _reset(bool hard) override;
-    
-    isize _size() override { return 0; }
-    u64 _checksum() override { return 0; }
-    isize _load(const u8 *buffer) override { return 0; }
-    isize _save(u8 *buffer) override { return 0; }
-    
+
+    void _dump(Category category, std::ostream &os) const override;
+    void _didReset(bool hard) override;
+
+
+    //
+    // Methods from Configurable
+    //
+
+public:
+
+    const Options &getOptions() const override { return options; }
+
 
     //
     // Tracking the Copper
@@ -113,29 +134,15 @@ public:
     
     
     //
-    // Disassembling instructions
+    // Disassembling
     //
+        
+    // Disassembles a Copper list
+    void disassemble(std::ostream &os, isize list, bool symbolic = true, isize maxLines = 128) const;
     
     // Disassembles a single Copper command
     string disassemble(isize list, isize offset, bool symbolic) const;
     string disassemble(u32 addr, bool symbolic) const;
-    
-
-    //
-    // Manages the breakpoint and watchpoint lists
-    //
-
-    void setBreakpoint(u32 addr) throws;
-    void deleteBreakpoint(isize nr) throws;
-    void enableBreakpoint(isize nr) throws;
-    void disableBreakpoint(isize nr) throws;
-    void ignoreBreakpoint(isize nr, isize count) throws;
-
-    void setWatchpoint(u32 addr) throws;
-    void deleteWatchpoint(isize nr) throws;
-    void enableWatchpoint(isize nr) throws;
-    void disableWatchpoint(isize nr) throws;
-    void ignoreWatchpoint(isize nr, isize count) throws;
 };
 
 }

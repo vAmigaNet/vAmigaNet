@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #include "config.h"
@@ -135,7 +135,7 @@ CIA::peek(u16 addr)
             fatalError;
     }
     
-    trace(CIAREG_DEBUG, "Peek(%d [%s]) = %02x\n", addr, CIARegEnum::key(addr), result);
+    trace(CIAREG_DEBUG, "Peek(%d [%s]) = %02x\n", addr, CIARegEnum::key(CIAReg(addr)), result);
     
     return result;
 }
@@ -209,7 +209,7 @@ CIA::spypeek(u16 addr) const
 void
 CIA::poke(u16 addr, u8 value)
 {
-    trace(CIAREG_DEBUG, "Poke(%d [%s], %02x)\n", addr, CIARegEnum::key(addr), value);
+    trace(CIAREG_DEBUG, "Poke(%d [%s], %02x)\n", addr, CIARegEnum::key(CIAReg(addr)), value);
     
     wakeUp();
     

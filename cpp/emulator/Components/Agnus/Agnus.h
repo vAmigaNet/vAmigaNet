@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
@@ -32,22 +32,29 @@ static constexpr usize DRAW_ODD =  0b001;
 static constexpr usize DRAW_EVEN = 0b010;
 static constexpr usize DRAW_BOTH = 0b011;
 
-class Agnus : public SubComponent {
+
+class Agnus : public SubComponent, public Inspectable<AgnusInfo, AgnusStats> {
+
+    Descriptions descriptions = {{
+
+        .type           = Class::Agnus,
+        .name           = "Agnus",
+        .description    = "DMA Controller",
+        .shell          = "agnus"
+    }};
+
+    Options options = {
+
+        Opt::AGNUS_REVISION,
+        Opt::AGNUS_PTR_DROPS
+    };
 
     // Current configuration
     AgnusConfig config = {};
 
-    // Result of the latest inspection
-    mutable AgnusInfo info = {};
-    mutable EventInfo eventInfo = {};
-    mutable EventSlotInfo slotInfo[SLOT_COUNT];
-
-    // Current workload
-    AgnusStats stats = {};
-
 
     //
-    // Sub components
+    // Subcomponents
     //
     
 public:
@@ -79,9 +86,8 @@ public:
     // Pending register changes
     RegChangeRecorder<8> changeRecorder;
 
-    // An optional sync event to be processed in serviceRegEvent()
-    EventID syncEvent = EVENT_NONE;
-
+    // Optional events to be processed in serviceRegEvent()
+    EventFlags syncEvent = 0;
     
     //
     // Counters
@@ -139,7 +145,7 @@ public:
     //
 
     // Bitplane resolution (derived from bplcon0)
-    Resolution res = 0;
+    Resolution res = Resolution::LORES;
 
     // Bitplane offsets (derived from bplcon1)
     i8 scrollOdd = 0;
@@ -152,13 +158,18 @@ public:
 
 public:
     
-    // Recorded DMA values for all cycles in the current rasterline
-    u16 busValue[HPOS_CNT] = { };
-
-    // Recorded DMA usage for all cycles in the current rasterline
+    // Recorded bus ownership for all cycles in the current rasterline
     BusOwner busOwner[HPOS_CNT] = { };
 
+    // Recorded address bus for all cycles in the current rasterline
+    u32 busAddr[HPOS_CNT] = { };
     
+    // Recorded data bus for all cycles in the current rasterline
+    u16 busData[HPOS_CNT] = { };
+
+    // Remembers the last write to SPRxCTL (EXPERIMENTAL)
+    u8 lastCtlWrite[8] = { };
+
     //
     // Signals from other components
     //
@@ -188,9 +199,16 @@ public:
     isize sprVStop[8] = { };
 
     // The current DMA states of all 8 sprites
-    SprDMAState sprDmaState[8] = { };
+    bool sprDmaEnabled[8] = { };
 
     
+    //
+    // Class methods
+    //
+
+    static const char *eventName(EventSlot slot, EventID id);
+
+
     //
     // Initializing
     //
@@ -198,66 +216,30 @@ public:
 public:
     
     Agnus(Amiga& ref);
-    
+    Agnus& operator= (const Agnus& other);
+ 
     
     //
-    // Class methods
+    // Methods from Serializable
     //
-    
-    static const char *eventName(EventSlot slot, EventID id);
 
-    
-    //
-    // Methods from CoreObject
-    //
-    
 private:
-    
-    const char *getDescription() const override { return "Agnus"; }
-    void _dump(Category category, std::ostream& os) const override;
-
-    
-    //
-    // Methods from CoreComponent
-    //
-    
-private:
-    
-    void _reset(bool hard) override;
-    void _inspect() const override;
 
     template <class T>
-    void applyToPersistentItems(T& worker)
+    void serialize(T& worker)
     {
         worker
 
-        << config.revision
-        << config.slowRamMirror
-        << ptrMask;
-    }
-
-    template <class T>
-    void applyToResetItems(T& worker, bool hard = true)
-    {
-        if (hard) {
-            
-            worker
-
-            << clock;
-        }
-
-        worker
-        
         << trigger
         << id
         << data
         << nextTrigger
-        >> changeRecorder
+        << changeRecorder
         << syncEvent
-        
-        >> pos
-        >> latchedPos
-        
+
+        << pos
+        << latchedPos
+
         << bplcon0
         << bplcon0Initial
         << bplcon1
@@ -274,9 +256,11 @@ private:
         << res
         << scrollOdd
         << scrollEven
-        
-        << busValue
+
         << busOwner
+        // << busAddr
+        << busData
+        << lastCtlWrite
 
         << audxDR
         << audxDSR
@@ -284,39 +268,70 @@ private:
 
         << sprVStrt
         << sprVStop
-        << sprDmaState;
+        << sprDmaEnabled;
+
+        if (isSoftResetter(worker)) return;
+
+        worker
+
+        << clock;
+
+        if (isResetter(worker)) return;
+
+        worker
+
+        << config.revision
+        << config.ptrDrops
+        << ptrMask;
     }
 
-    isize _size() override { COMPUTE_SNAPSHOT_SIZE }
-    u64 _checksum() override { COMPUTE_SNAPSHOT_CHECKSUM }
-    isize _load(const u8 *buffer) override { LOAD_SNAPSHOT_ITEMS }
-    isize _save(u8 *buffer) override { SAVE_SNAPSHOT_ITEMS }
+    void operator << (SerResetter &worker) override;
+    void operator << (SerChecker &worker) override { serialize(worker); }
+    void operator << (SerCounter &worker) override { serialize(worker); }
+    void operator << (SerReader &worker) override { serialize(worker); }
+    void operator << (SerWriter &worker) override { serialize(worker); }
+
+
+    //
+    // Methods from CoreComponent
+    //
+
+public:
+
+    const Descriptions &getDescriptions() const override { return descriptions; }
+
+private:
     
+    void _dump(Category category, std::ostream &os) const override;
+
     
     //
-    // Configuring
+    // Methods from Configurable
     //
-    
+
 public:
     
     const AgnusConfig &getConfig() const { return config; }
-    void resetConfig() override;
-    
-    i64 getConfigItem(Option option) const;
-    void setConfigItem(Option option, i64 value);
+    const Options &getOptions() const override { return options; }
+    i64 getOption(Opt option) const override;
+    void checkOption(Opt opt, i64 value) override;
+    void setOption(Opt option, i64 value) override;
 
-    void setVideoFormat(VideoFormat newFormat);
+    void setVideoFormat(TV newFormat);
 
 
     //
-    // Querying chip properties
+    // Deriving chip properties
     //
 
 public:
 
+    // Returns properties about the currently selected VICII revision
+    AgnusTraits getTraits() const;
+
     bool isOCS() const;
     bool isECS() const;
-    bool isPAL() const { return pos.type == PAL; }
+    bool isPAL() const { return pos.type == TV::PAL; }
     bool isNTSC() const { return !isPAL(); }
 
     // Returns the chip identification bits of this Agnus (show up in VPOSR)
@@ -326,14 +341,11 @@ public:
     isize chipRamLimit() const;
 
     // Returns the line in which the VERTB interrupt is triggered
-    isize vStrobeLine() const { return config.revision == AGNUS_OCS_OLD ? 1 : 0; }
+    isize vStrobeLine() const { return config.revision == AgnusRevision::OCS_OLD ? 1 : 0; }
     
     // Returns a bitmask indicating the used bits in DDFSTRT / DDFSTOP
     u16 ddfMask() const { return isOCS() ? 0xFC : 0xFE; }
     
-    // Checks whether Agnus is able to access Slow Ram
-    bool slowRamIsMirroredIn() const;
-
     
     //
     // Analyzing
@@ -341,15 +353,10 @@ public:
     
 public:
     
-    AgnusInfo getInfo() const { return CoreComponent::getInfo(info); }
-    EventInfo getEventInfo() const { return CoreComponent::getInfo(eventInfo); }
-    EventSlotInfo getSlotInfo(isize nr) const;
-    const AgnusStats &getStats() { return stats; }
-    
+    void cacheInfo(AgnusInfo &result) const override;
+
 private:
     
-    void inspectSlot(EventSlot nr) const;
-    void clearStats();
     void updateStats();
 
 
@@ -360,7 +367,7 @@ private:
 public:
 
     // Indicates if the electron beam is inside the VBLANK area
-    bool inVBlankArea(isize posv) const { return posv < 26; }
+    bool inVBlankArea(isize posv) const { return posv < (isPAL() ? 26 : 20); }
     bool inVBlankArea() const { return inVBlankArea(pos.v); }
 
     // Indicates if the current rasterline is the last line in this frame
@@ -378,9 +385,9 @@ public:
     Resolution resolution(u16 v);
 
     // Queries the currently set bitmap resolution
-    bool lores() { return res == LORES; }
-    bool hires() { return res == HIRES; }
-    bool shres() { return res == SHRES; }
+    bool lores() { return res == Resolution::LORES; }
+    bool hires() { return res == Resolution::HIRES; }
+    bool shres() { return res == Resolution::SHRES; }
 
     // Returns the external synchronization bit from BPLCON0
     static bool ersy(u16 value) { return GET_BIT(value, 1); }
@@ -407,7 +414,8 @@ public:
     void executeUntilBusIsFreeForCIA();
 
     // Schedules a register to change its value
-    void recordRegisterChange(Cycle delay, u32 addr, u16 value, Accessor acc = 0);
+    void recordRegisterChange(Cycle delay, RegChange regChange);
+    void recordRegisterChange(Cycle delay, Reg reg, u16 value, Accessor acc = Accessor::CPU);
 
 private:
 
@@ -419,6 +427,9 @@ private:
 
     // Executes the second sprite DMA cycle
     template <isize nr> void executeSecondSpriteCycle();
+
+    // Checks whether the sprite DMA cycle is blocked by bitplane DMA
+    bool spriteCycleIsBlocked();
 
     // Updates the sprite DMA status in cycle 0xDF
     void updateSpriteDMA();
@@ -539,8 +550,11 @@ public:
     void pokeBPL2MOD(u16 value);
     void setBPL2MOD(u16 value);
     
-    template <int x> void pokeSPRxPOS(u16 value);
-    template <int x> void pokeSPRxCTL(u16 value);
+    template <int x, Accessor> void pokeSPRxPOS(u16 value);
+    template <int x> void setSPRxPOS(u16 value);
+
+    template <int x, Accessor> void pokeSPRxCTL(u16 value);
+    template <int x> void setSPRxCTL(u16 value);
 
     void pokeBEAMCON0(u16 value);
 
@@ -656,7 +670,7 @@ public:
         if constexpr (isTertiarySlot(s)) {
             if (cycle < trigger[SLOT_TER]) trigger[SLOT_TER] = cycle;
         }
-        if constexpr (isSecondarySlot(s)) {
+        if constexpr (isSecondarySlot(s) || isTertiarySlot(s)) {
             if (cycle < trigger[SLOT_SEC]) trigger[SLOT_SEC] = cycle;
         }
     }
@@ -773,7 +787,7 @@ public:
     void serviceDASEvent(EventID id);
     
     // Services an inspection event
-    void serviceINSEvent(EventID id);
+    void serviceINSEvent();
 };
 
 }

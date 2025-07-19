@@ -2,74 +2,81 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
 
 #include "DriveTypes.h"
+#include "FloppyDiskTypes.h"
+#include "BootBlockImageTypes.h"
+
+namespace vamiga {
 
 //
 // Enumerations
 //
 
-enum_long(DRIVE_TYPE)
+enum class FloppyDriveType : long
 {
-    DRIVE_DD_35,
-    DRIVE_HD_35,
-    DRIVE_DD_525
+    DD_35,
+    HD_35,
+    DD_525
 };
-typedef DRIVE_TYPE FloppyDriveType;
 
-#ifdef __cplusplus
-struct FloppyDriveTypeEnum : util::Reflection<FloppyDriveTypeEnum, FloppyDriveType>
+struct FloppyDriveTypeEnum : Reflection<FloppyDriveTypeEnum, FloppyDriveType>
 {
     static constexpr long minVal = 0;
-    static constexpr long maxVal = DRIVE_DD_525;
-    static bool isValid(auto val) { return val >= minVal && val <= maxVal; }
+    static constexpr long maxVal = long(FloppyDriveType::DD_525);
     
-    static const char *prefix() { return "DRIVE"; }
-    static const char *key(FloppyDriveType value)
+    static const char *_key(FloppyDriveType value)
     {
         switch (value) {
                 
-            case DRIVE_DD_35:   return "DD_35";
-            case DRIVE_HD_35:   return "HD_35";
-            case DRIVE_DD_525:  return "DD_525";
+            case FloppyDriveType::DD_35:   return "DD_35";
+            case FloppyDriveType::HD_35:   return "HD_35";
+            case FloppyDriveType::DD_525:  return "DD_525";
         }
         return "???";
     }
+    static const char *help(FloppyDriveType value)
+    {
+        return "";
+    }
 };
-#endif
 
-enum_long(DRIVE_MECHANICS)
+enum class DriveMechanics
 {
-    MECHANICS_NONE,
-    MECHANICS_A1010
+    NONE,
+    A1010
 };
-typedef DRIVE_MECHANICS DriveMechanics;
 
-#ifdef __cplusplus
-struct DriveMechanicsEnum : util::Reflection<DriveMechanicsEnum, DriveMechanics>
+struct DriveMechanicsEnum : Reflection<DriveMechanicsEnum, DriveMechanics>
 {
     static constexpr long minVal = 0;
-    static constexpr long maxVal = MECHANICS_A1010;
-    static bool isValid(auto val) { return val >= minVal && val <= maxVal; }
-
-    static const char *prefix() { return "DMECHANICS"; }
-    static const char *key(DriveMechanics value)
+    static constexpr long maxVal = long(DriveMechanics::A1010);
+    
+    static const char *_key(DriveMechanics value)
     {
         switch (value) {
-
-            case MECHANICS_NONE:    return "NONE";
-            case MECHANICS_A1010:   return "A1010";
+                
+            case DriveMechanics::NONE:    return "NONE";
+            case DriveMechanics::A1010:   return "A1010";
+        }
+        return "???";
+    }
+    static const char *help(DriveMechanics value)
+    {
+        switch (value) {
+                
+            case DriveMechanics::NONE:    return "No mechanical delays";
+            case DriveMechanics::A1010:   return "Commodore Floppy drive";
         }
         return "???";
     }
 };
-#endif
 
 
 //
@@ -78,30 +85,21 @@ struct DriveMechanicsEnum : util::Reflection<DriveMechanicsEnum, DriveMechanics>
 
 typedef struct
 {
+    // Connection status
+    bool connected;
+    
     // Drive model
     FloppyDriveType type;
-
+    
     // Drive mechanics
     DriveMechanics mechanics;
-
+    
     /* Revolutions per minute. A standard Amiga drive rotates with 300 rpm.
      * Rotation speed can be measured with AmigaTestKit which analyzes the
      * delay between consecutive index pulses. 300 rpm corresponds to an index
      * pulse delay of 200 ms.
      */
     isize rpm;
-
-    /* Mechanical delays. The start and stop delays specify the number of
-     * cycles that pass between switching the drive motor on or off until the
-     * drive motor runs at full speed or came to rest, respectively. The step
-     * delay specifies the number of cycle needed by the drive head to move to
-     * another cylinder. During this time, the FIFO is filled with garbage data.
-     */
-    /*
-    Cycle startDelay;
-    Cycle stopDelay;
-    Cycle stepDelay;
-    */
     
     // Delay between ejecting an old disk and inserting a new one
     Cycle diskSwapDelay;
@@ -117,9 +115,17 @@ FloppyDriveConfig;
 
 typedef struct
 {
+    isize nr;
     DriveHead head;
+    bool isConnected;
     bool hasDisk;
+    bool hasModifiedDisk;
+    bool hasUnmodifiedDisk;
+    bool hasProtectedDisk;
+    bool hasUnprotectedDisk;
     bool motor;
+    bool writing;
 }
 FloppyDriveInfo;
 
+}

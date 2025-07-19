@@ -2,19 +2,19 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
 
-#include "RemoteServer.h"
+#include "SocketServer.h"
 #include "RingBuffer.h"
 
 namespace vamiga {
 
-class SerServer : public RemoteServer {
+class SerServer final : public SocketServer {
 
     // A ringbuffer for buffering incoming bytes
     util::SortedRingBuffer <u8, 8096> buffer;
@@ -41,26 +41,24 @@ class SerServer : public RemoteServer {
     
 public:
     
-    SerServer(Amiga& ref);
-    
+    using SocketServer::SocketServer;
+
+    SerServer& operator= (const SerServer& other) {
+
+        SocketServer::operator = (other);
+        return *this;
+    }
+
 
     //
     // Methods from CoreObject
     //
     
-protected:
-    
-    const char *getDescription() const override { return "SerServer"; }
-    void _dump(Category category, std::ostream& os) const override;
+private:
 
-    
-    //
-    // Methods from CoreComponent
-    //
+    void _dump(Category category, std::ostream &os) const override;
 
-    void resetConfig() override;
 
-    
     //
     // Methods from RemoteServer
     //
@@ -68,6 +66,14 @@ protected:
 public:
     
     bool shouldRun() override;
+
+
+    //
+    // Methods from SocketServer
+    //
+
+public:
+
     string doReceive() override;
     void doSend(const string &packet) override;
     void doProcess(const string &packet) override;

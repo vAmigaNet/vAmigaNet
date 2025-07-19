@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #include "config.h"
@@ -97,7 +97,7 @@ Agnus::scheduleFirstBplEvent()
 void
 Agnus::scheduleNextBplEvent(isize hpos)
 {
-    assert(hpos >= 0 && hpos < HPOS_CNT_NTSC);
+    assert(hpos >= 0 && hpos < HPOS_CNT);
 
     u8 next = sequencer.nextBplEvent[hpos];
     scheduleRel<SLOT_BPL>(DMA_CYCLES(next - pos.h), sequencer.bplEvent[next]);
@@ -106,7 +106,7 @@ Agnus::scheduleNextBplEvent(isize hpos)
 void
 Agnus::scheduleBplEventForCycle(isize hpos)
 {
-    assert(hpos >= pos.h && hpos < HPOS_CNT_NTSC);
+    assert(hpos >= pos.h && hpos < HPOS_CNT);
 
     if (sequencer.bplEvent[hpos] != EVENT_NONE) {
         scheduleRel<SLOT_BPL>(DMA_CYCLES(hpos - pos.h), sequencer.bplEvent[hpos]);
@@ -152,11 +152,19 @@ Agnus::scheduleDasEventForCycle(isize hpos)
 void
 Agnus::scheduleNextREGEvent()
 {
-    // Determine when the next register change happens
-    Cycle next = changeRecorder.trigger();
-
-    // Schedule a register change event for that cycle
-    if (next < trigger[SLOT_REG]) scheduleAbs<SLOT_REG>(next, REG_CHANGE);
+    if (syncEvent) {
+        
+        // Schedule an event for the next cycle as there are pending events
+        scheduleRel <SLOT_REG> (DMA_CYCLES(1), REG_CHANGE);
+        
+    } else {
+        
+        // Determine when the next register change happens
+        Cycle next = changeRecorder.trigger();
+        
+        // Schedule a register change event for that cycle
+        scheduleAbs <SLOT_REG> (next, REG_CHANGE);
+    }
 }
 
 void
@@ -180,18 +188,16 @@ Agnus::scheduleStrobe2Event()
 void
 Agnus::serviceREGEvent(Cycle until)
 {
-    assert(pos.type != PAL || pos.h <= HPOS_CNT_PAL);
-    assert(pos.type == PAL || pos.h <= HPOS_CNT_NTSC);
+    assert(pos.type != TV::PAL || pos.h <= PAL::HPOS_CNT);
+    assert(pos.type != TV::NTSC || pos.h <= NTSC::HPOS_CNT);
 
     if (syncEvent) {
 
         // Call the EOL handler if requested
-        if (syncEvent == DAS_EOL) eolHandler();
+        if (syncEvent & EVFL::EOL) { eolHandler(); syncEvent &= ~EVFL::EOL; }
 
         // Call the HSYNC handler if requested
-        if (syncEvent == DAS_HSYNC) hsyncHandler();
-
-        syncEvent = EVENT_NONE;
+        if (syncEvent & EVFL::HSYNC) { hsyncHandler(); syncEvent &= ~EVFL::HSYNC; }
     }
 
     // Iterate through all recorded register changes
@@ -203,83 +209,115 @@ Agnus::serviceREGEvent(Cycle until)
         // Apply the register change
         RegChange &change = changeRecorder.read();
 
-        switch (change.addr) {
+        switch (change.reg) {
 
-            case SET_BLTSIZE: blitter.setBLTSIZE(change.value); break;
-            case SET_BLTSIZV: blitter.setBLTSIZV(change.value); break;
+            case Reg::BLTSIZE: blitter.setBLTSIZE(change.value); break;
+            case Reg::BLTSIZV: blitter.setBLTSIZV(change.value); break;
                 
-            case SET_BLTCON0: blitter.setBLTCON0(change.value); break;
-            case SET_BLTCON0L: blitter.setBLTCON0L(change.value); break;
-            case SET_BLTCON1: blitter.setBLTCON1(change.value); break;
+            case Reg::BLTCON0: blitter.setBLTCON0(change.value); break;
+            case Reg::BLTCON0L: blitter.setBLTCON0L(change.value); break;
+            case Reg::BLTCON1: blitter.setBLTCON1(change.value); break;
                 
-            case SET_INTREQ: paula.setINTREQ(change.value); break;
-            case SET_INTENA: paula.setINTENA(change.value); break;
-                
-            case SET_BPLCON0_AGNUS: setBPLCON0(bplcon0, change.value); break;
-            case SET_BPLCON0_DENISE: denise.setBPLCON0(bplcon0, change.value); break;
-            case SET_BPLCON1_AGNUS: setBPLCON1(bplcon1, change.value); break;
-            case SET_BPLCON1_DENISE: denise.setBPLCON1(bplcon1, change.value); break;
-            case SET_BPLCON2: denise.setBPLCON2(change.value); break;
-            case SET_BPLCON3: denise.setBPLCON3(change.value); break;
-                
-            case SET_DMACON: setDMACON(dmacon, change.value); break;
-                
-            case SET_DIWSTRT_AGNUS: sequencer.setDIWSTRT(change.value); break;
-            case SET_DIWSTRT_DENISE: denise.setDIWSTRT(change.value); break;
-            case SET_DIWSTOP_AGNUS: sequencer.setDIWSTOP(change.value); break;
-            case SET_DIWSTOP_DENISE: denise.setDIWSTOP(change.value); break;
-            case SET_DIWHIGH_AGNUS: sequencer.setDIWHIGH(change.value); break;
-            case SET_DIWHIGH_DENISE: denise.setDIWHIGH(change.value); break;
+            case Reg::INTREQ: paula.setINTREQ(change.value); break;
+            case Reg::INTENA: paula.setINTENA(change.value); break;
 
-            case SET_DDFSTRT: sequencer.setDDFSTRT(change.value); break;
-            case SET_DDFSTOP: sequencer.setDDFSTOP(change.value); break;
+            case Reg::BPLCON0:
+                assert(change.accessor == Accessor::AGNUS || change.accessor == Accessor::DENISE);
+                change.accessor == Accessor::AGNUS ?
+                setBPLCON0(bplcon0, change.value) : denise.setBPLCON0(bplcon0, change.value);
+                break;
+            case Reg::BPLCON1:
+                assert(change.accessor == Accessor::AGNUS || change.accessor == Accessor::DENISE);
+                change.accessor == Accessor::AGNUS ?
+                setBPLCON1(bplcon1, change.value) : denise.setBPLCON1(bplcon1, change.value);
+                break;
+                break;
+            case Reg::BPLCON2: denise.setBPLCON2(change.value); break;
+            case Reg::BPLCON3: denise.setBPLCON3(change.value); break;
                 
-            case SET_BPL1MOD: setBPL1MOD(change.value); break;
-            case SET_BPL2MOD: setBPL2MOD(change.value); break;
+            case Reg::DMACON: setDMACON(dmacon, change.value); break;
+
+            case Reg::DIWSTRT:
+                change.accessor == Accessor::AGNUS ?
+                sequencer.setDIWSTRT(change.value) : denise.setDIWSTRT(change.value);
+                break;
+            case Reg::DIWSTOP:
+                change.accessor == Accessor::AGNUS ?
+                sequencer.setDIWSTOP(change.value) : denise.setDIWSTOP(change.value);
+                break;
+            case Reg::DIWHIGH:
+                change.accessor == Accessor::AGNUS ?
+                sequencer.setDIWHIGH(change.value) : denise.setDIWHIGH(change.value);
+                break;
+            case Reg::DDFSTRT: sequencer.setDDFSTRT(change.value); break;
+            case Reg::DDFSTOP: sequencer.setDDFSTOP(change.value); break;
                 
-            case SET_BPL1PTH: setBPLxPTH<1>(change.value); break;
-            case SET_BPL2PTH: setBPLxPTH<2>(change.value); break;
-            case SET_BPL3PTH: setBPLxPTH<3>(change.value); break;
-            case SET_BPL4PTH: setBPLxPTH<4>(change.value); break;
-            case SET_BPL5PTH: setBPLxPTH<5>(change.value); break;
-            case SET_BPL6PTH: setBPLxPTH<6>(change.value); break;
+            case Reg::BPL1MOD: setBPL1MOD(change.value); break;
+            case Reg::BPL2MOD: setBPL2MOD(change.value); break;
+                
+            case Reg::BPL1PTH: setBPLxPTH<1>(change.value); break;
+            case Reg::BPL2PTH: setBPLxPTH<2>(change.value); break;
+            case Reg::BPL3PTH: setBPLxPTH<3>(change.value); break;
+            case Reg::BPL4PTH: setBPLxPTH<4>(change.value); break;
+            case Reg::BPL5PTH: setBPLxPTH<5>(change.value); break;
+            case Reg::BPL6PTH: setBPLxPTH<6>(change.value); break;
 
-            case SET_BPL1PTL: setBPLxPTL<1>(change.value); break;
-            case SET_BPL2PTL: setBPLxPTL<2>(change.value); break;
-            case SET_BPL3PTL: setBPLxPTL<3>(change.value); break;
-            case SET_BPL4PTL: setBPLxPTL<4>(change.value); break;
-            case SET_BPL5PTL: setBPLxPTL<5>(change.value); break;
-            case SET_BPL6PTL: setBPLxPTL<6>(change.value); break;
+            case Reg::BPL1PTL: setBPLxPTL<1>(change.value); break;
+            case Reg::BPL2PTL: setBPLxPTL<2>(change.value); break;
+            case Reg::BPL3PTL: setBPLxPTL<3>(change.value); break;
+            case Reg::BPL4PTL: setBPLxPTL<4>(change.value); break;
+            case Reg::BPL5PTL: setBPLxPTL<5>(change.value); break;
+            case Reg::BPL6PTL: setBPLxPTL<6>(change.value); break;
 
-            case SET_SPR0PTH: setSPRxPTH<0>(change.value); break;
-            case SET_SPR1PTH: setSPRxPTH<1>(change.value); break;
-            case SET_SPR2PTH: setSPRxPTH<2>(change.value); break;
-            case SET_SPR3PTH: setSPRxPTH<3>(change.value); break;
-            case SET_SPR4PTH: setSPRxPTH<4>(change.value); break;
-            case SET_SPR5PTH: setSPRxPTH<5>(change.value); break;
-            case SET_SPR6PTH: setSPRxPTH<6>(change.value); break;
-            case SET_SPR7PTH: setSPRxPTH<7>(change.value); break;
+            case Reg::SPR0POS: setSPRxPOS<0>(change.value); break;
+            case Reg::SPR1POS: setSPRxPOS<1>(change.value); break;
+            case Reg::SPR2POS: setSPRxPOS<2>(change.value); break;
+            case Reg::SPR3POS: setSPRxPOS<3>(change.value); break;
+            case Reg::SPR4POS: setSPRxPOS<4>(change.value); break;
+            case Reg::SPR5POS: setSPRxPOS<5>(change.value); break;
+            case Reg::SPR6POS: setSPRxPOS<6>(change.value); break;
+            case Reg::SPR7POS: setSPRxPOS<7>(change.value); break;
 
-            case SET_SPR0PTL: setSPRxPTL<0>(change.value); break;
-            case SET_SPR1PTL: setSPRxPTL<1>(change.value); break;
-            case SET_SPR2PTL: setSPRxPTL<2>(change.value); break;
-            case SET_SPR3PTL: setSPRxPTL<3>(change.value); break;
-            case SET_SPR4PTL: setSPRxPTL<4>(change.value); break;
-            case SET_SPR5PTL: setSPRxPTL<5>(change.value); break;
-            case SET_SPR6PTL: setSPRxPTL<6>(change.value); break;
-            case SET_SPR7PTL: setSPRxPTL<7>(change.value); break;
+            case Reg::SPR0CTL: setSPRxCTL<0>(change.value); break;
+            case Reg::SPR1CTL: setSPRxCTL<1>(change.value); break;
+            case Reg::SPR2CTL: setSPRxCTL<2>(change.value); break;
+            case Reg::SPR3CTL: setSPRxCTL<3>(change.value); break;
+            case Reg::SPR4CTL: setSPRxCTL<4>(change.value); break;
+            case Reg::SPR5CTL: setSPRxCTL<5>(change.value); break;
+            case Reg::SPR6CTL: setSPRxCTL<6>(change.value); break;
+            case Reg::SPR7CTL: setSPRxCTL<7>(change.value); break;
 
-            case SET_DSKPTH: setDSKPTH(change.value); break;
-            case SET_DSKPTL: setDSKPTL(change.value); break;
+            case Reg::SPR0PTH: setSPRxPTH<0>(change.value); break;
+            case Reg::SPR1PTH: setSPRxPTH<1>(change.value); break;
+            case Reg::SPR2PTH: setSPRxPTH<2>(change.value); break;
+            case Reg::SPR3PTH: setSPRxPTH<3>(change.value); break;
+            case Reg::SPR4PTH: setSPRxPTH<4>(change.value); break;
+            case Reg::SPR5PTH: setSPRxPTH<5>(change.value); break;
+            case Reg::SPR6PTH: setSPRxPTH<6>(change.value); break;
+            case Reg::SPR7PTH: setSPRxPTH<7>(change.value); break;
 
-            case SET_SERDAT: uart.setSERDAT(change.value); break;
+            case Reg::SPR0PTL: setSPRxPTL<0>(change.value); break;
+            case Reg::SPR1PTL: setSPRxPTL<1>(change.value); break;
+            case Reg::SPR2PTL: setSPRxPTL<2>(change.value); break;
+            case Reg::SPR3PTL: setSPRxPTL<3>(change.value); break;
+            case Reg::SPR4PTL: setSPRxPTL<4>(change.value); break;
+            case Reg::SPR5PTL: setSPRxPTL<5>(change.value); break;
+            case Reg::SPR6PTL: setSPRxPTL<6>(change.value); break;
+            case Reg::SPR7PTL: setSPRxPTL<7>(change.value); break;
+
+            case Reg::DSKPTH: setDSKPTH(change.value); break;
+            case Reg::DSKPTL: setDSKPTL(change.value); break;
+
+            case Reg::SERDAT: uart.setSERDAT(change.value); break;
 
             default:
                 fatalError;
         }
     }
 
-    // Schedule next event
+    // Let the logic analyzer probe all observed signals
+    if (syncEvent & EVFL::PROBE) { logicAnalyzer.recordSignals(); }
+
     scheduleNextREGEvent();
 }
 
@@ -316,7 +354,7 @@ Agnus::serviceREGEvent(Cycle until)
 void
 Agnus::serviceBPLEvent(EventID id)
 {
-    switch (id) {
+    switch (isize(id)) {
 
         case EVENT_NONE:
             assert(pos.h == HPOS_MAX);
@@ -325,25 +363,25 @@ Agnus::serviceBPLEvent(EventID id)
         case EVENT_NONE | DRAW_ODD:
 
             switch (res) {
-                case LORES: denise.drawLoresOdd(); break;
-                case HIRES: denise.drawHiresOdd(); break;
-                case SHRES: denise.drawShresOdd(); break;
+                case Resolution::LORES: denise.drawLoresOdd(); break;
+                case Resolution::HIRES: denise.drawHiresOdd(); break;
+                case Resolution::SHRES: denise.drawShresOdd(); break;
             }
             break;
 
         case EVENT_NONE | DRAW_EVEN:
             switch (res) {
-                case LORES: denise.drawLoresEven(); break;
-                case HIRES: denise.drawHiresEven(); break;
-                case SHRES: denise.drawShresEven(); break;
+                case Resolution::LORES: denise.drawLoresEven(); break;
+                case Resolution::HIRES: denise.drawHiresEven(); break;
+                case Resolution::SHRES: denise.drawShresEven(); break;
             }
             break;
 
         case EVENT_NONE | DRAW_BOTH:
             switch (res) {
-                case LORES: denise.drawLoresBoth(); break;
-                case HIRES: denise.drawHiresBoth(); break;
-                case SHRES: denise.drawShresBoth(); break;
+                case Resolution::LORES: denise.drawLoresBoth(); break;
+                case Resolution::HIRES: denise.drawHiresBoth(); break;
+                case Resolution::SHRES: denise.drawShresBoth(); break;
             }
             break;
 
@@ -496,7 +534,7 @@ Agnus::serviceVBLEvent(EventID id)
             assert(!isPAL() || pos.h == 0);
             
             // Trigger the vertical blank interrupt
-            paula.raiseIrq(INT_VERTB);
+            paula.raiseIrq(IrqSource::VERTB);
             
             // Schedule next event
             scheduleStrobe1Event();
@@ -550,15 +588,20 @@ Agnus::serviceDASEvent(EventID id)
 
         case DAS_REFRESH:
 
-            busOwner[0x01] = BUS_REFRESH;
-            busOwner[0x03] = BUS_REFRESH;
-            busOwner[0x05] = BUS_REFRESH;
-            busOwner[pos.lol ? 0xE3 : 0xE2] = BUS_REFRESH;
+            busOwner[0x01] = BusOwner::REFRESH;
+            busOwner[0x03] = BusOwner::REFRESH;
+            busOwner[0x05] = BusOwner::REFRESH;
+            busOwner[pos.lol ? 0xE3 : 0xE2] = BusOwner::REFRESH;
 
-            busValue[0x01] = 0;
-            busValue[0x03] = 0;
-            busValue[0x05] = 0;
-            busValue[pos.lol ? 0xE3 : 0xE2] = 0;
+            busAddr[0x01] = 0;
+            busAddr[0x03] = 0;
+            busAddr[0x05] = 0;
+            busAddr[pos.lol ? 0xE3 : 0xE2] = 0;
+            
+            busData[0x01] = 0;
+            busData[0x03] = 0;
+            busData[0x05] = 0;
+            busData[pos.lol ? 0xE3 : 0xE2] = 0;
 
             stats.usage[BUS_REFRESH] += 4;
             break;
@@ -594,8 +637,7 @@ Agnus::serviceDASEvent(EventID id)
              * that the the HSYNC handler is executed before any other
              * operation is performed in this cycle.
              */
-            syncEvent = DAS_HSYNC;
-            // recordRegisterChange(DMA_CYCLES(1), REG_NONE, 0);
+            syncEvent |= EVFL::HSYNC;
             scheduleRel <SLOT_REG> (DMA_CYCLES(1), REG_CHANGE);
 
             if (audxDR[2]) {
@@ -702,20 +744,11 @@ Agnus::serviceDASEvent(EventID id)
             ciab.tod.increment();
             break;
 
-            /*
-             case DAS_HSYNC:
-
-             syncEvent = id;
-             // recordRegisterChange(DMA_CYCLES(1), REG_NONE, 0);
-             scheduleRel <SLOT_REG> (DMA_CYCLES(1), REG_CHANGE);
-             break;
-             */
-
         case DAS_EOL:
 
-            assert(pos.h == HPOS_MAX_PAL || pos.h == HPOS_MAX_NTSC);
+            assert(pos.h == PAL::HPOS_MAX || pos.h == NTSC::HPOS_MAX);
 
-            if (pos.h == HPOS_MAX_PAL && pos.lol) {
+            if (pos.h == PAL::HPOS_MAX && pos.lol) {
 
                 // Run for an additional cycle (long line)
                 break;
@@ -728,7 +761,7 @@ Agnus::serviceDASEvent(EventID id)
                  * that the the EOL handler is executed before any other
                  * operation is performed in this cycle.
                  */
-                syncEvent = id;
+                syncEvent |= EVFL::EOL;
                 scheduleRel <SLOT_REG> (DMA_CYCLES(1), REG_CHANGE);
             }
             break;
@@ -742,65 +775,26 @@ Agnus::serviceDASEvent(EventID id)
 }
 
 void
-Agnus::serviceINSEvent(EventID id)
-{    
-    switch (id) {
+Agnus::serviceINSEvent()
+{
+    u64 mask = data[SLOT_INS];
 
-        case INS_AMIGA:
-            
-            amiga.inspect();
-            break;
-            
-        case INS_CPU:
-            
-            cpu.inspect();
-            break;
-            
-        case INS_MEM:
-            
-            mem.inspect();
-            break;
-            
-        case INS_CIA:
-            
-            ciaa.inspect();
-            ciab.inspect();
-            break;
-            
-        case INS_AGNUS:
-            
-            inspect();
-            break;
-            
-        case INS_PAULA:
-            
-            paula.inspect();
-            break;
-            
-        case INS_DENISE:
-            
-            denise.inspect();
-            break;
-            
-        case INS_PORTS:
-            
-            serialPort.inspect();
-            paula.uart.inspect();
-            controlPort1.inspect();
-            controlPort2.inspect();
-            break;
-            
-        case INS_EVENTS:
-            
-            agnus.inspect();
-            break;
+    // Analyze bit mask
+    if (mask & 1LL << long(Class::Agnus))           { agnus.record(); }
+    if (mask & 1LL << long(Class::Amiga))           { amiga.record(); }
+    if (mask & 1LL << long(Class::Blitter))         { blitter.record(); }
+    if (mask & 1LL << long(Class::Copper))          { copper.record(); }
+    if (mask & 1LL << long(Class::CIA))             { ciaa.record(); ciab.record(); }
+    if (mask & 1LL << long(Class::CPU))             { cpu.record(); }
+    if (mask & 1LL << long(Class::Denise))          { denise.record(); }
+    if (mask & 1LL << long(Class::Memory))          { mem.record(); }
+    if (mask & 1LL << long(Class::Paula))           { paula.record(); }
+    if (mask & 1LL << long(Class::UART))            { uart.record(); }
+    if (mask & 1LL << long(Class::ControlPort))     { controlPort1.record(); controlPort2.record(); }
+    if (mask & 1LL << long(Class::SerialPort))      { serialPort.record(); }
 
-        default:
-            fatalError;
-    }
-
-    // Reschedule event
-    rescheduleRel<SLOT_INS>((Cycle)(inspectionInterval * 28000000));
+    // Reschedule the event
+    rescheduleRel<SLOT_INS>((Cycle)(inspectionInterval * 28000007));
 }
 
 }

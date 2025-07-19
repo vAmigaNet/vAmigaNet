@@ -12,7 +12,7 @@ Moira::computeEA(u32 n) {
 
     u32 result;
 
-    switch (M) {
+    switch ((int)M) {
 
         case 0:  // Dn
         case 1:  // An
@@ -32,7 +32,7 @@ Moira::computeEA(u32 n) {
         }
         case 4:  // -(An)
         {
-            if ((F & IMPL_DEC) == 0) SYNC(2);
+            if constexpr ((F & IMPL_DEC) == 0) SYNC(2);
             result = readA(n) - ((n == 7 && S == Byte) ? 2 : S);
             break;
         }
@@ -42,12 +42,12 @@ Moira::computeEA(u32 n) {
             i16  d = (i16)queue.irc;
 
             result = U32_ADD(an, d);
-            if ((F & SKIP_LAST_RD) == 0) { readExt<C>(); } else { reg.pc += 2; }
+            if constexpr ((F & SKIP_LAST_RD) == 0) { readExt<C>(); } else { reg.pc += 2; }
             break;
         }
         case 6: // (d,An,Xi)
         {
-            if constexpr (C == C68020) {
+            if constexpr (C == Core::C68020) {
 
                 if (queue.irc & 0x100) {
                     result = computeEAfull<C, M, S, F>(readA(n));
@@ -64,7 +64,7 @@ Moira::computeEA(u32 n) {
                 result = U32_ADD3(an, d, ((queue.irc & 0x800) ? xi : SEXT<Word>(xi)));
 
                 SYNC(2);
-                if ((F & SKIP_LAST_RD) == 0) { readExt<C>(); } else { reg.pc += 2; }
+                if constexpr ((F & SKIP_LAST_RD) == 0) { readExt<C>(); } else { reg.pc += 2; }
             }
             break;
         }
@@ -73,7 +73,7 @@ Moira::computeEA(u32 n) {
             result = (i16)queue.irc;
             readBuffer = queue.irc;
 
-            if ((F & SKIP_LAST_RD) == 0) { readExt<C>(); } else { reg.pc += 2; }
+            if constexpr ((F & SKIP_LAST_RD) == 0) { readExt<C>(); } else { reg.pc += 2; }
             break;
         }
         case 8: // ABS.L
@@ -83,7 +83,7 @@ Moira::computeEA(u32 n) {
             result |= queue.irc;
             readBuffer = queue.irc;
 
-            if ((F & SKIP_LAST_RD) == 0) { readExt<C>(); } else { reg.pc += 2; }
+            if constexpr ((F & SKIP_LAST_RD) == 0) { readExt<C>(); } else { reg.pc += 2; }
             break;
         }
         case 9: // (d,PC)
@@ -91,12 +91,12 @@ Moira::computeEA(u32 n) {
             i16  d = (i16)queue.irc;
 
             result = U32_ADD(reg.pc, d);
-            if ((F & SKIP_LAST_RD) == 0) { readExt<C>(); } else { reg.pc += 2; }
+            if constexpr ((F & SKIP_LAST_RD) == 0) { readExt<C>(); } else { reg.pc += 2; }
             break;
         }
         case 10: // (d,PC,Xi)
         {
-            if constexpr (C == C68020) {
+            if constexpr (C == Core::C68020) {
 
                 if (queue.irc & 0x100) {
                     result = computeEAfull<C, M, S, F>(reg.pc);
@@ -111,7 +111,7 @@ Moira::computeEA(u32 n) {
 
                 result = U32_ADD3(reg.pc, d, ((queue.irc & 0x800) ? xi : SEXT<Word>(xi)));
                 SYNC(2);
-                if ((F & SKIP_LAST_RD) == 0) { readExt<C>(); } else { reg.pc += 2; }
+                if constexpr ((F & SKIP_LAST_RD) == 0) { readExt<C>(); } else { reg.pc += 2; }
             }
             break;
         }
@@ -148,7 +148,7 @@ Moira::computeEAbrief(u32 an)
     result = U32_ADD3(an, i8(disp), xn);
 
     SYNC(2);
-    if ((F & SKIP_LAST_RD) == 0) { readExt<C>(); } else { reg.pc += 2; }
+    if constexpr ((F & SKIP_LAST_RD) == 0) { readExt<C>(); } else { reg.pc += 2; }
 
     return result;
 }
@@ -208,9 +208,9 @@ Moira::readOp(int n, u32 *ea, u32 *result)
 {
     switch (M) {
 
-        case MODE_DN: *result = readD<S>(n);   break;
-        case MODE_AN: *result = readA<S>(n);   break;
-        case MODE_IM: *result = readI<C, S>(); break;
+        case Mode::DN: *result = readD<S>(n);   break;
+        case Mode::AN: *result = readA<S>(n);   break;
+        case Mode::IM: *result = readI<C, S>(); break;
 
         default:
 
@@ -233,9 +233,9 @@ Moira::writeOp(int n, u32 val)
 {
     switch (M) {
 
-        case MODE_DN: writeD<S>(n, val); break;
-        case MODE_AN: writeA<S>(n, val); break;
-        case MODE_IM: fatalError;
+        case Mode::DN: writeD<S>(n, val); break;
+        case Mode::AN: writeA<S>(n, val); break;
+        case Mode::IM: fatalError;
 
         default:
 
@@ -260,9 +260,9 @@ Moira::writeOp(int n, u32 ea, u32 val)
 {
     switch (M) {
 
-        case MODE_DN: writeD<S>(n, val); break;
-        case MODE_AN: writeA<S>(n, val); break;
-        case MODE_IM: fatalError;
+        case Mode::DN: writeD<S>(n, val); break;
+        case Mode::AN: writeA<S>(n, val); break;
+        case Mode::IM: fatalError;
 
         default:
 
@@ -271,6 +271,44 @@ Moira::writeOp(int n, u32 ea, u32 val)
             // Write to effective address
             writeM<C, M, S, F>(ea, val);
     }
+}
+
+void
+Moira::updateAn(Mode M, Size S, int n)
+{
+    if ((int)M == 3) U32_INC(reg.a[n], (n == 7 && S == Byte) ? 2 : S);
+    if ((int)M == 4) U32_DEC(reg.a[n], (n == 7 && S == Byte) ? 2 : S);
+}
+
+void
+Moira::updateAnPI(Mode M, Size S, int n)
+{
+    if ((int)M == 3) U32_INC(reg.a[n], (n == 7 && S == Byte) ? 2 : S);
+}
+
+void
+Moira::updateAnPD(Mode M, Size S, int n)
+{
+    if ((int)M == 4) U32_DEC(reg.a[n], (n == 7 && S == Byte) ? 2 : S);
+}
+
+void
+Moira::undoAn(Mode M, Size S, int n)
+{
+    if ((int)M == 3) U32_DEC(reg.a[n], (n == 7 && S == Byte) ? 2 : S);
+    if ((int)M == 4) U32_INC(reg.a[n], (n == 7 && S == Byte) ? 2 : S);
+}
+
+void
+Moira::undoAnPI(Mode M, Size S, int n)
+{
+    if ((int)M == 3) U32_DEC(reg.a[n], (n == 7 && S == Byte) ? 2 : S);
+}
+
+void
+Moira::undoAnPD(Mode M, Size S, int n)
+{
+    if ((int)M == 4) U32_INC(reg.a[n], (n == 7 && S == Byte) ? 2 : S);
 }
 
 template <Mode M, Size S> void
@@ -283,13 +321,13 @@ Moira::updateAn(int n)
 template <Mode M, Size S> void
 Moira::updateAnPI(int n)
 {
-    if constexpr (M == 3) U32_INC(reg.a[n], (n == 7 && S == Byte) ? 2 : S);
+    if constexpr ((int)M == 3) U32_INC(reg.a[n], (n == 7 && S == Byte) ? 2 : S);
 }
 
 template <Mode M, Size S> void
 Moira::updateAnPD(int n)
 {
-    if constexpr (M == 4) U32_DEC(reg.a[n], (n == 7 && S == Byte) ? 2 : S);
+    if constexpr ((int)M == 4) U32_DEC(reg.a[n], (n == 7 && S == Byte) ? 2 : S);
 }
 
 template <Mode M, Size S> void
@@ -302,32 +340,32 @@ Moira::undoAn(int n)
 template <Mode M, Size S> void
 Moira::undoAnPI(int n)
 {
-    if constexpr (M == 3) U32_DEC(reg.a[n], (n == 7 && S == Byte) ? 2 : S);
+    if constexpr ((int)M == 3) U32_DEC(reg.a[n], (n == 7 && S == Byte) ? 2 : S);
 }
 
 template <Mode M, Size S> void
 Moira::undoAnPD(int n)
 {
-    if constexpr (M == 4) U32_INC(reg.a[n], (n == 7 && S == Byte) ? 2 : S);
+    if constexpr ((int)M == 4) U32_INC(reg.a[n], (n == 7 && S == Byte) ? 2 : S);
 }
 
 template <Core C, Mode M, Size S, Flags F> u32
 Moira::readM(u32 addr)
 {
     if constexpr (isPrgMode(M)) {
-        return read<C, MEM_PROG, S, F>(addr);
+        return read<C, AddrSpace::PROG, S, F>(addr);
     } else {
-        return read<C, MEM_DATA, S, F>(addr);
+        return read<C, AddrSpace::DATA, S, F>(addr);
     }
 }
 
-template <Core C, MemSpace MS, Size S, Flags F> u32
+template <Core C, AddrSpace AS, Size S, Flags F> u32
 Moira::read(u32 addr)
 {
     u32 result;
 
     // Update function code pins
-    setFC(MS == MEM_DATA ? FC_USER_DATA : FC_USER_PROG);
+    setFC(AS == AddrSpace::DATA ? FC::USER_DATA : FC::USER_PROG);
     SYNC(2);
 
     // Check for address errors
@@ -336,20 +374,20 @@ Moira::read(u32 addr)
     }
 
     // Check if a watchpoint has been reached
-    if ((flags & CPU_CHECK_WP) && debugger.watchpointMatches(addr, S)) {
-        watchpointReached(addr);
+    if ((flags & State::CHECK_WP) && debugger.watchpointMatches(addr, S)) {
+        didReachWatchpoint(addr);
     }
 
     if constexpr (S == Byte) {
 
-        if (F & POLL) POLL_IPL;
+        if constexpr (F & POLL) POLL_IPL;
         result = read8(addr & addrMask<C>());
         SYNC(2);
     }
 
     if constexpr (S == Word) {
 
-        if (F & POLL) POLL_IPL;
+        if constexpr (F & POLL) POLL_IPL;
         result = read16(addr & addrMask<C>());
         SYNC(2);
     }
@@ -358,7 +396,7 @@ Moira::read(u32 addr)
 
         result = read16(addr & addrMask<C>()) << 16;
         SYNC(4);
-        if (F & POLL) POLL_IPL;
+        if constexpr (F & POLL) POLL_IPL;
         result |= read16((addr + 2) & addrMask<C>());
         SYNC(2);
     }
@@ -370,17 +408,17 @@ template <Core C, Mode M, Size S, Flags F> void
 Moira::writeM(u32 addr, u32 val)
 {
     if constexpr (isPrgMode(M)) {
-        write<C, MEM_PROG, S, F>(addr, val);
+        write<C, AddrSpace::PROG, S, F>(addr, val);
     } else {
-        write<C, MEM_DATA, S, F>(addr, val);
+        write<C, AddrSpace::DATA, S, F>(addr, val);
     }
 }
 
-template <Core C, MemSpace MS, Size S, Flags F> void
+template <Core C, AddrSpace AS, Size S, Flags F> void
 Moira::write(u32 addr, u32 val)
 {
     // Update function code pins
-    setFC(MS == MEM_DATA ? FC_USER_DATA : FC_USER_PROG);
+    setFC(AS == AddrSpace::DATA ? FC::USER_DATA : FC::USER_PROG);
     SYNC(2);
 
     // Check for address errors
@@ -389,31 +427,31 @@ Moira::write(u32 addr, u32 val)
     }
 
     // Check if a watchpoint has been reached
-    if ((flags & CPU_CHECK_WP) && debugger.watchpointMatches(addr, S)) {
-        watchpointReached(addr);
+    if ((flags & State::CHECK_WP) && debugger.watchpointMatches(addr, S)) {
+        didReachWatchpoint(addr);
     }
 
     if constexpr (S == Byte) {
 
-        if (F & POLL) POLL_IPL;
+        if constexpr (F & POLL) POLL_IPL;
         write8(addr & addrMask<C>(), (u8)val);
         SYNC(2);
     }
 
     if constexpr (S == Word) {
 
-        if (F & POLL) POLL_IPL;
+        if constexpr (F & POLL) POLL_IPL;
         write16(addr & addrMask<C>(), (u16)val);
         SYNC(2);
     }
 
     if constexpr (S == Long) {
 
-        if (F & REVERSE) {
+        if constexpr (F & REVERSE) {
 
             write16((addr + 2) & addrMask<C>(), u16(val & 0xFFFF));
             SYNC(4);
-            if (F & POLL) POLL_IPL;
+            if constexpr (F & POLL) POLL_IPL;
             write16(addr & addrMask<C>(), u16(val >> 16));
             SYNC(2);
 
@@ -421,7 +459,7 @@ Moira::write(u32 addr, u32 val)
 
             write16(addr & addrMask<C>(), u16(val >> 16));
             SYNC(4);
-            if (F & POLL) POLL_IPL;
+            if constexpr (F & POLL) POLL_IPL;
             write16((addr + 2) & addrMask<C>(), u16(val & 0xFFFF));
             SYNC(2);
         }
@@ -467,13 +505,13 @@ template <Core C, Size S, Flags F> void
 Moira::push(u32 val)
 {
     reg.sp -= S;
-    write<C, MEM_DATA, S, F>(reg.sp, val);
+    write<C, AddrSpace::DATA, S, F>(reg.sp, val);
 }
 
 template <Core C, Size S, Flags F> u32
 Moira::pop()
 {
-    u32 result = read<C, MEM_DATA, S, F>(reg.sp);
+    u32 result = read<C, AddrSpace::DATA, S, F>(reg.sp);
     reg.sp += S;
     return result;
 }
@@ -481,7 +519,7 @@ Moira::pop()
 template <Core C, Size S> bool
 Moira::misaligned(u32 addr)
 {
-    if constexpr (EMULATE_ADDRESS_ERROR && C != C68020 && S != Byte) {
+    if constexpr (MOIRA_EMULATE_ADDRESS_ERROR && C != Core::C68020 && S != Byte) {
         return addr & 1;
     } else {
         return false;
@@ -496,8 +534,8 @@ Moira::makeFrame(u32 addr, u32 pc, u16 sr, u16 ird)
 
     // Prepare
     if constexpr (F & AE_WRITE) read = 0;
-    if constexpr (F & AE_PROG) setFC(FC_USER_PROG);
-    if constexpr (F & AE_DATA) setFC(FC_USER_DATA);
+    if constexpr (F & AE_PROG) setFC(FC::USER_PROG);
+    if constexpr (F & AE_DATA) setFC(FC::USER_DATA);
 
     // Create
     frame.code = (ird & 0xFFE0) | (u16)readFC() | read;
@@ -544,7 +582,7 @@ Moira::prefetch()
     reg.pc0 = reg.pc;
 
     queue.ird = queue.irc;
-    queue.irc = (u16)read<C, MEM_PROG, Word, F>(reg.pc + 2);
+    queue.irc = (u16)read<C, AddrSpace::PROG, Word, F>(reg.pc + 2);
     readBuffer = queue.irc;
 }
 
@@ -553,7 +591,7 @@ Moira::fullPrefetch()
 {
     assert(!misaligned<C>(reg.pc));
 
-    queue.irc = (u16)read<C, MEM_PROG, Word>(reg.pc);
+    queue.irc = (u16)read<C, AddrSpace::PROG, Word>(reg.pc);
     if (delay) SYNC(delay);
     prefetch<C, F>();
 }
@@ -561,7 +599,7 @@ Moira::fullPrefetch()
 template <Core C> void
 Moira::noPrefetch(int delay)
 {
-    assert(flags & CPU_IS_LOOPING);
+    assert(flags & State::LOOPING);
 
     reg.pc0 = reg.pc;
     std::swap(queue.irc, queue.ird);
@@ -574,7 +612,7 @@ Moira::readExt()
     assert(!misaligned<C>(reg.pc));
 
     reg.pc += 2;
-    queue.irc = (u16)read<C, MEM_PROG, Word>(reg.pc);
+    queue.irc = (u16)read<C, AddrSpace::PROG, Word>(reg.pc);
 }
 
 template <Core C, Size S> u32
@@ -595,12 +633,12 @@ Moira::readExt()
 template <Core C, Flags F> void
 Moira::jumpToVector(int nr)
 {
-    u32 vbr = C == C68000 ? 0 : reg.vbr;
+    u32 vbr = C == Core::C68000 ? 0 : reg.vbr;
     u32 vectorAddr = (vbr & ~0x1) + 4 * nr;
     u32 oldpc = reg.pc;
 
     // Update the program counter
-    reg.pc = read<C, MEM_DATA, Long>(vectorAddr);
+    reg.pc = read<C, AddrSpace::DATA, Long>(vectorAddr);
 
     // Check for address error
     if (misaligned<C>(reg.pc)) {
@@ -609,7 +647,7 @@ Moira::jumpToVector(int nr)
             
             throw DoubleFault();
             
-        } else if (C == C68000) {
+        } else if constexpr (C == Core::C68000) {
 
             throw AddressError(makeFrame<F|AE_PROG>(reg.pc, vectorAddr));
 
@@ -617,22 +655,38 @@ Moira::jumpToVector(int nr)
 
             queue.irc = readBuffer = u16(reg.pc);
             writeBuffer = u16(4 * nr);
-            if (nr == EXC_ILLEGAL || nr == EXC_LINEA || nr == EXC_LINEF || nr == EXC_PRIVILEGE) {
+            
+            switch (M68kException(nr)) {
+                    
+                case M68kException::ILLEGAL:
+                case M68kException::LINEA:
+                case M68kException::LINEF:
+                case M68kException::PRIVILEGE:
+                    
+                    throw AddressError(makeFrame<F|AE_DEC_PC|AE_PROG|AE_SET_RW|AE_SET_IF>(reg.pc, oldpc));
+                    
+                default:
+                    
+                    throw AddressError(makeFrame<F|AE_PROG|AE_SET_RW|AE_SET_IF>(reg.pc, oldpc));
+            }
+            /*
+            if (nr == ILLEGAL || nr == LINEA || nr == LINEF || nr == EXC_PRIVILEGE) {
                 throw AddressError(makeFrame<F|AE_DEC_PC|AE_PROG|AE_SET_RW|AE_SET_IF>(reg.pc, oldpc));
             } else {
                 throw AddressError(makeFrame<F|AE_PROG|AE_SET_RW|AE_SET_IF>(reg.pc, oldpc));
             }
+            */
         }
         return;
     }
 
     // Update the prefetch queue
-    queue.irc = (u16)read<C, MEM_PROG, Word>(reg.pc);
+    queue.irc = (u16)read<C, AddrSpace::PROG, Word>(reg.pc);
     SYNC(2);
     prefetch<C, POLL>();
 
     // Stop emulation if the exception should be catched
-    if (debugger.catchpointMatches(nr)) catchpointReached(u8(nr));
+    if (debugger.catchpointMatches(nr)) didReachCatchpoint(u8(nr));
 
     didJumpToVector(nr, reg.pc);
 }
@@ -670,7 +724,7 @@ Moira::penaltyCycles(u16 ext) const
         6, 11, 13, 13,  0, 11, 13, 13,  0, 11, 13, 13,  0, 11, 13, 13
     };
 
-    if constexpr (C == C68020 && (M == MODE_IX || M == MODE_IXPC)) {
+    if constexpr (C == Core::C68020 && (M == Mode::IX || M == Mode::IXPC)) {
 
         if (ext & 0x100) return delay[ext & 0x3F];
     }
@@ -679,4 +733,4 @@ Moira::penaltyCycles(u16 ext) const
 }
 
 // Explicit template instantiations
-template void Moira::fullPrefetch<C68000, POLL>();
+template void Moira::fullPrefetch<Core::C68000, POLL>();

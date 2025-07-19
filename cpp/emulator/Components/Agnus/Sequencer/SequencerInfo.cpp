@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #include "config.h"
@@ -15,15 +15,15 @@
 namespace vamiga {
 
 void
-Sequencer::_dump(Category category, std::ostream& os) const
+Sequencer::_dump(Category category, std::ostream &os) const
 {
     using namespace util;
 
     if (category == Category::Dma) {
 
-        for (isize row = 0; row < HPOS_CNT_NTSC; row++) {
+        for (isize row = 0; row < NTSC::HPOS_CNT; row++) {
 
-            isize i = (row / 2) + ((row % 2) ? ((HPOS_CNT_NTSC + 1) / 2) : 0);
+            isize i = (row / 2) + ((row % 2) ? ((NTSC::HPOS_CNT + 1) / 2) : 0);
 
             string cycle = std::to_string(i) + ":";
             os << std::left << std::setw(5) << cycle;

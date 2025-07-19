@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #include "config.h"
@@ -67,7 +67,7 @@ Paula::pokeINTREQ(u16 value)
 {
     trace(INTREG_DEBUG, "pokeINTREQ(%x) (INTENA = %x INTREQ = %x)\n", value, intena, intreq);
 
-    agnus.recordRegisterChange(DMA_CYCLES(1), SET_INTREQ, value);
+    agnus.recordRegisterChange(DMA_CYCLES(1), Reg::INTREQ, value);
 }
 
 void
@@ -102,7 +102,7 @@ Paula::pokeINTENA(u16 value)
 {
     trace(INTREG_DEBUG, "pokeINTENA(%x)\n", value);
 
-    agnus.recordRegisterChange(DMA_CYCLES(1), SET_INTENA, value);
+    agnus.recordRegisterChange(DMA_CYCLES(1), Reg::INTENA, value);
 }
 
 void
@@ -173,14 +173,14 @@ Paula::pokePOTGO(u16 value)
         potCntY1 = 0;
 
         // Schedule the first DISCHARGE event
-        agnus.schedulePos<SLOT_POT>(agnus.pos.v, HPOS_MAX_PAL, POT_DISCHARGE, 8);
+        agnus.schedulePos<SLOT_POT>(agnus.pos.v, PAL::HPOS_MAX, POT_DISCHARGE, 8);
     }
 }
 
-template void Paula::pokeINTREQ<ACCESSOR_CPU>(u16 value);
-template void Paula::pokeINTREQ<ACCESSOR_AGNUS>(u16 value);
-template void Paula::pokeINTENA<ACCESSOR_CPU>(u16 value);
-template void Paula::pokeINTENA<ACCESSOR_AGNUS>(u16 value);
+template void Paula::pokeINTREQ<Accessor::CPU>(u16 value);
+template void Paula::pokeINTREQ<Accessor::AGNUS>(u16 value);
+template void Paula::pokeINTENA<Accessor::CPU>(u16 value);
+template void Paula::pokeINTENA<Accessor::AGNUS>(u16 value);
 template u16 Paula::peekPOTxDAT<0>() const;
 template u16 Paula::peekPOTxDAT<1>() const;
 

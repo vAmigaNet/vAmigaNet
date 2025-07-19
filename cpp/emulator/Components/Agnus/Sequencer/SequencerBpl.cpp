@@ -2,9 +2,9 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #include "config.h"
@@ -29,7 +29,7 @@ Sequencer::initSigRecorder()
     sigRecorder.insert(ddfstrt, SIG_BPHSTART);
     sigRecorder.insert(ddfstop, SIG_BPHSTOP);
     sigRecorder.insert(0xD8, SIG_RHW);
-    sigRecorder.insert(HPOS_CNT_NTSC, SIG_DONE);
+    sigRecorder.insert(NTSC::HPOS_CNT, SIG_DONE);
 
     sigRecorder.modified = false;
 }
@@ -56,7 +56,7 @@ Sequencer::computeBplEventTable(const SigRecorder &sr)
     if (!state.bpv) { state.bprun = false; state.cnt = 0; }
     
     // Fill the event table
-    if (sr.modified || (state.bpv && state.bmapen) || NO_SEQ_FASTPATH) {
+    if (sr.modified || (state.bpv && state.bmapen) || SEQ_ON_STEROIDS) {
         computeBplEventsSlow <ecs> (sr, state);
     } else {
         computeBplEventsFast <ecs> (sr, state);
@@ -90,13 +90,14 @@ Sequencer::computeBplEventsFast(const SigRecorder &sr, DDFState &state)
 
     // Erase all events
     for (isize i = 0; i < HPOS_CNT; i++) bplEvent[i] = EVENT_NONE;
+    bprunUp = LONG_MAX;
 
     // Add drawing flags
     auto odd = agnus.scrollOdd;
     auto even = agnus.scrollEven;
     switch (agnus.resolution(state.bplcon0)) {
 
-        case LORES:
+        case Resolution::LORES:
 
             odd &= 0b111;
             even &= 0b111;
@@ -109,7 +110,7 @@ Sequencer::computeBplEventsFast(const SigRecorder &sr, DDFState &state)
             }
             break;
 
-        case HIRES:
+        case Resolution::HIRES:
 
             odd &= 0b11;
             even &= 0b11;
@@ -122,7 +123,7 @@ Sequencer::computeBplEventsFast(const SigRecorder &sr, DDFState &state)
             }
             break;
 
-        case SHRES:
+        case Resolution::SHRES:
 
             odd &= 0b11;
             even &= 0b11;
@@ -153,7 +154,9 @@ template <bool ecs> void
 Sequencer::computeBplEventsSlow(const SigRecorder &sr, DDFState &state)
 {
     trace(SEQ_DEBUG, "Slow path\n");
-    
+
+    bprunUp = LONG_MAX;
+
     // Iterate over all recorder signals
     for (isize i = 0, cycle = 0;; i++) {
         
@@ -162,7 +165,7 @@ Sequencer::computeBplEventsSlow(const SigRecorder &sr, DDFState &state)
         auto signal = sigRecorder.elements[i];
         isize trigger = (isize)sigRecorder.keys[i];
         
-        assert(trigger <= HPOS_CNT_NTSC);
+        assert(trigger <= HPOS_CNT);
         
         // Emulate the display logic up to the next signal change
         computeBplEvents <ecs> (cycle, trigger, state);
@@ -184,9 +187,9 @@ Sequencer::computeBplEvents(isize strt, isize stop, DDFState &state)
 
     switch (agnus.resolution(state.bplcon0)) {
 
-        case LORES: mask = 0b111; break;
-        case HIRES: mask = 0b011; break;
-        case SHRES: mask = 0b001; break;
+        case Resolution::LORES: mask = 0b111; break;
+        case Resolution::HIRES: mask = 0b011; break;
+        case Resolution::SHRES: mask = 0b001; break;
 
         default:
             fatalError;
@@ -195,7 +198,7 @@ Sequencer::computeBplEvents(isize strt, isize stop, DDFState &state)
     for (isize j = strt; j < stop; j++) {
 
         assert(j >= 0 && j <= HPOS_MAX);
-        
+
         EventID id;
 
         auto counter = state.cnt << 1 | (j & 1);
@@ -203,7 +206,7 @@ Sequencer::computeBplEvents(isize strt, isize stop, DDFState &state)
         /*
          if (agnus.pos.v == 115) trace(true, "%d: %d %d %d %d %d %d %d %d %d %d\n", j, state.bpv, state.bmapen, state.shw, state.rhw, state.bphstart, state.bphstop, state.bprun, state.lastFu, state.bmctl, counter);
          */
-        
+
         if (counter == 0) {
 
             if (state.lastFu) {
@@ -227,20 +230,23 @@ Sequencer::computeBplEvents(isize strt, isize stop, DDFState &state)
 
             id = fetch[state.lastFu ? 1 : 0][counter];
             if (IS_ODD(j)) state.cnt = (state.cnt + 1) & 3;
-            
+
         } else {
-            
+
             id = EVENT_NONE;
             state.cnt = 0;
         }
 
         // Superimpose drawing flags
-        isize jj = j >= 1 ? j : HPOS_CNT_PAL + j;
+        isize jj = j >= 1 ? j : PAL::HPOS_CNT + j;
 
         if ((jj & mask) == (agnus.scrollOdd & mask))  id = (EventID)(id | 1);
         if ((jj & mask) == (agnus.scrollEven & mask)) id = (EventID)(id | 2);
-        
+
         bplEvent[j] = id;
+
+        // Remember the first cycle where BPRUN went up
+        if (state.bprun) bprunUp = std::min(bprunUp, j);
     }
 }
 
@@ -372,7 +378,6 @@ Sequencer::processSignal <true> (u32 signal, DDFState &state)
 
             state.rhw = true;
             state.stopreq |= state.bprun;
-            // trace(1, "SIG_RHW: %d\n", state.bprun);
             break;
     }
     switch (signal & (SIG_BPHSTART | SIG_BPHSTOP | SIG_SHW | SIG_RHW)) {
@@ -394,7 +399,8 @@ Sequencer::processSignal <true> (u32 signal, DDFState &state)
             
             state.bphstop |= state.bprun;
             state.stopreq |= state.bprun;
-            state.bphstart = true;
+            // state.bphstart = true;
+            state.bphstart = state.bpv; // Likely fix for test case arosddf2 and arosddf4
             state.bprun = (state.bprun || state.shw) && state.bpv && state.bmapen;
             break;
 
@@ -410,7 +416,6 @@ Sequencer::processSignal <true> (u32 signal, DDFState &state)
         case SIG_BPHSTOP | SIG_SHW:
         case SIG_BPHSTOP | SIG_RHW:
 
-            // trace(1, "SIG_BPHSTOP\n");
             state.bphstart = false;
             state.bphstop |= state.bprun;
             state.stopreq |= state.bprun;
@@ -420,7 +425,6 @@ Sequencer::processSignal <true> (u32 signal, DDFState &state)
 
         case SIG_BMAPEN_CLR:
 
-            // trace(1, "SIG_BMAPEN_CLR\n");
             state.bmapen = false;
             state.bprun = false;
             state.cnt = 0;
@@ -462,7 +466,7 @@ Sequencer::computeFetchUnit(u16 bplcon0)
 
     switch (agnus.resolution(bplcon0)) {
 
-        case LORES:
+        case Resolution::LORES:
 
             switch (bpu) {
 
@@ -477,7 +481,7 @@ Sequencer::computeFetchUnit(u16 bplcon0)
             }
             break;
 
-        case HIRES:
+        case Resolution::HIRES:
 
             switch (bpu) {
 
@@ -492,7 +496,7 @@ Sequencer::computeFetchUnit(u16 bplcon0)
             }
             break;
 
-        case SHRES:
+        case Resolution::SHRES:
 
             switch (bpu) {
 
@@ -512,67 +516,67 @@ Sequencer::computeFetchUnit(u16 bplcon0)
 template <u8 channels> void
 Sequencer::computeLoresFetchUnit()
 {
-    fetch[0][0] = 0;
-    fetch[0][1] = channels < 4 ? 0 : BPL_L4;
-    fetch[0][2] = channels < 6 ? 0 : BPL_L6;
-    fetch[0][3] = channels < 2 ? 0 : BPL_L2;
-    fetch[0][4] = 0;
-    fetch[0][5] = channels < 3 ? 0 : BPL_L3;
-    fetch[0][6] = channels < 5 ? 0 : BPL_L5;
-    fetch[0][7] = channels < 1 ? 0 : BPL_L1;
+    fetch[0][0] = EVENT_NONE;
+    fetch[0][1] = channels < 4 ? EVENT_NONE : BPL_L4;
+    fetch[0][2] = channels < 6 ? EVENT_NONE : BPL_L6;
+    fetch[0][3] = channels < 2 ? EVENT_NONE : BPL_L2;
+    fetch[0][4] = EVENT_NONE;
+    fetch[0][5] = channels < 3 ? EVENT_NONE : BPL_L3;
+    fetch[0][6] = channels < 5 ? EVENT_NONE : BPL_L5;
+    fetch[0][7] = channels < 1 ? EVENT_NONE : BPL_L1;
 
-    fetch[1][0] = 0;
-    fetch[1][1] = channels < 4 ? 0 : BPL_L4_MOD;
-    fetch[1][2] = channels < 6 ? 0 : BPL_L6_MOD;
-    fetch[1][3] = channels < 2 ? 0 : BPL_L2_MOD;
-    fetch[1][4] = 0;
-    fetch[1][5] = channels < 3 ? 0 : BPL_L3_MOD;
-    fetch[1][6] = channels < 5 ? 0 : BPL_L5_MOD;
-    fetch[1][7] = channels < 1 ? 0 : BPL_L1_MOD;
+    fetch[1][0] = EVENT_NONE;
+    fetch[1][1] = channels < 4 ? EVENT_NONE : BPL_L4_MOD;
+    fetch[1][2] = channels < 6 ? EVENT_NONE : BPL_L6_MOD;
+    fetch[1][3] = channels < 2 ? EVENT_NONE : BPL_L2_MOD;
+    fetch[1][4] = EVENT_NONE;
+    fetch[1][5] = channels < 3 ? EVENT_NONE : BPL_L3_MOD;
+    fetch[1][6] = channels < 5 ? EVENT_NONE : BPL_L5_MOD;
+    fetch[1][7] = channels < 1 ? EVENT_NONE : BPL_L1_MOD;
 }
 
 template <u8 channels> void
 Sequencer::computeHiresFetchUnit()
 {
-    fetch[0][0] = channels < 4 ? 0 : BPL_H4;
-    fetch[0][1] = channels < 2 ? 0 : BPL_H2;
-    fetch[0][2] = channels < 3 ? 0 : BPL_H3;
-    fetch[0][3] = channels < 1 ? 0 : BPL_H1;
-    fetch[0][4] = channels < 4 ? 0 : BPL_H4;
-    fetch[0][5] = channels < 2 ? 0 : BPL_H2;
-    fetch[0][6] = channels < 3 ? 0 : BPL_H3;
-    fetch[0][7] = channels < 1 ? 0 : BPL_H1;
+    fetch[0][0] = channels < 4 ? EVENT_NONE : BPL_H4;
+    fetch[0][1] = channels < 2 ? EVENT_NONE : BPL_H2;
+    fetch[0][2] = channels < 3 ? EVENT_NONE : BPL_H3;
+    fetch[0][3] = channels < 1 ? EVENT_NONE : BPL_H1;
+    fetch[0][4] = channels < 4 ? EVENT_NONE : BPL_H4;
+    fetch[0][5] = channels < 2 ? EVENT_NONE : BPL_H2;
+    fetch[0][6] = channels < 3 ? EVENT_NONE : BPL_H3;
+    fetch[0][7] = channels < 1 ? EVENT_NONE : BPL_H1;
 
-    fetch[1][0] = channels < 4 ? 0 : BPL_H4;
-    fetch[1][1] = channels < 2 ? 0 : BPL_H2;
-    fetch[1][2] = channels < 3 ? 0 : BPL_H3;
-    fetch[1][3] = channels < 1 ? 0 : BPL_H1;
-    fetch[1][4] = channels < 4 ? 0 : BPL_H4_MOD;
-    fetch[1][5] = channels < 2 ? 0 : BPL_H2_MOD;
-    fetch[1][6] = channels < 3 ? 0 : BPL_H3_MOD;
-    fetch[1][7] = channels < 1 ? 0 : BPL_H1_MOD;
+    fetch[1][0] = channels < 4 ? EVENT_NONE : BPL_H4;
+    fetch[1][1] = channels < 2 ? EVENT_NONE : BPL_H2;
+    fetch[1][2] = channels < 3 ? EVENT_NONE : BPL_H3;
+    fetch[1][3] = channels < 1 ? EVENT_NONE : BPL_H1;
+    fetch[1][4] = channels < 4 ? EVENT_NONE : BPL_H4_MOD;
+    fetch[1][5] = channels < 2 ? EVENT_NONE : BPL_H2_MOD;
+    fetch[1][6] = channels < 3 ? EVENT_NONE : BPL_H3_MOD;
+    fetch[1][7] = channels < 1 ? EVENT_NONE : BPL_H1_MOD;
 }
 
 template <u8 channels> void
 Sequencer::computeShresFetchUnit()
 {
-    fetch[0][0] = channels < 2 ? 0 : BPL_S2;
-    fetch[0][1] = channels < 1 ? 0 : BPL_S1;
-    fetch[0][2] = channels < 2 ? 0 : BPL_S2;
-    fetch[0][3] = channels < 1 ? 0 : BPL_S1;
-    fetch[0][4] = channels < 2 ? 0 : BPL_S2;
-    fetch[0][5] = channels < 1 ? 0 : BPL_S1;
-    fetch[0][6] = channels < 2 ? 0 : BPL_S2;
-    fetch[0][7] = channels < 1 ? 0 : BPL_S1;
+    fetch[0][0] = channels < 2 ? EVENT_NONE : BPL_S2;
+    fetch[0][1] = channels < 1 ? EVENT_NONE : BPL_S1;
+    fetch[0][2] = channels < 2 ? EVENT_NONE : BPL_S2;
+    fetch[0][3] = channels < 1 ? EVENT_NONE : BPL_S1;
+    fetch[0][4] = channels < 2 ? EVENT_NONE : BPL_S2;
+    fetch[0][5] = channels < 1 ? EVENT_NONE : BPL_S1;
+    fetch[0][6] = channels < 2 ? EVENT_NONE : BPL_S2;
+    fetch[0][7] = channels < 1 ? EVENT_NONE : BPL_S1;
 
-    fetch[1][0] = channels < 2 ? 0 : BPL_S2;
-    fetch[1][1] = channels < 1 ? 0 : BPL_S1;
-    fetch[1][2] = channels < 2 ? 0 : BPL_S2;
-    fetch[1][3] = channels < 1 ? 0 : BPL_S1;
-    fetch[1][4] = channels < 2 ? 0 : BPL_S2;
-    fetch[1][5] = channels < 1 ? 0 : BPL_S1;
-    fetch[1][6] = channels < 2 ? 0 : BPL_S2_MOD;
-    fetch[1][7] = channels < 1 ? 0 : BPL_S1_MOD;
+    fetch[1][0] = channels < 2 ? EVENT_NONE : BPL_S2;
+    fetch[1][1] = channels < 1 ? EVENT_NONE : BPL_S1;
+    fetch[1][2] = channels < 2 ? EVENT_NONE : BPL_S2;
+    fetch[1][3] = channels < 1 ? EVENT_NONE : BPL_S1;
+    fetch[1][4] = channels < 2 ? EVENT_NONE : BPL_S2;
+    fetch[1][5] = channels < 1 ? EVENT_NONE : BPL_S1;
+    fetch[1][6] = channels < 2 ? EVENT_NONE : BPL_S2_MOD;
+    fetch[1][7] = channels < 1 ? EVENT_NONE : BPL_S1_MOD;
 }
 
 }

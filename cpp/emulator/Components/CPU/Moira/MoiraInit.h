@@ -189,7 +189,7 @@ MOIRA_DECLARE(FTrapcc)
 MOIRA_DECLARE(FMove)
 MOIRA_DECLARE(FMovecr)
 MOIRA_DECLARE(FMovem)
-MOIRA_DECLARE_DASM(FGeneric)
+MOIRA_DECLARE(FGeneric)
 MOIRA_DECLARE_DASM(FGeneric2)
 MOIRA_DECLARE_DASM(FGeneric3)
 
@@ -216,6 +216,3 @@ template <Core C, Instr I, Mode M, Size S> void execMullMusashi(u16);
 template <Core C, Instr I, Mode M, Size S> void execDivsMusashi(u16, bool *);
 template <Core C, Instr I, Mode M, Size S> void execDivuMusashi(u16, bool *);
 template <Core C, Instr I, Mode M, Size S> bool execDivlMusashi(u16, bool *);
-
-template <Mode M> void execPMove(u16, RegName, bool);
-

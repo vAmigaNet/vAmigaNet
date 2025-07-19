@@ -2,14 +2,14 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #include "config.h"
 #include "Copper.h"
-#include "Amiga.h"
+#include "Emulator.h"
 #include "CopperDebugger.h"
 #include "Checksum.h"
 #include "IOUtils.h"
@@ -26,18 +26,12 @@ Copper::Copper(Amiga& ref) : SubComponent(ref)
 }
 
 void
-Copper::_reset(bool hard)
-{
-    RESET_SNAPSHOT_ITEMS(hard)
-}
-
-void
 Copper::setPC(u32 addr)
 {
     coppc = addr;
 
     // Notify the debugger
-    if (amiga.isTracking()) { debugger.jumped(); }
+    if (emulator.isTracking()) { debugger.jumped(); }
 }
 
 void
@@ -46,7 +40,7 @@ Copper::advancePC()
     coppc += 2;
 
     // Notify the debugger
-    if (amiga.isTracking()) { debugger.advanced(); }
+    if (emulator.isTracking()) { debugger.advanced(); }
 }
 
 void
@@ -204,16 +198,17 @@ Copper::move(u32 addr, u16 value)
     assert(addr < 0x1FF);
     
     trace(COP_DEBUG,
-          "COPPC: %X move(%s, $%X) (%d)\n", coppc0, Memory::regName(addr), value, value);
+          "COPPC: %X move(%s, $%X) (%d)\n", coppc0, MemoryDebugger::regName(addr), value, value);
 
     // Catch registers with special timing needs
     if (addr >= 0x180 && addr <= 0x1BE) {
 
         trace(OCSREG_DEBUG,
-              "pokeCustom16(%X [%s], %X)\n", addr, Memory::regName(addr), value);
+              "pokeCustom16(%X [%s], %X)\n", addr, MemoryDebugger::regName(addr), value);
 
         // Color registers
-        pixelEngine.colChanges.insert(agnus.pos.pixel(), RegChange { addr, value} );
+        auto reg = Reg(isize(Reg::COLOR00) + ((addr - 0x180) >> 1));
+        pixelEngine.colChanges.insert(agnus.pos.pixel(), RegChange { .reg = reg, .value = value} );
         return;
     }
 
@@ -294,7 +289,7 @@ bool Copper::isMoveCmd(u32 addr) const
 {
     assert(IS_EVEN(addr));
 
-    u16 hiword = mem.spypeek16 <ACCESSOR_AGNUS> (addr);
+    u16 hiword = mem.spypeek16 <Accessor::AGNUS> (addr);
 
     return IS_EVEN(hiword);
 }
@@ -308,8 +303,8 @@ bool Copper::isWaitCmd(u32 addr) const
 {
     assert(IS_EVEN(addr));
 
-    u16 hiword = mem.spypeek16 <ACCESSOR_AGNUS> (addr);
-    u16 loword = mem.spypeek16 <ACCESSOR_AGNUS> (addr + 2);
+    u16 hiword = mem.spypeek16 <Accessor::AGNUS> (addr);
+    u16 loword = mem.spypeek16 <Accessor::AGNUS> (addr + 2);
 
     return IS_ODD(hiword) && IS_EVEN(loword);
 }
@@ -323,8 +318,8 @@ bool Copper::isSkipCmd(u32 addr) const
 {
     assert(IS_EVEN(addr));
 
-    u16 hiword = mem.spypeek16 <ACCESSOR_AGNUS> (addr);
-    u16 loword = mem.spypeek16 <ACCESSOR_AGNUS> (addr + 2);
+    u16 hiword = mem.spypeek16 <Accessor::AGNUS> (addr);
+    u16 loword = mem.spypeek16 <Accessor::AGNUS> (addr + 2);
 
     return IS_ODD(hiword) && IS_ODD(loword);
 }
@@ -338,7 +333,7 @@ Copper::getRA() const
 u16
 Copper::getRA(u32 addr) const
 {
-    u16 hiword = mem.spypeek16 <ACCESSOR_AGNUS> (addr);
+    u16 hiword = mem.spypeek16 <Accessor::AGNUS> (addr);
     return hiword & 0x1FE;
 }
 
@@ -351,7 +346,7 @@ Copper::getDW() const
 u16
 Copper::getDW(u32 addr) const
 {
-    u16 loword = mem.spypeek16 <ACCESSOR_AGNUS> (addr + 2);
+    u16 loword = mem.spypeek16 <Accessor::AGNUS> (addr + 2);
     return loword;
 }
 
@@ -364,7 +359,7 @@ Copper::getBFD() const
 bool
 Copper::getBFD(u32 addr) const
 {
-    u16 instr = mem.spypeek16 <ACCESSOR_AGNUS> (addr + 2);
+    u16 instr = mem.spypeek16 <Accessor::AGNUS> (addr + 2);
     return (instr & 0x8000) != 0;
 }
 
@@ -377,7 +372,7 @@ Copper::getVPHP() const
 u16
 Copper::getVPHP(u32 addr) const
 {
-    u16 instr = mem.spypeek16 <ACCESSOR_AGNUS> (addr);
+    u16 instr = mem.spypeek16 <Accessor::AGNUS> (addr);
     return instr & 0xFFFE;
 }
 
@@ -390,7 +385,7 @@ Copper::getVMHM() const
 u16
 Copper::getVMHM(u32 addr) const
 {
-    u16 instr = mem.spypeek16 <ACCESSOR_AGNUS> (addr + 2);
+    u16 instr = mem.spypeek16 <Accessor::AGNUS> (addr + 2);
     return (instr & 0x7FFE) | 0x8001;
 }
 
@@ -421,7 +416,7 @@ Copper::eofHandler()
      */
     agnus.scheduleRel <SLOT_COP> (DMA_CYCLES(0), COP_VBLANK);
     
-    if constexpr (COP_CHECKSUM) {
+    if (COP_CHECKSUM) {
         
         if (checkcnt) {
             msg("[%lld] Checksum: %x (%lld) lc1 = %x lc2 = %x\n",

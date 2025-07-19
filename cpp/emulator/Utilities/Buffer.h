@@ -2,17 +2,21 @@
 // This file is part of vAmiga
 //
 // Copyright (C) Dirk W. Hoffmann. www.dirkwhoffmann.de
-// Licensed under the GNU General Public License v3
+// Licensed under the Mozilla Public License v2
 //
-// See https://www.gnu.org for license information
+// See https://mozilla.org/MPL/2.0 for license information
 // -----------------------------------------------------------------------------
 
 #pragma once
 
-#include "Types.h"
+#include "BasicTypes.h"
 #include "Checksum.h"
+#include "Compression.h"
+#include "MemUtils.h"
+#include <functional>
+#include <ostream>
 
-namespace util {
+namespace vamiga::util {
 
 template <class T> struct Allocator {
     
@@ -24,6 +28,7 @@ template <class T> struct Allocator {
     Allocator(T *&ptr) : ptr(ptr), size(0) { ptr = nullptr; }
     Allocator(const Allocator&) = delete;
     ~Allocator() { dealloc(); }
+    Allocator& operator= (const Allocator& other);
     
     // Queries the buffer state
     isize bytesize() const { return size * sizeof(T); }
@@ -35,9 +40,11 @@ template <class T> struct Allocator {
     void dealloc();
     void init(isize elements, T value = 0);
     void init(const T *buf, isize elements);
+    void init(const string &str);
     void init(const Allocator<T> &other);
-    void init(const string &path);
-    void init(const string &path, const string &name);
+    void init(const std::vector<T> &vector);
+    void init(const fs::path &path);
+    void init(const fs::path &path, const string &name);
     
     // Resizes an existing buffer
     void resize(isize elements);
@@ -60,27 +67,59 @@ template <class T> struct Allocator {
     u64 fnv64() const { return ptr ? util::fnv64((u8 *)ptr, bytesize()) : 0; }
     u16 crc16() const { return ptr ? util::crc16((u8 *)ptr, bytesize()) : 0; }
     u32 crc32() const { return ptr ? util::crc32((u8 *)ptr, bytesize()) : 0; }
+
+    // Pretty-printing the buffer contents
+    void dump(std::ostream &os, DumpOpt opt);
+    void dump(std::ostream &os, DumpOpt opt, const char *fmt);
+    void ascDump(std::ostream &os);
+    void hexDump(std::ostream &os);
+    void memDump(std::ostream &os);
+    void type(std::ostream &os, DumpOpt opt);
+
+    // Compresses or uncompresses a buffer
+    void gzip(isize offset = 0) { compress(util::gzip, offset); }
+    void gunzip(isize offset = 0, isize sizeEstimate = 0) { uncompress(util::gunzip, offset, sizeEstimate); }
+    
+    void lz4(isize offset = 0) { compress(util::lz4, offset); }
+    void unlz4(isize offset = 0, isize sizeEstimate = 0) { uncompress(util::unlz4, offset, sizeEstimate); }
+    
+    void rle2(isize offset = 0) { compress(util::rle2, offset); }
+    void unrle2(isize offset = 0, isize sizeEstimate = 0) { uncompress(util::unrle2, offset, sizeEstimate); }
+    
+    void rle3(isize offset = 0) { compress(util::rle3, offset); }
+    void unrle3(isize offset = 0, isize sizeEstimate = 0) { uncompress(util::unrle3, offset, sizeEstimate); }
+
+private:
+
+    void compress(std::function<void(u8 *,isize,std::vector<u8>&)> algo, isize offset = 0);
+    void uncompress(std::function<void(u8 *,isize,std::vector<u8>&, isize)> algo, isize offset = 0, isize sizeEstimate = 0);
 };
 
 template <class T> struct Buffer : public Allocator <T> {
     
     T *ptr = nullptr;
     
-    Buffer()
-    : Allocator<T>(ptr) { };
-    Buffer(isize bytes)
-    : Allocator<T>(ptr) { this->init(bytes); }
-    Buffer(isize bytes, T value)
-    : Allocator<T>(ptr) { this->init(bytes, value); }
-    Buffer(const T *buf, isize len)
-    : Allocator<T>(ptr) { this->init(buf, len); }
-    Buffer(const string &path)
-    : Allocator<T>(ptr) { this->init(path); }
-    Buffer(const string &path, const string &name)
-    : Allocator<T>(ptr) { this->init(path, name); }
+    Buffer() : Allocator<T>(ptr) { };
+    Buffer(isize bytes) : Allocator<T>(ptr) { this->init(bytes); }
+    Buffer(isize bytes, T value) : Allocator<T>(ptr) { this->init(bytes, value); }
+    Buffer(const T *buf, isize len) : Allocator<T>(ptr) { this->init(buf, len); }
+    Buffer(const fs::path &path) : Allocator<T>(ptr) { this->init(path); }
+    Buffer(const fs::path &path, const string &name) : Allocator<T>(ptr) { this->init(path, name); }
     
+    Buffer& operator= (const Buffer& other) { Allocator<T>::operator=(other); return *this; }
+
     T operator [] (isize i) const { return ptr[i]; }
     T &operator [] (isize i) { return ptr[i]; }
 };
+
+// Stream operators
+template <class T>
+std::ostream &operator<<(std::ostream &os, const Allocator<T> &buffer) {
+    
+    if (buffer.ptr && buffer.size > 0) {
+        os.write((const char *)buffer.ptr, buffer.size * sizeof(T));
+    }
+    return os;
+}
 
 }

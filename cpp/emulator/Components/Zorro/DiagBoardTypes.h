@@ -9,8 +9,9 @@
 
 #pragma once
 
-#include "Aliases.h"
-#include "Reflection.h"
+#include "Infrastructure/Reflection.h"
+
+namespace vamiga {
 
 //
 // Structures
@@ -21,3 +22,5 @@ typedef struct
     bool enabled;
 }
 DiagBoardConfig;
+
+}

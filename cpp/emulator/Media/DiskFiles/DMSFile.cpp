@@ -9,7 +9,6 @@
 
 #include "config.h"
 #include "DMSFile.h"
-#include "AmigaFile.h"
 
 extern "C" {
 unsigned short extractDMS(const unsigned char *in, size_t inSize,
@@ -19,16 +18,22 @@ unsigned short extractDMS(const unsigned char *in, size_t inSize,
 namespace vamiga {
 
 bool
-DMSFile::isCompatible(const string &path)
+DMSFile::isCompatible(const fs::path &path)
 {
-    auto suffix = util::uppercased(util::extractSuffix(path));
-    return suffix == "DMS";
+    auto suffix = util::uppercased(path.extension().string());
+    return suffix == ".DMS";
 }
 
 bool
-DMSFile::isCompatible(std::istream &stream)
-{                                                                                            
-    return util::matchingStreamHeader(stream, "DMS!");
+DMSFile::isCompatible(const u8 *buf, isize len)
+{
+    return util::matchingBufferHeader(buf, "DMS!");
+}
+
+bool
+DMSFile::isCompatible(const Buffer<u8> &buf)
+{
+    return isCompatible(buf.ptr, buf.size);
 }
 
 void
@@ -39,13 +44,13 @@ DMSFile::finalizeRead()
     
     if (extractDMS(data.ptr, (size_t)data.size, &adfData, &adfSize, DMS_DEBUG) == 0) {
 
-        if constexpr (!FORCE_DMS_CANT_CREATE) {
+        if (!FORCE_DMS_CANT_CREATE) {
             adf.init(adfData, isize(adfSize));
         }
     }
     
     if (adfData) free(adfData);
-    if (!adf) throw VAError(ERROR_DMS_CANT_CREATE);
+    if (!adf) throw AppError(Fault::DMS_CANT_CREATE);
 }
 
 }
