@@ -150,11 +150,14 @@
             console.log('Installing ROM:', showcase.roms);
             installRoms(showcase.roms);
             console.log('Configuring Chip RAM:', showcase.memory[0]);
-            $amiga.configure($wasm.OPT_CHIP_RAM, showcase.memory[0]);
+            // $amiga.configure($wasm.OPT_MEM_CHIP_RAM, showcase.memory[0]);
+            $config.set(Opt.CHIP_RAM, showcase.memory[0]);
             console.log('Configuring Slow RAM:', showcase.memory[1]);
-            $amiga.configure($wasm.OPT_SLOW_RAM, showcase.memory[1]);
+            // $amiga.configure($wasm.OPT_MEM_SLOW_RAM, showcase.memory[1]);
+            $config.set(Opt.SLOW_RAM, showcase.memory[1]);
             console.log('Configuring Fast RAM:', showcase.memory[2]);
-            $amiga.configure($wasm.OPT_FAST_RAM, showcase.memory[2]);
+            // $amiga.configure($wasm.OPT_MEM_FAST_RAM, showcase.memory[2]);
+            $config.set(Opt.FAST_RAM, showcase.memory[2]);
             console.log('Configuring drives:', showcase.adf.length);
             $config.set(Opt.DF1, showcase.adf.length > 1);
             for (let i = 0; i < showcase.adf.length; i++) {

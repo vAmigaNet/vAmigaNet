@@ -88,6 +88,7 @@ EMSCRIPTEN_BINDINGS(EnumClasses)
         .value("SRV_SEND", Msg::SRV_SEND)
         .value("ALARM", Msg::ALARM);
 
+    /*
     enum_<Opt>("Opt")
         .value("HOST_REFRESH_RATE", Opt::HOST_REFRESH_RATE)
         .value("HOST_SAMPLE_RATE", Opt::HOST_SAMPLE_RATE)
@@ -258,6 +259,7 @@ EMSCRIPTEN_BINDINGS(EnumClasses)
         .value("SRV_PROTOCOL", Opt::SRV_PROTOCOL)
         .value("SRV_AUTORUN", Opt::SRV_AUTORUN)
         .value("SRV_VERBOSE", Opt::SRV_VERBOSE);
+*/
 
     enum_<RomVendor>("RomVendor")
         .value("COMMODORE", RomVendor::COMMODORE)
@@ -415,7 +417,7 @@ int AmigaProxy::getFileType(const string &blob)
         std::stringstream stream;
     stream.write((const char *)blob.data(), blob.size());
 
-    /*
+    /* TODO
     if (Snapshot::isCompatible(stream))
         return (int)FILETYPE_SNAPSHOT;
     if (RomFile::isCompatible(stream))
@@ -442,66 +444,29 @@ bool AmigaProxy::insertDisk(const string &blob, u8 drive)
 {
     TRY
 
-    // std::stringstream stream;
-    // stream.write((const char *)blob.data(), blob.length());
-
     auto data = (u8 *)blob.data();
     auto length = (isize)blob.length();
 
     if (auto file = MediaFile::make(data, length, FileType::ADF); file) {
     
-        // amiga->df[drive]->insertMedia(std::make_unique<FloppyDisk>(file));
         amiga->df[drive]->insertMedia(*file, false);
         return true;
     }
     if (auto file = MediaFile::make(data, length, FileType::EADF); file) {
     
-        // amiga->df[drive]->swapDisk(std::make_unique<FloppyDisk>(file));
         amiga->df[drive]->insertMedia(*file, false);
         return true;
     }
     if (auto file = MediaFile::make(data, length, FileType::EXE); file) {
     
-        // amiga->df[drive]->swapDisk(std::make_unique<FloppyDisk>(file));
         amiga->df[drive]->insertMedia(*file, false);
         return true;
     }
     if (auto file = MediaFile::make(data, length, FileType::DMS); file) {
     
-        // amiga->df[drive]->swapDisk(std::make_unique<FloppyDisk>(file));
         amiga->df[drive]->insertMedia(*file, false);
         return true;
     }
-
-    // if (ADFFile::isCompatible(stream))
-    /*
-    {
-        ADFFile adf{(u8 *)blob.data(), (isize)blob.length()};
-        amiga->df[drive]->swapDisk(std::make_unique<FloppyDisk>(adf));
-        return true;
-    }
-
-    if (EADFFile::isCompatible(stream))
-    {
-        EADFFile eadf{(u8 *)blob.data(), (isize)blob.length()};
-        amiga->df[drive]->swapDisk(std::make_unique<FloppyDisk>(eadf));
-        return true;
-    }
-
-    if (EXEFile::isCompatible(stream))
-    {
-        EXEFile exe{(u8 *)blob.data(), (isize)blob.length()};
-        amiga->df[drive]->swapDisk(std::make_unique<FloppyDisk>(exe));
-        return true;
-    }
-
-    if (DMSFile::isCompatible(stream))
-    {
-        DMSFile dms{(u8 *)blob.data(), (isize)blob.length()};
-        amiga->df[drive]->swapDisk(std::make_unique<FloppyDisk>(dms));
-        return true;
-    }
-    */
     return false;
 
     CATCH
@@ -511,9 +476,6 @@ bool AmigaProxy::attachHardDrive(const string &blob, u8 drive)
 {
     TRY
 
-    // std::stringstream stream;
-    // stream.write((const char *)blob.data(), blob.length());
-
     auto data = (u8 *)blob.data();
     auto length = (isize)blob.length();
 
@@ -522,14 +484,6 @@ bool AmigaProxy::attachHardDrive(const string &blob, u8 drive)
         amiga->hd[drive]->attach(*file);
         return true;
     }
-    /* 
-    if (HDFFile::isCompatible(stream))
-    {
-        HDFFile hdf{(u8 *)blob.data(), (isize)blob.length()};
-        amiga->hd[drive]->init(hdf);
-        return true;
-    }
-    */
     return false;
 
     CATCH
@@ -1001,7 +955,6 @@ EMSCRIPTEN_BINDINGS(Keys)
     constant("MSG_ALARM", (int)Msg::ALARM);
 
     // Options
-    /*
     constant("OPT_HOST_REFRESH_RAT", (int)Opt::HOST_REFRESH_RATE);
     constant("OPT_HOST_SAMPLE_RATE", (int)Opt::HOST_SAMPLE_RATE);
     constant("OPT_HOST_FRAMEBUF_WIDTH", (int)Opt::HOST_FRAMEBUF_WIDTH);
@@ -1173,7 +1126,6 @@ EMSCRIPTEN_BINDINGS(Keys)
     constant("OPT_SRV_PROTOCOL", (int)Opt::SRV_PROTOCOL);
     constant("OPT_SRV_AUTORUN", (int)Opt::SRV_AUTORUN);
     constant("OPT_SRV_VERBOSE", (int)Opt::SRV_VERBOSE);
-   */
 
     // Palette
     constant("PALETTE_COLOR", (int)Palette::COLOR);

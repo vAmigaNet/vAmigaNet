@@ -1,7 +1,7 @@
 <script lang="ts">
     import { Opt } from "$lib/types";
     import StatusIcon from './StatusIcon.svelte';
-	import { config, proxy, warp, warpMode } from '$lib/stores';
+	import { config, proxy, warp, warpMode, wasm } from '$lib/stores';
 
     function iconUrl(warpMode: number, warp: boolean) {
 
