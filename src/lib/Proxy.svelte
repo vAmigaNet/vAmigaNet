@@ -406,11 +406,8 @@
 
     export function processMsg(msg: any)
     {
-        let type = msg.type;
-        let value = msg.value;
-
-        // console.log(`Message: ${$enums.MsgTypeKey(type)}(${value})`);
-
+        let type = msg.type?.value;
+    
         switch (type) {
             case $wasm.MSG_NONE:
                 $MsgNone++;

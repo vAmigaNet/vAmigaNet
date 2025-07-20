@@ -920,7 +920,6 @@ EMSCRIPTEN_BINDINGS(Keys)
     constant("RELEASE_RIGHT", (int)GamePadAction::RELEASE_RIGHT);
 
     // Msg
-    /*
     constant("MSG_NONE", (int)Msg::NONE);
     constant("MSG_CONFIG", (int)Msg::CONFIG);
     constant("MSG_POWER", (int)Msg::POWER);
@@ -994,7 +993,6 @@ EMSCRIPTEN_BINDINGS(Keys)
     constant("MSG_SRV_RECEIVE", (int)Msg::SRV_RECEIVE);
     constant("MSG_SRV_SEND", (int)Msg::SRV_SEND);
     constant("MSG_ALARM", (int)Msg::ALARM);
-    */
 
     // Options
     /*
