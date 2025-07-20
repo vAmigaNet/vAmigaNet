@@ -299,13 +299,12 @@ EMSCRIPTEN_BINDINGS(Structures)
         .field("patched", &RomTraits::patched)
         .field("relocated", &RomTraits::relocated);
     */
-    /*
-value_object<TextureWrapper>("TextureWrapper")
-    .field("frameNr", &TextureWrapper::frameNr)
-    .field("data", &TextureWrapper::data)
-    .field("currLof", &TextureWrapper::currLof)
-    .field("prevLof", &TextureWrapper::prevLof);
-    */
+    
+    value_object<TextureWrapper>("TextureWrapper")
+        .field("frameNr", &TextureWrapper::frameNr)
+        .field("data", &TextureWrapper::data)
+        .field("currLof", &TextureWrapper::currLof)
+        .field("prevLof", &TextureWrapper::prevLof);
 
     value_object<RomInfo>("RomInfo")
         .field("crc32", &RomInfo::crc32)
@@ -1170,6 +1169,7 @@ EMSCRIPTEN_BINDINGS(Keys)
     constant("OPT_SRV_PROTOCOL", (int)Opt::SRV_PROTOCOL);
     constant("OPT_SRV_AUTORUN", (int)Opt::SRV_AUTORUN);
     constant("OPT_SRV_VERBOSE", (int)Opt::SRV_VERBOSE);
+   */
 
     // Palette
     constant("PALETTE_COLOR", (int)Palette::COLOR);
@@ -1202,5 +1202,5 @@ EMSCRIPTEN_BINDINGS(Keys)
     // VideoFormat
     constant("TV_PAL", (int)TV::PAL);
     constant("TV_NTSC", (int)TV::NTSC);
-    */
+ 
 };
