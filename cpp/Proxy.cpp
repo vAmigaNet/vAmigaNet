@@ -354,7 +354,6 @@ AmigaProxy::AmigaProxy()
 {
     TRY
 
-        printf("Constructing Amiga...\n");
     amiga = new VAmiga();
 
     // DEPRECATED (REMOVE ASAP)
@@ -443,10 +442,38 @@ bool AmigaProxy::insertDisk(const string &blob, u8 drive)
 {
     TRY
 
-        std::stringstream stream;
-    stream.write((const char *)blob.data(), blob.length());
+    // std::stringstream stream;
+    // stream.write((const char *)blob.data(), blob.length());
 
-    // if (ADFFile::isCompatible(stream)) // TODO
+    auto data = (u8 *)blob.data();
+    auto length = (isize)blob.length();
+
+    if (auto file = MediaFile::make(data, length, FileType::ADF); file) {
+    
+        // amiga->df[drive]->insertMedia(std::make_unique<FloppyDisk>(file));
+        amiga->df[drive]->insertMedia(*file, false);
+        return true;
+    }
+    if (auto file = MediaFile::make(data, length, FileType::EADF); file) {
+    
+        // amiga->df[drive]->swapDisk(std::make_unique<FloppyDisk>(file));
+        amiga->df[drive]->insertMedia(*file, false);
+        return true;
+    }
+    if (auto file = MediaFile::make(data, length, FileType::EXE); file) {
+    
+        // amiga->df[drive]->swapDisk(std::make_unique<FloppyDisk>(file));
+        amiga->df[drive]->insertMedia(*file, false);
+        return true;
+    }
+    if (auto file = MediaFile::make(data, length, FileType::DMS); file) {
+    
+        // amiga->df[drive]->swapDisk(std::make_unique<FloppyDisk>(file));
+        amiga->df[drive]->insertMedia(*file, false);
+        return true;
+    }
+
+    // if (ADFFile::isCompatible(stream))
     /*
     {
         ADFFile adf{(u8 *)blob.data(), (isize)blob.length()};
@@ -454,10 +481,8 @@ bool AmigaProxy::insertDisk(const string &blob, u8 drive)
         return true;
     }
 
-printf("Checking for EADF...\n");
     if (EADFFile::isCompatible(stream))
     {
-printf("IS COMPATIBLE...\n");
         EADFFile eadf{(u8 *)blob.data(), (isize)blob.length()};
         amiga->df[drive]->swapDisk(std::make_unique<FloppyDisk>(eadf));
         return true;
@@ -486,10 +511,18 @@ bool AmigaProxy::attachHardDrive(const string &blob, u8 drive)
 {
     TRY
 
-        std::stringstream stream;
-    stream.write((const char *)blob.data(), blob.length());
+    // std::stringstream stream;
+    // stream.write((const char *)blob.data(), blob.length());
 
-    /* TODO
+    auto data = (u8 *)blob.data();
+    auto length = (isize)blob.length();
+
+    if (auto file = MediaFile::make(data, length, FileType::HDF); file) {
+    
+        amiga->hd[drive]->attach(*file);
+        return true;
+    }
+    /* 
     if (HDFFile::isCompatible(stream))
     {
         HDFFile hdf{(u8 *)blob.data(), (isize)blob.length()};
@@ -505,8 +538,7 @@ bool AmigaProxy::attachHardDrive(const string &blob, u8 drive)
 void AmigaProxy::setAlarmAbs(int frames, int payload)
 {
     TRY
-        Cycle trigger = (Cycle)frames * PAL::CLK_FREQUENCY / 50;
-    printf("Scheduling alarm... %lld\n", trigger);
+    Cycle trigger = (Cycle)frames * PAL::CLK_FREQUENCY / 50;
     amiga->put(Cmd::ALARM_ABS, AlarmCmd{trigger, payload});
     CATCH
 };
@@ -514,9 +546,8 @@ void AmigaProxy::setAlarmAbs(int frames, int payload)
 void AmigaProxy::setAlarmRel(int frames, int payload)
 {
     TRY
-        Cycle trigger = (Cycle)frames * PAL::CLK_FREQUENCY / 50;
+    Cycle trigger = (Cycle)frames * PAL::CLK_FREQUENCY / 50;
     amiga->put(Cmd::ALARM_REL, AlarmCmd{trigger, payload});
-    // amiga->setAlarmRel(trigger, payload);
     CATCH
 };
 
@@ -693,7 +724,6 @@ MemoryProxy::analyzeRom(const string &blob, u32 len)
 {
     TRY
 
-        printf("Analyzing ROM... %u bytes\n", len);
     u32 crc32 = util::crc32((const u8 *)blob.data(), len);
     auto traits = Memory::getRomTraits(crc32);
 
@@ -705,31 +735,7 @@ MemoryProxy::analyzeRom(const string &blob, u32 len)
     info.model = traits.model;
     info.vendor = traits.vendor;
     info.patched = traits.patched;
-
     return info;
-    /*
-    RomInfo info{};
-
-    std::stringstream stream;
-    stream.write((const char *)blob.data(), len);
-
-    auto mediaFile = MediaFile::make((u8 *)blob.data(), (isize)len, FileType::ROM);
-
-    u32 crc32 = util::crc32(rom.data.ptr, rom.data.size);
-
-    info.crc32 = crc32;
-    info.title = RomFile::title(crc32);
-    info.version = RomFile::version(crc32);
-    info.released = RomFile::released(crc32);
-    info.model = RomFile::model(crc32);
-    info.isAros = RomFile::isArosRom(crc32);
-    info.isDiag = RomFile::isDiagRom(crc32);
-    info.isCommodore = RomFile::isCommodoreRom(crc32);
-    info.isHyperion = RomFile::isHyperionRom(crc32);
-    info.isPatched = RomFile::isPatchedRom(crc32);
-
-    return info;
-    */
 
     CATCH
 }
