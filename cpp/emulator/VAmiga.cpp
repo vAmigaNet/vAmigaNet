@@ -2207,6 +2207,7 @@ i64
 VAmiga::get(Opt option) const
 {
     VAMIGA_PUBLIC
+    printf("VAmiga::get(Opt option) called with option %d (%s)\n", int(option), OptEnum::key(option));
     return emu->get(option);
 }
 
