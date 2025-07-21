@@ -50,7 +50,7 @@
 	let animating = false;
 
 	onMount(() => {
-		console.log('Emulator component mounted');
+		console.log('Emulator::onMount()');
 		textureRect.zoomIn();
 	});
 

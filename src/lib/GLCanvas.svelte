@@ -223,7 +223,7 @@
 	}
 
 	function updateTextureRect(x1: number, y1: number, x2: number, y2: number) {
-        console.log(`updateTextureRect(${x1}, ${y1}, ${x2}, ${y2})`);
+        // console.log(`updateTextureRect(${x1}, ${y1}, ${x2}, ${y2})`);
         const array = new Float32Array([x1, y1, x2, y1, x1, y2, x2, y2]);
 		gl.bindBuffer(gl.ARRAY_BUFFER, tBuffer);
 		gl.bufferSubData(gl.ARRAY_BUFFER, 0, array);
@@ -465,7 +465,7 @@
 	}
 
 	onMount(() => {
-		console.log('*** onMount()');
+		console.log('GLCanvas::onMount()');
 
 		// Add event listeners
 		document.addEventListener('pointerlockchange', lockChangeAlert, false);
@@ -475,8 +475,6 @@
 	});
 
 	onDestroy(() => {
-		console.log('*** onDestroy()');
-
 		// Remove event listeners
 		document.removeEventListener('pointerlockchange', lockChangeAlert);
 	});

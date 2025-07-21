@@ -538,7 +538,6 @@ EMSCRIPTEN_BINDINGS(AmigaProxy)
         .function("run", &AmigaProxy::run)
         .function("pause", &AmigaProxy::pause)
         .function("halt", &AmigaProxy::halt)
-        .function("stopAndGo", &AmigaProxy::stopAndGo)
         .function("warpOn", &AmigaProxy::warpOn)
         .function("warpOff", &AmigaProxy::warpOff)
 

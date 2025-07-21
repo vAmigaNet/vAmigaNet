@@ -11,11 +11,11 @@
 
     export async function setup()
     {
-        console.log('Audio.setup()');
         if (audioContext) {
-            console.log('Audio context already initialized: ', audioContext.state);
             return;
         }
+        console.log('Setting up audio...');
+
         audioContext = new AudioContext();
         audioContext.onstatechange = () => console.log('Audio Context: state = ' + audioContext.state);
         let gainNode = audioContext.createGain();
@@ -50,6 +50,7 @@
 
     async function loadSounds()
     {
+        console.log('Loading sounds...');
         if (!insertSound) insertSound = await loadSound('sounds/insert.mp3');
         if (!ejectSound) ejectSound = await loadSound('sounds/eject.mp3');
         if (!stepSound) stepSound = await loadSound('sounds/step.mp3');
@@ -98,7 +99,7 @@
 
     async function loadSound(url: string)
     {
-        console.log('load_sound: url = ' + url);
+        // console.log('load_sound: url = ' + url);
         let response = await fetch(url);
         let buffer = await response.arrayBuffer();
         return await audioContext.decodeAudioData(buffer);

@@ -121,7 +121,6 @@ struct AmigaProxy
     void run() { TRY amiga->run(); CATCH }
     void pause() { TRY amiga->pause(); CATCH }
     void halt() { TRY amiga->halt(); CATCH }
-    void stopAndGo() { /* TODO */ } // TRY amiga->stopAndGo(); CATCH }
     void warpOn() { TRY amiga->warpOn(); CATCH }
     void warpOff() { TRY amiga->warpOff(); CATCH }
 

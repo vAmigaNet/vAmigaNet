@@ -130,15 +130,12 @@
     import { Opt } from "./types";
 
     onMount(() => {
-        console.log('Proxy: onMount()');
+        console.log('Proxy::onMount()');
 
         // Prepare to receive messages
-        console.log('Prepare to receive messages');
         $wasm.processMsg = processMsg;
 
-        console.log('proxy = ', $wasm, 'HEAPF32 = ', $wasm.HEAPF32);
         onRuntimeInitialized();
-
     });
 
     export async function runShowcase(showcase: DataBaseItem)
@@ -147,24 +144,14 @@
         try {
             console.log('Showcase:', showcase.title);
             $amiga.powerOff();
-            console.log('Installing ROM:', showcase.roms);
             installRoms(showcase.roms);
-            console.log('Configuring Chip RAM:', showcase.memory[0]);
-            // $amiga.configure($wasm.OPT_MEM_CHIP_RAM, showcase.memory[0]);
             $config.set(Opt.CHIP_RAM, showcase.memory[0]);
-            console.log('Configuring Slow RAM:', showcase.memory[1]);
-            // $amiga.configure($wasm.OPT_MEM_SLOW_RAM, showcase.memory[1]);
             $config.set(Opt.SLOW_RAM, showcase.memory[1]);
-            console.log('Configuring Fast RAM:', showcase.memory[2]);
-            // $amiga.configure($wasm.OPT_MEM_FAST_RAM, showcase.memory[2]);
             $config.set(Opt.FAST_RAM, showcase.memory[2]);
-            console.log('Configuring drives:', showcase.adf.length);
             $config.set(Opt.DF1, showcase.adf.length > 1);
             for (let i = 0; i < showcase.adf.length; i++) {
-                console.log('Inserting disk ' + i + ':', showcase.adf[i]);
                 await insert(showcase.adf[i], i);
             }
-            console.log('Configuring warp mode: ' + showcase.warp);
             $config.set(Opt.WARP_MODE, showcase.warp);
             console.log('Launchine emulator...');
             $amiga.run();
@@ -186,7 +173,6 @@
         } catch (exception) {
             console.log('CATCHED ' + exception);
             throw exception;
-            // console.error($amiga.getExceptionMessage(exception));
         }
     }
 
@@ -202,7 +188,6 @@
             let response = await fetch('adf/' + name);
             let blob = await response.arrayBuffer();
             let uint8View = new Uint8Array(blob);
-            console.log('Calling $amiga.insertDisk', uint8View, drive);
             $amiga.insertDisk(uint8View, drive);
             console.log('Disk inserted');
         } catch (exc) {
@@ -235,17 +220,16 @@
             } else {
                 $memory.deleteExt();
             }
-            // console.log('Rom added', item?.title);
             return true;
         } catch (error) {
-            // console.log(`installRom failed: `, error);
+            console.log(`installRom failed: `, error);
             return false;
         }
     }
 
     export async function installRoms(crcs: number[])
     {
-        console.log('Installing Rom: ', crcs);
+        // console.log('Installing Rom: ', crcs);
         for (const crc of crcs) {
 
             const success = await installRom(crc);
@@ -256,7 +240,6 @@
 
     export async function addRom(blob: Uint8Array) {
         let info = $memory.analyzeRom(blob, blob.byteLength);
-        console.log('ROM analyzed: ', info);
 
         if (info.crc32) {
             try {
@@ -282,6 +265,7 @@
                 console.log(`${t} successfully added with id ${id}`);
             } catch (error) {
                 console.log(`Failed to add Kickstart`, error);
+                throw error;
             }
             console.log("Opening Kickstart viewer");
             $layer = Layer.kickstart;
@@ -333,9 +317,8 @@
         console.log('Launching the emulator...');
         $amiga.launch();
 
-        console.log('Configuring the emulator...');
-
         // Apply some default settings
+        console.log('Configuring the emulator...');
         $amiga.configure($wasm.OPT_AGNUS_REVISION, $wasm.AGNUS_ECS_2MB);
 
         $keyset1 = {

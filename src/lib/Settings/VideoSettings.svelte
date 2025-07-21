@@ -6,14 +6,6 @@
     import ConfigItem from '$lib/Settings/ConfigItem.svelte';
     import { config, wasm } from '$lib/stores';
 
-    onMount(() => {
-        update();
-    });
-
-    function update()
-    {
-    }
-
     function renderModeAction(value: number)
     {
         $config.set(Opt.RENDER_MODE, value);

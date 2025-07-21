@@ -45,7 +45,7 @@
 	});
 
 	onMount(() => {
-		console.log('+page: onMount()');
+		console.log('+page::onMount()');
 
 		window.addEventListener('resize', function () {
 			clearTimeout(timeout);
@@ -56,7 +56,7 @@
 		window.addEventListener('unhandledrejection', handleUncatchedRejection);
 	});
 
-	$: if (canvas) { console.log("Calling resize()"); resize(); }
+	$: if (canvas) { resize(); }
 
 	$: if ($initialized) {
 		// Start render loop
@@ -77,7 +77,7 @@
 	}
 
 	function resize() {
-		console.log('resize');
+		// console.log('resize');
 		if (canvas != undefined) {
 			// Copy the current size of emulator element
 			$canvasWidth = canvas.clientWidth;
@@ -119,8 +119,6 @@
 
 	function action(sender: string, state: boolean) {
 	
-		console.log('Sidebar: ', sender);
-
 		switch (sender) {
 			case 'shell':
 				$layer = $layer == Layer.shell ? Layer.none : Layer.shell;
@@ -139,7 +137,13 @@
 				break;
 			case 'pause':
 				try {
-					$amiga.stopAndGo();
+					if ($amiga.isRunning()) {
+						console.log("Pausing...")
+						$amiga.pause();
+					} else {
+						console.log("Running..:")
+						$amiga.run();
+					}
 				} catch (exc) {
 					console.log(exc);
 					$wasm.reportException();

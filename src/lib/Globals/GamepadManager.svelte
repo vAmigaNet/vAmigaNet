@@ -10,6 +10,7 @@
     let { gamepads = $bindable({}) }: Props = $props();
 
     onMount(() => {
+		console.log("GamePadManager::onMount()");
 
         window.addEventListener(
             "gamepadconnected",

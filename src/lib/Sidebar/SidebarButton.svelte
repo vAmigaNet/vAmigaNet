@@ -19,7 +19,6 @@
 	let state = false;
 
 	function click(e: Event) {
-		console.log('click', e);
 		e.preventDefault();
 		state = toggle ? !state : true;
 		console.log('toggle = ', toggle);

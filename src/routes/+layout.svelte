@@ -6,16 +6,13 @@
 	import vAmigaFactory from '$lib/vAmiga.js';
 
 	onMount(() => {
+		console.log('+layout::onMount()');
+
 		if (!browser) return;
 
-		console.log('+layout: onMount()');
-
 		(async () => {
-			console.log('Loading vAmiga WASM module...');
+			console.log('Loading WASM module...');
 			$wasm = await vAmigaFactory();
-			console.log('vAmiga WASM module loaded:', $wasm);
-			console.log('HEAP32:', $wasm.HEAP32);
-			// $wasmLoaded = true;
 		})();
 	});
 

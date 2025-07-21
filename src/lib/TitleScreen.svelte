@@ -25,6 +25,8 @@
 	}
 
 	onMount(() => {
+		console.log("TitleScreen::onMount()");
+		
 		// Prefetch some images
 		new Image().src = 'footage/3ddemo-small.jpg';
 		new Image().src = 'footage/batmanrises-small.jpg';

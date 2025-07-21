@@ -94,7 +94,7 @@
     // $: console.log("CONFIG DB: ", opts);
 
     onMount(() => {
-        console.log('Config: onMount()');
+        console.log('Config::onMount()');
         registerDefaults();
         loadSettings();
     });
@@ -242,15 +242,11 @@
 
     export async function loadSettings()
     {
-        console.log('Config: loadGeneralSettings() ...');
+        console.log('Loading settings...');
         await loadGeneralSettings();
-        console.log('Config: loadMachineSettings() ...');
         await loadMachineSettings();
-        console.log('Config: loadCompatibilitySettings() ...');
         await loadCompatibilitySettings();
-        console.log('Config: loadAudioSettings() ...');
         await loadAudioSettings();
-        console.log('Config: loadVideoSettings() ...');
         await loadVideoSettings();
     }
 
@@ -386,7 +382,7 @@
 
     export function get(option: Opt): string
     {
-        console.log("get: ", option);
+        // console.log("get: ", option);
         switch (option) {
 
             //

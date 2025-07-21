@@ -25,12 +25,16 @@
 
 	async function addRomToDatabase(rom: Uint8Array, ext: Uint8Array | null = null, extStart = 0) {
 
-		console.log('addRomToDatabase', rom.length, ext?.length ?? 0);
 		let info = $memory.analyzeRom(rom, rom.length);
-		console.log('RomInfo:', info);
 		if (info.crc32) {
 			try {
 				const t = info.title;
+				const exists = await db.roms.where("crc32").equals(info.crc32).first();
+
+            	if (exists) {
+                	console.log(`ROM with CRC32 ${info.crc32} already exists: ${exists.title}`);
+	                return;
+	            }
 
 				const id = await db.roms.add({
 					crc32: info.crc32,
@@ -50,7 +54,7 @@
 				});
 				console.log(`${t} successfully added with id ${id}`);
 			} catch (error) {
-				console.log(`Failed to add Kickstart`);
+				console.warn(`Failed to add Kickstart`, error);
 			}
 		}
 	}
@@ -111,17 +115,16 @@
 	}
 
 	async function deleteAction(e: MouseEvent, id: number) {
-		console.log('deleteAction: ', id);
 		try {
 			await db.roms.delete(id);
-			console.log(`{id} successfully deleted`);
+			console.log(`Kickstart {id} deleted`);
 		} catch (error) {
 			console.log(`Failed to delete Kickstart`, error);
 		}
 	}
 
 	async function installAction(e: MouseEvent, crc: number) {
-		console.log('installAction: ', crc);
+		console.log('Installing ROM ', crc, '...');
 		$amiga.powerOff();
 		await $proxy.installRom(crc);
 		$amiga.hardReset();
@@ -134,7 +137,6 @@
 	let fdialog: FileDialog | undefined = $state();
 
 	function addRomAction() {
-		console.log('addRomAction');
 		fdialog.open().then(
 			function (value) {
 				console.log('open file dialog', value);
