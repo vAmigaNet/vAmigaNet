@@ -382,8 +382,9 @@ Message AmigaProxy::readMessage()
     if (!amiga->getMsg(msg))
     {
         msg.type = Msg(0);
+    } else {
+        // printf("Message: %s [%llx]\n", MsgEnum::key(msg.type), msg.value);
     }
-    // printf("Message: %s [%llx]\n", MsgEnum::key(msg.type), msg.value);
     return msg;
 }
 

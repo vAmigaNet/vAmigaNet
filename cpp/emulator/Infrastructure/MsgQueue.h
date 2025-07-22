@@ -19,7 +19,7 @@ namespace vamiga {
 class MsgQueue final : CoreObject, Synchronizable {
 
     // Ring buffer storing all pending messages
-    util::RingBuffer <Message, 512> queue;
+    util::RingBuffer <Message, 4096> queue;
 
     // The registered listener
     const void *listener = nullptr;
@@ -52,7 +52,7 @@ public:
     
     void lock() { mutex.lock(); }
     void unlock() { mutex.unlock(); }
-    
+
     // Registers a listener together with it's callback function
     void setListener(const void *listener, Callback *func);
 
