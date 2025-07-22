@@ -96,7 +96,7 @@ struct AmigaProxy
     void wakeUp() { TRY amiga->wakeUp(); CATCH }
 
     // Configuring
-    void configure(int option, int value) { TRY amiga->set((Opt)option, (i64)value); CATCH }
+    void configure(int option, int value) { TRY printf("Configure: %d\n", (int)value);  amiga->set((Opt)option, (i64)value); CATCH }
     void configureId(int option, int id, int value) { TRY amiga->set((Opt)option, (i64)id, (i64)value); CATCH }
     int getConfig(int option) { TRY return (int)amiga->get((Opt)option); CATCH }
     int getConfigId(int option, int id) { TRY return (int)amiga->get((Opt)option, id); CATCH }
