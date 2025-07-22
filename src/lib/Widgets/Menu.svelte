@@ -41,7 +41,6 @@
 
 		// Force the dropdown to close
 		if (document.activeElement) (document.activeElement as HTMLElement).blur();
-		console.log(`Menu action: ${tag} - ${value}`);
 		select(value);
 	};
 

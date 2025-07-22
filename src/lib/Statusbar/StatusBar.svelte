@@ -63,7 +63,6 @@
 	}
 
 	function dfMenuAction(df: number, tag: number) {
-        console.log('dfMenuAction', df, tag);
         switch (tag) {
 			case 0:
 				fdialog.open().then(
@@ -104,13 +103,7 @@
 			default:
 				console.warn('Invalid menu item', tag);
 		}
-	}
-
-	
-	$effect(() => {
-		if ($dfConnected) console.log("dfCOnnected = ", $dfConnected);
-	});
-	
+	}	
 </script>
 
 <FileDialog bind:this={fdialog}></FileDialog>

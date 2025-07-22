@@ -556,7 +556,6 @@
                 break;
 
             case $wasm.MSG_DRIVE_CONNECT:
-                console.log("MSG_DRIVE_CONNECT");
                 $MsgDriveConnect++;
                 updateStateVariables();
                 break;
