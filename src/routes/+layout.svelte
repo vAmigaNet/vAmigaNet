@@ -5,6 +5,8 @@
 	import { wasm } from '$lib/stores';
 	import vAmigaFactory from '$lib/vAmiga.js';
 
+	export const prerender = true;
+	
 	onMount(() => {
 		console.log('+layout::onMount()');
 
