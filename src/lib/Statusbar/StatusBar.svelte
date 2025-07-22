@@ -114,7 +114,7 @@
 			type="button"
 			class="flex h-full w-16 justify-center"
 			id="vamigaButton"
-			on:click={toggleSidebar}
+			onclick={toggleSidebar}
 		>
 			<img class="h-full" src="icons/vamigaIcon.png" alt="vAmiga Icon" />
 		</button>
