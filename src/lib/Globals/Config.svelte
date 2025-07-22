@@ -56,6 +56,7 @@
     ];
 
     let audioOpts: { opt: Opt, default: string }[] = [
+        {opt: Opt.ASR, default: '0'},
         {opt: Opt.AUDVOL0, default: '100'},
         {opt: Opt.AUDVOL1, default: '100'},
         {opt: Opt.AUDVOL2, default: '100'},
@@ -482,6 +483,10 @@
                 return $amiga.getConfig(assertDefined($wasm.OPT_AUD_SAMPLING_METHOD)).toString();
             case Opt.FILTER_TYPE:
                 return $amiga.getConfig(assertDefined($wasm.OPT_AUD_FILTER_TYPE)).toString();
+            case Opt.BUFFER_SIZE:
+                return $amiga.getConfig(assertDefined($wasm.OPT_BUFFER_SIZE)).toString();
+            case Opt.ASR:
+                return $amiga.getConfig(assertDefined($wasm.OPT_ASR)).toString();
             case Opt.AUDVOL0:
                 return $amiga.getConfig(assertDefined($wasm.OPT_AUD_VOL0)).toString();
             case Opt.AUDVOL1:
@@ -702,6 +707,12 @@
                 break;
             case Opt.FILTER_TYPE:
                 $amiga.configure(assertDefined($wasm.OPT_AUD_FILTER_TYPE), Number(val));
+                break;
+            case Opt.BUFFER_SIZE:
+                $amiga.configure(assertDefined($wasm.OPT_BUFFER_SIZE), Number(val));
+                break;
+            case Opt.ASR:
+                $amiga.configure(assertDefined($wasm.OPT_ASR), Number(val));
                 break;
             case Opt.AUDVOL0:
                 $amiga.configure(assertDefined($wasm.OPT_AUD_VOL0), Number(val));
