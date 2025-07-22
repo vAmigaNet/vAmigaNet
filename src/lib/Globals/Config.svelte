@@ -434,13 +434,13 @@
             case Opt.SLOW_RAM_DELAY:
                 return $amiga.getConfig(assertDefined($wasm.OPT_MEM_SLOW_RAM_DELAY)).toString();
             case Opt.DF0:
-                return $amiga.getConfigId(assertDefined($wasm.OPT_DRIVE_CONNECT, 0)).toString();
+                return $amiga.getConfigId(assertDefined($wasm.OPT_DRIVE_CONNECT), 0).toString();
             case Opt.DF1:
-                return $amiga.getConfigId(assertDefined($wasm.OPT_DRIVE_CONNECT, 1)).toString();
+                return $amiga.getConfigId(assertDefined($wasm.OPT_DRIVE_CONNECT), 1).toString();
             case Opt.DF2:
-                return $amiga.getConfigId(assertDefined($wasm.OPT_DRIVE_CONNECT, 2)).toString();
+                return $amiga.getConfigId(assertDefined($wasm.OPT_DRIVE_CONNECT), 2).toString();
             case Opt.DF3:
-                return $amiga.getConfigId(assertDefined($wasm.OPT_DRIVE_CONNECT, 3)).toString();
+                return $amiga.getConfigId(assertDefined($wasm.OPT_DRIVE_CONNECT), 3).toString();
             case Opt.HD0:
                 return $amiga.getConfigId(assertDefined($wasm.OPT_HDC_CONNECT, 0)).toString();
             case Opt.HD1:
@@ -620,19 +620,20 @@
             case Opt.DF0:
                 break;
             case Opt.DF1:
-                $amiga.configureId(assertDefined($wasm.OPT_DRIVE_CONNECT), 1, Number(val));
-                if (Number(val) == 0) $amiga.configureId(assertDefined($wasm.OPT_DRIVE_CONNECT), 2, 0);
-                if (Number(val) == 0) $amiga.configureId(assertDefined($wasm.OPT_DRIVE_CONNECT), 3, 0);
+                console.log("Opt.DF1: ", Number(val));
+                $amiga.configureId(assertDefined($wasm.OPT_DRIVE_CONNECT),  Number(val), 1);
+                if (Number(val) == 0) $amiga.configureId(assertDefined($wasm.OPT_DRIVE_CONNECT), 0, 2);
+                if (Number(val) == 0) $amiga.configureId(assertDefined($wasm.OPT_DRIVE_CONNECT), 0, 3);
                 break;
             case Opt.DF2:
                 if (Number(val) == 1) $amiga.configureId(assertDefined($wasm.OPT_DRIVE_CONNECT), 1, 1);
-                $amiga.configureId(assertDefined($wasm.OPT_DRIVE_CONNECT), 2, Number(val));
-                if (Number(val) == 0) $amiga.configureId(assertDefined($wasm.OPT_DRIVE_CONNECT), 3, 0);
+                $amiga.configureId(assertDefined($wasm.OPT_DRIVE_CONNECT), Number(val), 2);
+                if (Number(val) == 0) $amiga.configureId(assertDefined($wasm.OPT_DRIVE_CONNECT), 0, 3);
                 break;
             case Opt.DF3:
                 if (Number(val) == 1) $amiga.configureId(assertDefined($wasm.OPT_DRIVE_CONNECT), 1, 1);
-                if (Number(val) == 1) $amiga.configureId(assertDefined($wasm.OPT_DRIVE_CONNECT), 2, 1);
-                $amiga.configureId(assertDefined($wasm.OPT_DRIVE_CONNECT), 3, Number(val));
+                if (Number(val) == 1) $amiga.configureId(assertDefined($wasm.OPT_DRIVE_CONNECT), 1, 2);
+                $amiga.configureId(assertDefined($wasm.OPT_DRIVE_CONNECT), Number(val), 3);
                 break;
             case Opt.HD0:
                 $amiga.configureId(assertDefined($wasm.OPT_HDC_CONNECT), 0, val);
