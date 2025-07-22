@@ -401,6 +401,7 @@
 
             case $wasm.MSG_CONFIG:
                 $MsgConfig++;
+                updateStateVariables();
                 break;
 
             case $wasm.MSG_POWER:
