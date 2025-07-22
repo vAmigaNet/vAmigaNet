@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { amiga, wasm } from '$lib/stores';
+    import { amiga, audioPort, wasm } from '$lib/stores';
 
     let audioContext: AudioContext;
     let insertSound: AudioBuffer;
@@ -22,22 +22,22 @@
         gainNode.gain.value = 1.0;
         gainNode.connect(audioContext.destination);
 
-        console.log('Audio context initialized: ', audioContext.state);
-        $amiga.setSampleRate(audioContext.sampleRate);
+        console.log('Audio context: ', audioContext.state);
+        $audioPort.setSampleRate(audioContext.sampleRate);
         await audioContext.audioWorklet.addModule('js/audio-processor.js');
 
         console.log('Audio Worklet module loaded');
         const audioNode = new AudioWorkletNode(audioContext, 'audio-processor', {
             outputChannelCount: [2],
             processorOptions: {
-                pointers: [$amiga.leftChannelBuffer(), $amiga.rightChannelBuffer()],
+                pointers: [$audioPort.leftChannelBuffer(), $audioPort.rightChannelBuffer()],
                 buffer: $wasm.HEAPF32.buffer,
                 length: 2048
             }
         });
         console.log('Audio Worklet Node created');
         audioNode.port.onmessage = (e) => {
-            $amiga.updateAudio(e.data);
+            $audioPort.updateAudio(e.data);
         };
         // audioNode.connect(audioContext.destination);
         audioNode.connect(gainNode);

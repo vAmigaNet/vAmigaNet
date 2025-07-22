@@ -387,59 +387,11 @@ Message AmigaProxy::readMessage()
     return msg;
 }
 
-void AmigaProxy::updateAudio(int offset)
-{
-    assert(offset == 0 || offset == leftChannel.size / 2);
-
-    float *left = leftChannel.ptr + offset;
-    float *right = rightChannel.ptr + offset;
-    amiga->audioPort.copyStereo(left, right, leftChannel.size / 2);
-}
-
-u32 AmigaProxy::leftChannelBuffer()
-{
-    if (leftChannel.size == 0)
-        leftChannel.init(2048, 0);
-    return (u32)leftChannel.ptr;
-}
-
-u32 AmigaProxy::rightChannelBuffer()
-{
-    if (rightChannel.size == 0)
-        rightChannel.init(2048, 0);
-    return (u32)rightChannel.ptr;
-}
-
 int AmigaProxy::getFileType(const string &blob)
 {
     TRY
-
     printf("AmigaProxy::getFileType(%s)\n", blob.c_str());
-
     return (int)MediaFile::type(blob);
-    // std::stringstream stream;
-    // stream.write((const char *)blob.data(), blob.size());
-
-    /* TODO
-    if (Snapshot::isCompatible(stream))
-        return (int)FILETYPE_SNAPSHOT;
-    if (RomFile::isCompatible(stream))
-        return (int)FILETYPE_ROM;
-    if (ExtendedRomFile::isCompatible(stream))
-        return (int)FILETYPE_EXTENDED_ROM;
-    if (ADFFile::isCompatible(stream))
-        return (int)FILETYPE_ADF;
-    if (EADFFile::isCompatible(stream))
-        return (int)FILETYPE_EADF;
-    if (DMSFile::isCompatible(stream))
-        return (int)FILETYPE_DMS;
-    if (EXEFile::isCompatible(stream))
-        return (int)FILETYPE_EXE;
-    if (HDFFile::isCompatible(stream))
-        return (int)FILETYPE_HDF;
-    return (int)FileType::UNKNOWN;
-    */
-
     CATCH
 }
 
@@ -552,14 +504,46 @@ EMSCRIPTEN_BINDINGS(AmigaProxy)
         .function("attachHardDrive", &AmigaProxy::attachHardDrive)
         .function("detachHardDrive", &AmigaProxy::detachHardDrive)
 
-        .function("setSampleRate", &AmigaProxy::setSampleRate)
-        .function("updateAudio", &AmigaProxy::updateAudio)
-        .function("leftChannelBuffer", &AmigaProxy::leftChannelBuffer)
-        .function("rightChannelBuffer", &AmigaProxy::rightChannelBuffer)
-        .function("audioFillLevel", &AmigaProxy::audioFillLevel)
-
         .function("setAlarmAbs", &AmigaProxy::setAlarmAbs)
         .function("setAlarmRel", &AmigaProxy::setAlarmRel);
+}
+
+//
+// AudioPort proxy
+// 
+
+void AudioPortProxy::updateAudio(int offset)
+{
+    assert(offset == 0 || offset == leftChannel.size / 2);
+
+    float *left = leftChannel.ptr + offset;
+    float *right = rightChannel.ptr + offset;
+    amiga->audioPort.copyStereo(left, right, leftChannel.size / 2);
+}
+
+u32 AudioPortProxy::leftChannelBuffer()
+{
+    if (leftChannel.size == 0)
+        leftChannel.init(2048, 0);
+    return (u32)leftChannel.ptr;
+}
+
+u32 AudioPortProxy::rightChannelBuffer()
+{
+    if (rightChannel.size == 0)
+        rightChannel.init(2048, 0);
+    return (u32)rightChannel.ptr;
+}
+
+EMSCRIPTEN_BINDINGS(AudioPortProxy)
+{
+    class_<AudioPortProxy>("AudioPortProxy")
+        .constructor<>()
+        .function("setSampleRate", &AudioPortProxy::setSampleRate)
+        .function("updateAudio", &AudioPortProxy::updateAudio)
+        .function("leftChannelBuffer", &AudioPortProxy::leftChannelBuffer)
+        .function("rightChannelBuffer", &AudioPortProxy::rightChannelBuffer)
+        .function("audioFillLevel", &AudioPortProxy::audioFillLevel);
 }
 
 //

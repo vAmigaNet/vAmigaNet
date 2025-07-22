@@ -84,9 +84,6 @@ struct AmigaProxy
 {
     AmigaProxy();
 
-    util::Buffer<float> leftChannel;
-    util::Buffer<float> rightChannel;
-
     // Handling messages
     Message readMessage();
 
@@ -127,13 +124,6 @@ struct AmigaProxy
     // Analyzing
     u32 cpuLoad() { TRY return u32(amiga->getStats().cpuLoad * 100.0); CATCH }
 
-    // Managing audio (TODO: MOVE TO PAULA PROXY?)
-    u32 audioFillLevel() { TRY return u32(amiga->audioPort.getStats().fillLevel * 100.0); CATCH }
-    void setSampleRate(unsigned sample_rate) { TRY amiga->set(Opt::HOST_SAMPLE_RATE, sample_rate); CATCH }
-    void updateAudio(int offset);
-    u32 leftChannelBuffer();
-    u32 rightChannelBuffer();
-
     // Handling media files
     int getFileType(const string &blob);
     
@@ -148,6 +138,20 @@ struct AmigaProxy
     // Managing alarms
     void setAlarmAbs(int frames, int payload);
     void setAlarmRel(int frames, int payload);
+};
+
+struct AudioPortProxy
+{
+    AudioPortProxy() { };
+
+    util::Buffer<float> leftChannel;
+    util::Buffer<float> rightChannel;
+
+    u32 audioFillLevel() { TRY return u32(amiga->audioPort.getStats().fillLevel * 100.0); CATCH }
+    void setSampleRate(unsigned sample_rate) { TRY amiga->set(Opt::HOST_SAMPLE_RATE, sample_rate); CATCH }
+    void updateAudio(int offset);
+    u32 leftChannelBuffer();
+    u32 rightChannelBuffer();
 };
 
 struct CPUProxy

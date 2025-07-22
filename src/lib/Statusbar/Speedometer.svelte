@@ -1,9 +1,6 @@
 <script lang="ts">
-	import type { ActionEvent } from '$lib/types';
 	import { onMount } from 'svelte';
-	import { wasm, amiga, cpu, agnus } from '$lib/stores';
-	import { darkTheme } from '$lib/stores';
-	import Menu from '$lib/Widgets/Menu.svelte';
+	import { wasm, amiga, audioPort, cpu, agnus } from '$lib/stores';
 	import SelectMenu from '$lib/Widgets/SelectMenu.svelte';
 	import { MenuItem } from '$lib/types';
 
@@ -103,7 +100,7 @@
 				value = gpuFps.toFixed(0) + ' Hz';
 				break;
 			case 4:
-				value = $amiga.audioFillLevel() + '%';
+				value = $audioPort.audioFillLevel() + '%';
 				break;
 			default:
 				value = '---';

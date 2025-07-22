@@ -11,6 +11,7 @@ export const initialized = writable(false);
 // Proxies
 export const agnus: any = writable();
 export const amiga: any = writable();
+export const audioPort: any = writable();
 export const cpu: any = writable();
 export const denise: any = writable();
 export const df0: any = writable();

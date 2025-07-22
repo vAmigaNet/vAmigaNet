@@ -9,6 +9,7 @@
         agnus,
         amiga,
         audio,
+        audioPort,
         config,
         cpu,
         debugDma,
@@ -290,6 +291,7 @@
     {
         console.log('Creating proxies...');
         $agnus = new $wasm.AgnusProxy();
+        $audioPort = new $wasm.AudioPortProxy();
         $cpu = new $wasm.CPUProxy();
         $denise = new $wasm.DeniseProxy();
         $df0 = new $wasm.DriveProxy(0);
