@@ -58,7 +58,8 @@
 	}
 
 	function gotoGitHub() {
-		goto('https://dirkwhoffmann.github.io/vAmiga');
+		window.location.href = "https://github.com/dirkwhoffmann/vAmigaNet";
+		// goto('https://dirkwhoffmann.github.io/vAmiga');
 	}
 
 	async function openShowcases() {
@@ -123,7 +124,7 @@
 										vAmiga<span class="opacity-75">.net</span>
 									</div>
 								</div>
-								<div class="font-sofia-semi pb-10 pl-2 text-xl">Version 2.0 alpha</div>
+								<div class="font-sofia-semi pb-10 pl-2 text-xl">Version 2.0 beta 1</div>
 								<div class="flex space-x-5">
 									<div class="tooltip tooltip-primary" data-tip="Power On">
 										<button class="btn btn-lg btn-outline btn-square p-1.5" on:click={switchOn}>

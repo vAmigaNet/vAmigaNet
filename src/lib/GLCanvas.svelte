@@ -223,8 +223,8 @@
 	}
 
 	function updateTextureRect(x1: number, y1: number, x2: number, y2: number) {
-        // console.log(`updateTextureRect(${x1}, ${y1}, ${x2}, ${y2})`);
-        const array = new Float32Array([x1, y1, x2, y1, x1, y2, x2, y2]);
+		// console.log(`updateTextureRect(${x1}, ${y1}, ${x2}, ${y2})`);
+		const array = new Float32Array([x1, y1, x2, y1, x1, y2, x2, y2]);
 		gl.bindBuffer(gl.ARRAY_BUFFER, tBuffer);
 		gl.bufferSubData(gl.ARRAY_BUFFER, 0, array);
 	}
@@ -548,8 +548,6 @@
 	}
 
 	function keyDownAction(e: KeyboardEvent) {
-		console.log('keyDownAction', e.code);
-
 		if (e.repeat) {
 			return;
 		}
@@ -557,7 +555,6 @@
 		// Check for joystick emulation keys on port 1
 		let events = keyDownEvents(e.code, 1);
 		if (events?.length) {
-			console.log('Emulation keys: ', events);
 			events?.forEach((event) => $joystick1.trigger(event));
 			return; // Only if "connect emulation keys"
 		}
@@ -603,10 +600,8 @@
 	function lockChangeAlert() {
 		if (document.pointerLockElement === canvas) {
 			document.addEventListener('mousemove', mouseMove, false);
-			console.log('addEventListener: mousemove:', isLocked());
 		} else {
 			document.removeEventListener('mousemove', mouseMove);
-			console.log('removeEventListener: mousemove:', isLocked());
 		}
 	}
 
@@ -639,10 +634,7 @@
 	}
 
 	async function mouseDown(e: MouseEvent) {
-		console.log('mousedown: ', e.button);
-
 		if (!isLocked()) {
-			console.log('Locking mouse...');
 			await lockMouse();
 		} else {
 			switch (e.button) {
@@ -660,7 +652,6 @@
 	}
 
 	function mouseUp(e: MouseEvent) {
-		console.log('mouseUp: ', e.button);
 		switch (e.button) {
 			case 0:
 				mousePort()?.trigger($wasm.RELEASE_LEFT);
@@ -678,12 +669,12 @@
 			? 'image-rendering: auto'
 			: 'image-rendering: pixelated'
 	);
- 
-    $effect(() => { 
-        if (gl) {
+
+	$effect(() => {
+		if (gl) {
 			updateTextureRect(tx1, ty1, tx2, ty2);
 		}
-    })
+	});
 
 	//
 	// Mouse
@@ -691,8 +682,6 @@
 
 	$effect(() => {
 		if ($MsgShaking) {
-			console.log('MSG_SHAKING received');
-
 			// Release the mouse if configured so
 			if ($config.getBool(Opt.SHAKING)) unlockMouse();
 		}

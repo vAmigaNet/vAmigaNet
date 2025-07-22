@@ -21,7 +21,6 @@
 	function click(e: Event) {
 		e.preventDefault();
 		state = toggle ? !state : true;
-		console.log('toggle = ', toggle);
 		select((e.target as HTMLElement).id, state);
 	}
 </script>
