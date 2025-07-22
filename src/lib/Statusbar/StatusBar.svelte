@@ -30,14 +30,23 @@
 	import WarpControl from './WarpControl.svelte';
 	import FileDialog from '$lib/Utils/FileDialog.svelte';
 
+	/*
+	interface Props {
+		connected: boolean[];
+	}
+	let {
+		connected = [false, false, false, false],
+	}: Props = $props();
+	*/
+
 	// Bindings
 	let speedometer: Speedometer;
 	let fdialog: FileDialog;
 
-	$: muteIcon = $muted || $warp;
-	$: debugIcon = $track;
-	$: haltIcon = $halted;
-
+	let muteIcon = $derived($muted || $warp);
+	let debugIcon = $derived($track);
+	let haltIcon = $derived($halted);
+	
 	const bg = 'bg-gradient-to-t from-primary to-primary/80';
 
 	export function update(animationFrame: number, now: DOMHighResTimeStamp) {
@@ -96,6 +105,12 @@
 				console.warn('Invalid menu item', tag);
 		}
 	}
+
+	
+	$effect(() => {
+		if ($dfConnected) console.log("dfCOnnected = ", $dfConnected);
+	});
+	
 </script>
 
 <FileDialog bind:this={fdialog}></FileDialog>
