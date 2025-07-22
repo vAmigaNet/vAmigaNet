@@ -39,7 +39,7 @@ MsgQueue::get(Message &msg)
         if (queue.isEmpty()) return false;
 
         msg = queue.read();
-        // printf("MsgQueue: %s [%llx]\n", MsgEnum::key(msg.type), msg.value);
+        printf("MsgQueue: (%ld) %s [%llx]\n", queue.count(), MsgEnum::key(msg.type), msg.value);
         return true;
     }
 }
@@ -62,9 +62,14 @@ MsgQueue::put(const Message &msg)
 
             // Otherwise, store it in the ring buffer
             if (!queue.isFull()) {
-                queue.write(msg);
+                auto *current = queue.currentAddr(); 
+                if (current->type == msg.type) {
+                    *current = msg; 
+                } else {
+                    queue.write(msg);
+                }
             } else {
-                warn("Message lost: %s [%llx]\n", MsgEnum::key(msg.type), msg.value);
+                    warn("Message lost: %s [%llx]\n", MsgEnum::key(msg.type), msg.value);
             }
         }
     }
