@@ -502,7 +502,6 @@ EMSCRIPTEN_BINDINGS(AmigaProxy)
         .function("insertDisk", &AmigaProxy::insertDisk)
         .function("ejectDisk", &AmigaProxy::ejectDisk)
         .function("attachHardDrive", &AmigaProxy::attachHardDrive)
-        .function("detachHardDrive", &AmigaProxy::detachHardDrive)
 
         .function("setAlarmAbs", &AmigaProxy::setAlarmAbs)
         .function("setAlarmRel", &AmigaProxy::setAlarmRel);
@@ -740,7 +739,6 @@ EMSCRIPTEN_BINDINGS(DiskControllerProxy)
 {
     class_<DiskControllerProxy>("DiskControllerProxy")
         .constructor<>()
-        .function("isSpinning", &DiskControllerProxy::isSpinning)
         .function("getSelected", &DiskControllerProxy::getSelected)
         .function("getState", &DiskControllerProxy::getState);
 }

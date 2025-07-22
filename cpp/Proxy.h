@@ -133,7 +133,6 @@ struct AmigaProxy
 
     // Juggling hard drives
     bool attachHardDrive(const string &blob, u8 drive);
-    void detachHardDrive(u8 drive) { TRY /* TODO */ CATCH }
 
     // Managing alarms
     void setAlarmAbs(int frames, int payload);
@@ -167,14 +166,12 @@ struct DeniseProxy
 
     // Textures
     TextureWrapper getEmulatorTexture();
-    // u32 noise() const { TRY return (u32)amiga->denise.pixelEngine.getNoise(); CATCH }
 };
 
 struct DiskControllerProxy
 {
     DiskControllerProxy();
 
-    bool isSpinning() const { return false; } /* TODO */ // amiga->paula.diskController.spinning(); }
     int getSelected() const { return amiga->paula.diskController.getInfo().selectedDrive; }
     int getState() const { return (int)amiga->paula.diskController.getInfo().state; }
 };
