@@ -414,8 +414,11 @@ int AmigaProxy::getFileType(const string &blob)
 {
     TRY
 
-        std::stringstream stream;
-    stream.write((const char *)blob.data(), blob.size());
+    printf("AmigaProxy::getFileType(%s)\n", blob.c_str());
+
+    return (int)MediaFile::type(blob);
+    // std::stringstream stream;
+    // stream.write((const char *)blob.data(), blob.size());
 
     /* TODO
     if (Snapshot::isCompatible(stream))
@@ -434,8 +437,8 @@ int AmigaProxy::getFileType(const string &blob)
         return (int)FILETYPE_EXE;
     if (HDFFile::isCompatible(stream))
         return (int)FILETYPE_HDF;
-    */
     return (int)FileType::UNKNOWN;
+    */
 
     CATCH
 }

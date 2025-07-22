@@ -267,7 +267,6 @@
                 console.log(`Failed to add Kickstart`, error);
                 throw error;
             }
-            console.log("Opening Kickstart viewer");
             $layer = Layer.kickstart;
         }
     }

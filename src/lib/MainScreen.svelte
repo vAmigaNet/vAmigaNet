@@ -35,12 +35,27 @@
 		const file = item.getAsFile();
 		if (!file) return;
 
+		// Get the file name here
+		const filename = file.name;
+		console.log("Dropped file:", filename);
+
 		// Get the file data
 		let blob = await file.arrayBuffer();
 		let uint8View = new Uint8Array(blob);
 
+		// Assume file is a File object
+		const buffer = await file.arrayBuffer();
+		const uint8Array = new Uint8Array(buffer);
+
+		// Write into the WASM virtual filesystem
+		let tmpName = filename;
+		console.log("tmp name:", tmpName);
+		console.log("WASM.FS", $wasm.FS);
+		$wasm.FS.writeFile(tmpName, uint8View);
+		console.log("Checking type...");
+
 		// Check the file type
-		switch ($amiga.getFileType(blob)) {
+		switch ($amiga.getFileType(tmpName)) {
 			case $wasm.FILETYPE_ROM:
 				await handleDraggedRom(uint8View);
 				return;

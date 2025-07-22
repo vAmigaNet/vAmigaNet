@@ -137,7 +137,7 @@
 	let fdialog: FileDialog | undefined = $state();
 
 	function addRomAction() {
-		fdialog.open().then(
+		fdialog?.open().then(
 			function (value) {
 				console.log('open file dialog', value);
 				$proxy.addRom(value);
