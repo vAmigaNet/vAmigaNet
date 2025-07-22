@@ -620,7 +620,6 @@
             case Opt.DF0:
                 break;
             case Opt.DF1:
-                console.log("Opt.DF1: ", Number(val));
                 $amiga.configureId(assertDefined($wasm.OPT_DRIVE_CONNECT),  Number(val), 1);
                 if (Number(val) == 0) $amiga.configureId(assertDefined($wasm.OPT_DRIVE_CONNECT), 0, 2);
                 if (Number(val) == 0) $amiga.configureId(assertDefined($wasm.OPT_DRIVE_CONNECT), 0, 3);

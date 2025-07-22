@@ -465,6 +465,8 @@ EMSCRIPTEN_BINDINGS(AmigaProxy)
     class_<AmigaProxy>("AmigaProxy")
         .constructor<>()
         .function("readMessage", &AmigaProxy::readMessage)
+        .function("lockMsgQueue", &AmigaProxy::lockMsgQueue)
+        .function("unlockMsgQueue", &AmigaProxy::unlockMsgQueue)
 
         .function("launch", &AmigaProxy::launch)
         .function("wakeUp", &AmigaProxy::wakeUp)

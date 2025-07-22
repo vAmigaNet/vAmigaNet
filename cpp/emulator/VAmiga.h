@@ -1640,7 +1640,10 @@ public:
     /** @brief  Reads a message from the message queue
      */
     bool getMsg(Message &msg);
+    void lockMsgQueue();
+    void unlockMsgQueue();
 
+    
     /// @}
     /// @name Querying the emulator state
     /// @{

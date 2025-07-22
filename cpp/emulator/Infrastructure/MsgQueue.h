@@ -50,6 +50,9 @@ public:
     
 public:
     
+    void lock() { mutex.lock(); }
+    void unlock() { mutex.unlock(); }
+    
     // Registers a listener together with it's callback function
     void setListener(const void *listener, Callback *func);
 

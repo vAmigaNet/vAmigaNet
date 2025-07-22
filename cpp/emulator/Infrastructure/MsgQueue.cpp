@@ -39,7 +39,7 @@ MsgQueue::get(Message &msg)
         if (queue.isEmpty()) return false;
 
         msg = queue.read();
-        printf("MsgQueue: (%ld) %s [%llx]\n", queue.count(), MsgEnum::key(msg.type), msg.value);
+        // printf("MsgQueue: (%ld) %s [%llx]\n", queue.count(), MsgEnum::key(msg.type), msg.value);
         return true;
     }
 }

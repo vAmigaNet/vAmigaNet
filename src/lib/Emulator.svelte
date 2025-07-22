@@ -79,13 +79,15 @@
         */
 
 		// Process pending messages
-		console.log("Processing messages");
+		// console.log("Processing messages");
+		$amiga.lockMsgQueue();
 		while (1) {
 			let msg = $amiga.readMessage();
 			if (msg.type == $wasm.Msg.NONE) break;
 
 			$wasm.processMsg(msg);
 		}
+		$amiga.unlockMsgQueue();
 
 		if ($poweredOn) {
 			update(now);
