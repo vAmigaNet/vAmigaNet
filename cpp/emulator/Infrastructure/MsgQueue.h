@@ -62,6 +62,9 @@ public:
     // Reads a message
     bool get(Message &msg);
 
+    // Reads multiple messages. Returns the number of messages
+    isize get(isize count, Message *buffer);
+
     // Sends a message
     void put(const Message &msg);
     void put(Msg type, i64 payload = 0, i64 payload2 = 0);

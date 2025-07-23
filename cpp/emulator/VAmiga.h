@@ -1599,11 +1599,11 @@ public:
     RecorderAPI recorder;
     RemoteManagerAPI remoteManager;
     RetroShellAPI retroShell;
-    
+
     // Shortcuts
     FloppyDriveAPI *df[4] = { &df0, &df1, &df2, &df3 };
     HardDriveAPI *hd[4] = { &hd0, &hd1, &hd2, &hd3 };
-    
+
 
     //
     // Static methods
@@ -1636,7 +1636,7 @@ public:
     /** @brief  Returns statistical information about the components.
      */
     const EmulatorStats &getStats() const;
-    
+
     /** @brief  Reads a message from the message queue
      */
     bool getMsg(Message &msg);
