@@ -1,7 +1,6 @@
 <script lang="ts">
 
 	let {
-		tag = 0,
 		value = 0,
 		locked = false,
 		min = 0,
@@ -10,7 +9,6 @@
         select = () => {},
 		children
 	}: {
-		tag?: number;
 		value?: number;
 		locked?: boolean;
 		min?: number;
@@ -23,7 +21,7 @@
 	function sliderAction(e: Event) {
 		e.preventDefault();
 		value = Number((e.target as HTMLInputElement).value);
-        console.log('tag', tag, 'value', value);
+        // console.log('tag', tag, 'value', value);
         select(value);
 	}
 </script>

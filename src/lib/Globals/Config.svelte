@@ -442,13 +442,13 @@
             case Opt.DF3:
                 return $amiga.getConfigId(assertDefined($wasm.OPT_DRIVE_CONNECT), 3).toString();
             case Opt.HD0:
-                return $amiga.getConfigId(assertDefined($wasm.OPT_HDC_CONNECT, 0)).toString();
+                return $amiga.getConfigId(assertDefined($wasm.OPT_HDC_CONNECT), 0).toString();
             case Opt.HD1:
-                return $amiga.getConfigId(assertDefined($wasm.OPT_HDC_CONNECT, 1)).toString();
+                return $amiga.getConfigId(assertDefined($wasm.OPT_HDC_CONNECT), 1).toString();
             case Opt.HD2:
-                return $amiga.getConfigId(assertDefined($wasm.OPT_HDC_CONNECT, 2)).toString();
+                return $amiga.getConfigId(assertDefined($wasm.OPT_HDC_CONNECT), 2).toString();
             case Opt.HD3:
-                return $amiga.getConfigId(assertDefined($wasm.OPT_HDC_CONNECT, 3)).toString();
+                return $amiga.getConfigId(assertDefined($wasm.OPT_HDC_CONNECT), 3).toString();
 
                 //
                 // Compatibility settings

@@ -401,6 +401,7 @@
 
             case $wasm.MSG_CONFIG:
                 $MsgConfig++;
+                $config = $config;
                 updateStateVariables();
                 break;
 
