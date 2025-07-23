@@ -504,13 +504,13 @@
             case Opt.AUDVOLR:
                 return $amiga.getConfig(assertDefined($wasm.OPT_AUD_VOLR)).toString();
             case Opt.STEP_VOLUME:
-                return 0; //$amiga.getConfigId(unwrap($wasm.OPT_AUD_STEP_VOLUME, 0)).toString();
+                return $amiga.getConfigId(assertDefined($wasm.OPT_DRIVE_STEP_VOLUME), 0).toString();
             case Opt.POLL_VOLUME:
-                return 0;// $amiga.getConfigId(unwrap($wasm.OPT_AUD_POLL_VOLUME, 0)).toString();
+                return $amiga.getConfigId(assertDefined($wasm.OPT_DRIVE_POLL_VOLUME), 0).toString();
             case Opt.INSERT_VOLUME:
-                return 0; //$amiga.getConfigId(unwrap($wasm.OPT_AUD_INSERT_VOLUME, 0)).toString();
+                return $amiga.getConfigId(assertDefined($wasm.OPT_DRIVE_INSERT_VOLUME), 0).toString();
             case Opt.EJECT_VOLUME:
-                return 0; //$amiga.getConfigId(unwrap($wasm.OPT_AUD_EJECT_VOLUME, 0)).toString();
+                return $amiga.getConfigId(assertDefined($wasm.OPT_DRIVE_EJECT_VOLUME), 0).toString();
 
             //
             // Video settings
@@ -737,16 +737,16 @@
                 $amiga.configure(assertDefined($wasm.OPT_AUD_VOLR), Number(val));
                 break;
             case Opt.STEP_VOLUME:
-                // $amiga.configure(assertDefined($wasm.OPT_AUD_STEP_VOLUME), Number(val));
+                $amiga.configureId(assertDefined($wasm.OPT_DRIVE_STEP_VOLUME), Number(val), 0);
                 break;
             case Opt.POLL_VOLUME:
-                // $amiga.configure(assertDefined($wasm.OPT_AUD_POLL_VOLUME), Number(val));
+                $amiga.configureId(assertDefined($wasm.OPT_DRIVE_POLL_VOLUME), Number(val), 0);
                 break;
             case Opt.INSERT_VOLUME:
-                // $amiga.configure(assertDefined($wasm.OPT_AUD_INSERT_VOLUM), Number(val));
+                $amiga.configureId(assertDefined($wasm.OPT_DRIVE_INSERT_VOLUME), Number(val), 0);
                 break;
             case Opt.EJECT_VOLUME:
-                // $amiga.configure(assertDefined($wasm.OPT_AUD_EJECT_VOLUME, Number(val));
+                $amiga.configureId(assertDefined($wasm.OPT_DRIVE_EJECT_VOLUME), Number(val), 0);
                 break;
 
             //

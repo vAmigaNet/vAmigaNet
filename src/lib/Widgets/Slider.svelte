@@ -1,5 +1,4 @@
 <script lang="ts">
-	import type { ActionEvent } from '$lib/types';
 
 	let {
 		tag = 0,
